@@ -1,21 +1,11 @@
 """
 DayZ Trader Bot - Main Entry Point
-Loads all cogs and starts the bot + Flask web server
 """
-
 import discord
 from discord.ext import commands
 import asyncio
 import os
 from dotenv import load_dotenv
-from threading import Thread
-from web.app import create_app
-from bot.services.economy import EconomyService
-from bot.services.shop import ShopService
-from bot.services.market import MarketService
-from bot.services.delivery import DeliveryService
-from bot.services.delivery_queue import DeliveryQueue
-from db.init_db import init_db
 
 load_dotenv()
 
@@ -25,27 +15,16 @@ intents.members = True
 
 class DayZTraderBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=intents)
-        self.economy = None
-        self.shop = None
-        self.market = None
-        self.delivery = None
-        self.delivery_queue = None
+        super().__init__(
+            command_prefix="!",
+            intents=intents,
+            application_id=os.getenv("APPLICATION_ID")
+        )
 
     async def setup_hook(self):
-        await init_db()
-
-        self.economy = EconomyService()
-        self.shop = ShopService(self.economy)
-        self.market = MarketService(self.economy)
-        self.delivery = DeliveryService(
-            nitrado_token=os.getenv("NITRADO_TOKEN"),
-            server_id=os.getenv("NITRADO_SERVER_ID")
-        )
-        self.delivery_queue = DeliveryQueue(self.delivery)
-
         # Load all cogs
         cogs = [
+            "bot.cogs.economy",
             "bot.cogs.trader",
             "bot.cogs.market",
             "bot.cogs.casino",
@@ -53,29 +32,34 @@ class DayZTraderBot(commands.Bot):
             "bot.cogs.admin",
         ]
         for cog in cogs:
-            await self.load_extension(cog)
-            print(f"Loaded cog: {cog}")
+            try:
+                await self.load_extension(cog)
+                print(f"✅ Loaded: {cog}")
+            except Exception as e:
+                print(f"❌ Failed to load {cog}: {e}")
 
-        await self.tree.sync()
-        print("Slash commands synced.")
-
-        # Start delivery queue processor
-        asyncio.create_task(self.delivery_queue.process_loop())
+        # Sync slash commands
+        guild_id = os.getenv("GUILD_ID")
+        if guild_id:
+            guild = discord.Object(id=int(guild_id))
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            print(f"✅ Commands synced to guild {guild_id}")
+        else:
+            await self.tree.sync()
+            print("✅ Commands synced globally")
 
     async def on_ready(self):
-        print(f"Bot ready: {self.user} (ID: {self.user.id})")
+        print(f"✅ Bot online: {self.user} (ID: {self.user.id})")
         await self.change_presence(
-            activity=discord.Game(name="DayZ Trader | /shop")
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="the DayZ Trader"
+            )
         )
-
-def run_flask(app):
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
 
 async def main():
     bot = DayZTraderBot()
-    flask_app = create_app(bot)
-    flask_thread = Thread(target=run_flask, args=(flask_app,), daemon=True)
-    flask_thread.start()
     async with bot:
         await bot.start(os.getenv("DISCORD_TOKEN"))
 

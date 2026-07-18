@@ -1,55 +1,87 @@
+# DayZ Trader Bot Configuration
+
 bot:
   prefix: "!"
   admin_role: "Trader Admin"
   log_channel: "admin-logs"
-  delivery_log_channel: "delivery-log"
-  shop_channel: "trader-shop"
+  announce_channel: "general"
+  trader_channel: "trader"
   market_channel: "player-market"
 
+nitrado:
+  base_url: "https://api.nitrado.net"
+  # token and server_id loaded from .env
+  files:
+    types_xml: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/db/types.xml"
+    events_xml: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/events.xml"
+    cfgspawnabletypes: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
+    cfgeconomycore: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/cfgeconomycore.xml"
+
 economy:
-  starting_balance: 5000
-  daily_reward: 500
+  starting_balance: 1000
   currency_name: "Credits"
-  currency_emoji: "💰"
+  currency_symbol: "💰"
+  daily_reward: 500
+  daily_cooldown_hours: 24
 
 shop:
   enabled: true
-  tax_rate: 0.05
-  max_bundle_items: 20
-  purchase_cooldown_seconds: 10
+  tax_rate: 0.05  # 5% tax on all purchases
+  max_bundle_items: 10
+  categories:
+    - weapons
+    - vehicles
+    - clothing
+    - food
+    - tools
+    - ammo
+    - medical
+    - building
 
 market:
   enabled: true
+  listing_fee: 50
   max_listings_per_player: 5
-  listing_fee_pct: 0.02
-  listing_duration_days: 7
+  listing_expiry_hours: 72
+  escrow_enabled: true
   min_price: 100
-  escrow_release_on_delivery_confirm: true
+  max_price: 500000
 
 delivery:
-  ce_cycle_wait_seconds: 300
-  item_lifetime_seconds: 7200
-  vehicle_lifetime_seconds: 14400
-  types_xml_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/db/types.xml"
-  events_xml_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/db/events.xml"
-  cfgspawnabletypes_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
-  delivery_zones:
-    NWAF: {x: 4498.0, z: 10050.0}
-    Airfield: {x: 7580.0, z: 2380.0}
-    Berezino: {x: 11832.0, z: 9132.0}
-    Cherno: {x: 3005.0, z: 2496.0}
-    Elektro: {x: 5765.0, z: 2328.0}
-    BalotaAF: {x: 1316.0, z: 2426.0}
-    Zelenogorsk: {x: 2506.0, z: 6146.0}
-    Vybor: {x: 3852.0, z: 8450.0}
-
-casino:
-  enabled: true
-  min_bet: 100
-  max_bet: 50000
-  max_daily_losses: 100000
-  large_win_threshold: 10000
-  cooldown_seconds: 15
+  # CE cycle based - NO forced restarts
+  item_lifetime_seconds: 7200     # 2 hours to collect
+  vehicle_lifetime_seconds: 14400 # 4 hours to collect
+  restock_value: 0                # spawn on next CE cycle
+  # Pre-configured delivery zones (admin picks on purchase confirm)
+  zones:
+    NWAF:
+      x: 4541.0
+      z: 11254.0
+      description: "Northwest Airfield"
+    Berezino:
+      x: 11822.0
+      z: 9234.0
+      description: "Berezino"
+    Elektro:
+      x: 10440.0
+      z: 2500.0
+      description: "Elektrozavodsk"
+    Cherno:
+      x: 7200.0
+      z: 2400.0
+      description: "Chernogorsk"
+    Balota:
+      x: 6091.0
+      z: 2400.0
+      description: "Balota Airstrip"
+    NEAF:
+      x: 13412.0
+      z: 13100.0
+      description: "Northeast Airfield"
+    Tisy:
+      x: 1050.0
+      z: 13210.0
+      description: "Tisy Military Base"
 
 raffle:
   enabled: true
@@ -62,10 +94,39 @@ raffle:
   announce_channel: "general"
   admin_log_channel: "admin-logs"
 
-nitrado:
-  api_base: "https://api.nitrado.net"
+casino:
+  enabled: true
+  games:
+    poker:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 30
+    blackjack:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 20
+    slots:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      machines: [classic, diamond, lucky, deluxe, mega]
+      cooldown_seconds: 10
+    roulette:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 15
+    horse_race:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 25
+  max_daily_losses: 100000
+  loss_warning_threshold: 5000
 
 web:
   host: "0.0.0.0"
   port: 5000
-  secret_key: "CHANGE_ME_IN_ENV"
+  debug: false
