@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DayZ Trader Admin</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h2>⚙️ DayZ Trader</h2>
+    <small>Admin Dashboard</small>
+  </div>
+  <a class="nav-item active" onclick="showSection('overview')">
+    <span class="nav-icon">📊</span> Overview
+  </a>
+  <a class="nav-item" onclick="showSection('shop')">
+    <span class="nav-icon">🛒</span> Shop Items
+  </a>
+  <a class="nav-item" onclick="showSection('market')">
+    <span class="nav-icon">🏪</span> Marketplace
+  </a>
+  <a class="nav-item" onclick="showSection('delivery')">
+    <span class="nav-icon">📦</span> Delivery Queue
+  </a>
+  <a class="nav-item" onclick="showSection('economy')">
+    <span class="nav-icon">💰</span> Economy
+  </a>
+  <a class="nav-item" onclick="showSection('raffle')">
+    <span class="nav-icon">🎰</span> Raffle
+  </a>
+  <a class="nav-item" onclick="showSection('casino')">
+    <span class="nav-icon">🃏</span> Casino
+  </a>
+  <a class="nav-item" onclick="showSection('audit')">
+    <span class="nav-icon">📋</span> Audit Log
+  </a>
+  <a class="nav-item" href="/map" style="margin-top:auto">
+    <span class="nav-icon">🗺️</span> Map
+  </a>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="section active">
+    <div class="page-header">
+      <h1>📊 Overview</h1>
+      <span class="status-badge" id="bot-status">● ONLINE</span>
+    </div>
+    <div class="cards-row" id="overview-cards">
+      <div class="card"><div class="card-label">Total Players</div><div class="card-value" id="stat-players">—</div></div>
+      <div class="card"><div class="card-label">Active Listings</div><div class="card-value" id="stat-listings">—</div></div>
+      <div class="card"><div class="card-label">Delivery Queue</div><div class="card-value" id="stat-queue">—</div></div>
+      <div class="card"><div class="card-label">Shop Items</div><div class="card-value" id="stat-items">—</div></div>
+    </div>
+    <div class="table-wrap">
+      <h3>📋 Recent Audit Events</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Type</th><th>Actor</th><th>Amount</th><th>Notes</th></tr></thead>
+        <tbody id="audit-recent"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SHOP -->
+  <div id="shop" class="section">
+    <div class="page-header"><h1>🛒 Shop Items</h1></div>
+    <div class="table-wrap" style="padding:18px; margin-bottom:16px">
+      <h3>➕ Add Item / Bundle</h3>
+      <div class="form-grid" style="margin-top:12px">
+        <div><label>Item ID</label><input id="s-id" placeholder="akm_custom"></div>
+        <div><label>DayZ Classname</label><input id="s-class" placeholder="AKM_Chaos"></div>
+        <div><label>Display Name</label><input id="s-name" placeholder="AK-74M"></div>
+        <div><label>Price (credits)</label><input id="s-price" type="number" placeholder="2500"></div>
+        <div><label>Category</label>
+          <select id="s-cat">
+            <option>weapons</option><option>vehicles</option><option>clothing</option>
+            <option>food</option><option>tools</option><option>ammo</option><option>misc</option>
+          </select>
+        </div>
+        <div><label>Stock (-1=unlimited)</label><input id="s-stock" type="number" value="-1"></div>
+        <div><label>Is Bundle?</label><select id="s-bundle"><option value="0">No</option><option value="1">Yes</option></select></div>
+        <div><label>Description</label><input id="s-desc" placeholder="Optional"></div>
+      </div>
+      <div><label>Bundle Items (JSON) — e.g. [{"class":"AKM","qty":1}]</label>
+        <textarea id="s-bundle-data" rows="2" placeholder='[{"class":"AKM_Chaos","qty":1},{"class":"AKM_Mag_30Rnd","qty":3}]'></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-primary" onclick="createItem()">➕ Add Item</button>
+        <button class="btn btn-ghost" onclick="loadShop()">🔄 Refresh</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <h3>🛒 Current Shop Items</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Classname</th><th>Price</th><th>Category</th><th>Stock</th><th>Bundle</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="shop-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MARKET -->
+  <div id="market" class="section">
+    <div class="page-header"><h1>🏪 Player Marketplace</h1></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="loadMarket('pending')">Pending</button>
+      <button class="btn btn-ghost" onclick="loadMarket('escrowed')">Escrowed</button>
+      <button class="btn btn-ghost" onclick="loadMarket('disputed')">Disputed</button>
+      <button class="btn btn-ghost" onclick="loadMarket('delivered')">Delivered</button>
+    </div>
+    <div class="table-wrap">
+      <h3>🏪 Listings</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Seller</th><th>Item</th><th>Qty</th><th>Price</th><th>Status</th><th>Escrow</th><th>Expires</th><th>Actions</th></tr></thead>
+        <tbody id="market-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DELIVERY -->
+  <div id="delivery" class="section">
+    <div class="page-header"><h1>📦 Delivery Queue</h1></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="loadDelivery('pending')">Pending</button>
+      <button class="btn btn-ghost" onclick="loadDelivery('processing')">Processing</button>
+      <button class="btn btn-ghost" onclick="loadDelivery('complete')">Complete</button>
+      <button class="btn btn-ghost" onclick="loadDelivery('failed')">Failed</button>
+    </div>
+    <div class="table-wrap">
+      <h3>📦 Queue</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Player</th><th>Item</th><th>Zone</th><th>Vehicle?</th><th>Status</th><th>Queued</th><th>Revert At</th></tr></thead>
+        <tbody id="delivery-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ECONOMY -->
+  <div id="economy" class="section">
+    <div class="page-header"><h1>💰 Economy</h1></div>
+    <div class="table-wrap" style="padding:18px; margin-bottom:16px">
+      <h3>💸 Adjust Balance</h3>
+      <div class="form-grid" style="margin-top:12px">
+        <div><label>Discord ID</label><input id="eco-id" placeholder="123456789012345678"></div>
+        <div><label>Amount (+/-)</label><input id="eco-amt" type="number" placeholder="1000"></div>
+        <div><label>Reason</label><input id="eco-reason" placeholder="Admin grant"></div>
+      </div>
+      <button class="btn btn-primary" onclick="adjustBalance()">💰 Adjust</button>
+    </div>
+    <div class="table-wrap">
+      <h3>👥 Top Balances</h3>
+      <table>
+        <thead><tr><th>Rank</th><th>Username</th><th>Discord ID</th><th>Balance</th><th>Earned</th><th>Spent</th></tr></thead>
+        <tbody id="economy-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RAFFLE -->
+  <div id="raffle" class="section">
+    <div class="page-header"><h1>🎰 Raffle</h1></div>
+    <div class="table-wrap" style="padding:18px; margin-bottom:16px">
+      <h3>🎰 Start New Raffle</h3>
+      <div class="form-grid" style="margin-top:12px">
+        <div><label>Vehicle Classname</label><input id="r-class" placeholder="OffroadHatchback"></div>
+        <div><label>Display Name</label><input id="r-name" placeholder="Offroad Hatchback"></div>
+        <div><label>Entry Cost</label><input id="r-cost" type="number" value="500"></div>
+        <div><label>Max Entries/Player</label><input id="r-max" type="number" value="10"></div>
+        <div><label>End Time (UTC)</label><input id="r-end" type="datetime-local"></div>
+      </div>
+      <button class="btn btn-primary" onclick="startRaffle()">🎰 Start Raffle</button>
+    </div>
+    <div class="table-wrap">
+      <h3>📜 Raffle History</h3>
+      <table>
+        <thead><tr><th>Week</th><th>Vehicle</th><th>Status</th><th>Winner</th><th>Cost</th><th>Started</th></tr></thead>
+        <tbody id="raffle-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CASINO -->
+  <div id="casino" class="section">
+    <div class="page-header"><h1>🃏 Casino Stats</h1></div>
+    <div class="table-wrap">
+      <h3>🃏 Player Stats</h3>
+      <table>
+        <thead><tr><th>Username</th><th>Games</th><th>Total Wagered</th><th>Total Won</th><th>Net</th><th>Biggest Win</th><th>Fav Game</th></tr></thead>
+        <tbody id="casino-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AUDIT -->
+  <div id="audit" class="section">
+    <div class="page-header"><h1>📋 Audit Log</h1></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="loadAudit()">All</button>
+      <button class="btn btn-ghost" onclick="loadAudit('purchase')">Purchases</button>
+      <button class="btn btn-ghost" onclick="loadAudit('delivery_confirmed')">Deliveries</button>
+      <button class="btn btn-ghost" onclick="loadAudit('admin_adjust')">Admin</button>
+    </div>
+    <div class="table-wrap">
+      <h3>📋 Log</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Type</th><th>Actor</th><th>Target</th><th>Item</th><th>Amount</th><th>Notes</th></tr></thead>
+        <tbody id="audit-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+const API_KEY = prompt("Enter API Key:") || "";
+const H = { "Content-Type": "application/json", "X-API-Key": API_KEY };
+
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  event.currentTarget.classList.add("active");
+  const loaders = { overview: loadOverview, shop: loadShop, market: () => loadMarket('pending'),
+    delivery: () => loadDelivery('pending'), economy: loadEconomy,
+    raffle: loadRaffle, casino: loadCasino, audit: loadAudit };
+  if (loaders[id]) loaders[id]();
+}
+
+function toast(msg, ok=true) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.borderLeftColor = ok ? "var(--green)" : "var(--red)";
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+async function api(path, opts={}) {
+  const r = await fetch("/api" + path, { headers: H, ...opts });
+  return r.json();
+}
+
+// ── Overview ──
+async function loadOverview() {
+  const [bal, listings, queue, items, audit] = await Promise.all([
+    api("/economy/balances?per_page=1"),
+    api("/market/listings?status=pending"),
+    api("/delivery/queue?status=pending"),
+    api("/shop/items"),
+    api("/audit?limit=10")
+  ]);
+  document.getElementById("stat-players").textContent = Array.isArray(bal) ? bal.length + "+ " : "—";
+  document.getElementById("stat-listings").textContent = Array.isArray(listings) ? listings.length : "—";
+  document.getElementById("stat-queue").textContent = Array.isArray(queue) ? queue.length : "—";
+  document.getElementById("stat-items").textContent = Array.isArray(items) ? items.length : "—";
+  const tb = document.getElementById("audit-recent");
+  tb.innerHTML = Array.isArray(audit) ? audit.map(r =>
+    `<tr><td>${r.timestamp?.slice(0,19) || ""}</td><td><span class="tag tag-blue">${r.trade_type}</span></td>
+     <td>${r.actor_id||""}</td><td>${r.amount!=null?r.amount:""}</td><td>${r.notes||""}</td></tr>`
+  ).join("") : "";
+}
+
+// ── Shop ──
+async function loadShop() {
+  const items = await api("/shop/items");
+  const tb = document.getElementById("shop-table");
+  tb.innerHTML = Array.isArray(items) ? items.map(i =>
+    `<tr>
+      <td><code>${i.item_id}</code></td>
+      <td>${i.display_name}</td>
+      <td><code>${i.class_name}</code></td>
+      <td>💰 ${i.price?.toLocaleString()}</td>
+      <td><span class="tag tag-blue">${i.category}</span></td>
+      <td>${i.stock===-1?"∞":i.stock}</td>
+      <td>${i.is_bundle?'<span class="tag tag-yellow">Bundle</span>':""}</td>
+      <td>${i.enabled?'<span class="tag tag-green">ON</span>':'<span class="tag tag-red">OFF</span>'}</td>
+      <td>
+        <button class="btn btn-danger" style="padding:4px 8px" onclick="toggleItem('${i.item_id}',${i.enabled?0:1})">${i.enabled?"Disable":"Enable"}</button>
+      </td>
+    </tr>`
+  ).join("") : "";
+}
+
+async function createItem() {
+  const bd = document.getElementById("s-bundle-data").value.trim();
+  const body = {
+    item_id: document.getElementById("s-id").value,
+    class_name: document.getElementById("s-class").value,
+    display_name: document.getElementById("s-name").value,
+    price: parseInt(document.getElementById("s-price").value),
+    category: document.getElementById("s-cat").value,
+    stock: parseInt(document.getElementById("s-stock").value),
+    is_bundle: document.getElementById("s-bundle").value === "1",
+    bundle_data: bd ? JSON.parse(bd) : null,
+    description: document.getElementById("s-desc").value
+  };
+  const r = await api("/shop/items", { method:"POST", body: JSON.stringify(body) });
+  toast(r.success ? "✅ Item added!" : "❌ " + r.error, r.success);
+  if (r.success) loadShop();
+}
+
+async function toggleItem(id, enabled) {
+  const r = await api(`/shop/items/${id}`, { method:"PATCH", body: JSON.stringify({enabled}) });
+  toast(r.success ? "✅ Updated" : "❌ Failed", r.success);
+  loadShop();
+}
+
+// ── Market ──
+async function loadMarket(status) {
+  const rows = await api(`/market/listings?status=${status}`);
+  const tb = document.getElementById("market-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
+    `<tr>
+      <td><code>${r.listing_id?.slice(0,8)}</code></td>
+      <td>${r.seller_name||r.seller_id}</td>
+      <td>${r.item_display}</td>
+      <td>${r.quantity}</td>
+      <td>💰 ${r.asking_price?.toLocaleString()}</td>
+      <td><span class="tag ${r.status==='escrowed'?'tag-yellow':r.status==='delivered'?'tag-green':r.status==='disputed'?'tag-red':'tag-blue'}">${r.status}</span></td>
+      <td>${r.escrow_held?.toLocaleString()||0}</td>
+      <td>${r.expires_at?.slice(0,10)||""}</td>
+      <td>
+        ${r.status==='escrowed'?`<button class="btn btn-success" style="padding:4px 8px" onclick="confirmDelivery('${r.listing_id}')">✅ Confirm</button>`:""}
+        ${r.status==='disputed'?`<button class="btn btn-danger" style="padding:4px 8px" onclick="resolveDispute('${r.listing_id}')">⚖️ Resolve</button>`:""}
+      </td>
+    </tr>`
+  ).join("") : "";
+}
+
+async function confirmDelivery(id) {
+  const r = await api(`/market/listings/${id}/confirm`, {method:"POST"});
+  toast(r.success ? "✅ Delivery confirmed, funds released" : "❌ Failed", r.success);
+  loadMarket("escrowed");
+}
+
+async function resolveDispute(id) {
+  const resolution = prompt("Resolution? (refunded / released)") || "refunded";
+  const r = await api(`/market/listings/${id}/dispute`, {method:"POST", body: JSON.stringify({resolution})});
+  toast(r.success ? "✅ Dispute resolved" : "❌ Failed", r.success);
+  loadMarket("disputed");
+}
+
+// ── Delivery ──
+async function loadDelivery(status) {
+  const rows = await api(`/delivery/queue?status=${status}`);
+  const tb = document.getElementById("delivery-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
+    `<tr>
+      <td>${r.id}</td>
+      <td>${r.discord_id}</td>
+      <td>${r.item_display} x${r.quantity}</td>
+      <td><span class="tag tag-blue">${r.delivery_zone}</span></td>
+      <td>${r.is_vehicle?'<span class="tag tag-yellow">🚗 Yes</span>':"No"}</td>
+      <td><span class="tag ${r.status==='complete'?'tag-green':r.status==='failed'?'tag-red':r.status==='processing'?'tag-yellow':'tag-blue'}">${r.status}</span></td>
+      <td>${r.queued_at?.slice(0,16)||""}</td>
+      <td>${r.revert_at?.slice(0,16)||""}</td>
+    </tr>`
+  ).join("") : "";
+}
+
+// ── Economy ──
+async function loadEconomy() {
+  const rows = await api("/economy/balances?per_page=50");
+  const tb = document.getElementById("economy-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map((r,i) =>
+    `<tr>
+      <td>${i+1}</td>
+      <td>${r.username}</td>
+      <td><code>${r.discord_id}</code></td>
+      <td>💰 ${r.balance?.toLocaleString()}</td>
+      <td>${r.total_earned?.toLocaleString()}</td>
+      <td>${r.total_spent?.toLocaleString()}</td>
+    </tr>`
+  ).join("") : "";
+}
+
+async function adjustBalance() {
+  const body = {
+    discord_id: document.getElementById("eco-id").value,
+    amount: parseInt(document.getElementById("eco-amt").value),
+    reason: document.getElementById("eco-reason").value
+  };
+  const r = await api("/economy/adjust", {method:"POST", body: JSON.stringify(body)});
+  toast(r.success ? "✅ Balance adjusted" : "❌ " + r.error, r.success);
+  loadEconomy();
+}
+
+// ── Raffle ──
+async function loadRaffle() {
+  const rows = await api("/raffle/history");
+  const tb = document.getElementById("raffle-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
+    `<tr>
+      <td>${r.week_number}</td>
+      <td>${r.vehicle_display}</td>
+      <td><span class="tag ${r.status==='open'?'tag-green':r.status==='complete'?'tag-blue':'tag-red'}">${r.status}</span></td>
+      <td>${r.winner_name||"—"}</td>
+      <td>💰 ${r.entry_cost}</td>
+      <td>${r.created_at?.slice(0,10)||""}</td>
+    </tr>`
+  ).join("") : "";
+}
+
+async function startRaffle() {
+  const body = {
+    vehicle: document.getElementById("r-class").value,
+    vehicle_display: document.getElementById("r-name").value,
+    entry_cost: parseInt(document.getElementById("r-cost").value),
+    max_entries: parseInt(document.getElementById("r-max").value),
+    end_time: document.getElementById("r-end").value
+  };
+  const r = await api("/raffle/start", {method:"POST", body: JSON.stringify(body)});
+  toast(r.success ? "✅ Raffle started!" : "❌ " + r.error, r.success);
+  loadRaffle();
+}
+
+// ── Casino ──
+async function loadCasino() {
+  const rows = await api("/casino/stats");
+  const tb = document.getElementById("casino-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
+    `<tr>
+      <td>${r.username}</td>
+      <td>${r.games_played}</td>
+      <td>💰 ${r.total_wagered?.toLocaleString()}</td>
+      <td>💰 ${r.total_winnings?.toLocaleString()}</td>
+      <td class="${(r.total_winnings-r.total_wagered)>=0?'':''}" style="color:${(r.total_winnings-r.total_wagered)>=0?'var(--green)':'var(--red)'}">
+        ${((r.total_winnings||0)-(r.total_wagered||0)).toLocaleString()}
+      </td>
+      <td>💰 ${r.biggest_win?.toLocaleString()}</td>
+      <td>${r.favorite_game||"—"}</td>
+    </tr>`
+  ).join("") : "";
+}
+
+// ── Audit ──
+async function loadAudit(type) {
+  const url = type ? `/audit?type=${type}&limit=100` : "/audit?limit=100";
+  const rows = await api(url);
+  const tb = document.getElementById("audit-table");
+  tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
+    `<tr>
+      <td>${r.timestamp?.slice(0,19)||""}</td>
+      <td><span class="tag tag-blue">${r.trade_type}</span></td>
+      <td>${r.actor_id||""}</td>
+      <td>${r.target_id||""}</td>
+      <td>${r.item_ref||""}</td>
+      <td>${r.amount!=null?r.amount:""}</td>
+      <td>${r.notes||""}</td>
+    </tr>`
+  ).join("") : "";
+}
+
+// Load overview on start
+loadOverview();
+</script>
+</body>
+</html>

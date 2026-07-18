@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DayZ Trader - Chernarus Map</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    body { flex-direction: column; overflow: hidden; }
+    #map { height: calc(100vh - 60px); width: 100%; }
+    .leaflet-container { background: #1a1a1a; }
+    .map-toolbar { position: relative; z-index: 1000; }
+    .zone-popup h4 { margin: 0 0 4px; color: #c8960c; }
+    .zone-popup p  { margin: 2px 0; font-size: 0.8rem; color: #aaa; }
+    .legend {
+      position: absolute;
+      bottom: 30px; right: 10px;
+      z-index: 999;
+      background: rgba(26,26,26,0.92);
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.78rem;
+      color: #e8e8e8;
+      min-width: 160px;
+    }
+    .legend h4 { color: #c8960c; margin-bottom: 8px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<div class="map-toolbar">
+  <h2>🗺️ Chernarus — Delivery Zones</h2>
+  <a href="/" class="btn btn-ghost" style="margin-left:auto">⬅ Dashboard</a>
+  <button class="btn btn-ghost" id="toggle-zones">👁 Zones</button>
+  <button class="btn btn-ghost" id="toggle-queue">📦 Queue</button>
+  <button class="btn btn-ghost" onclick="map.setView([47,50],4)">🔄 Reset View</button>
+  <select id="layer-select" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:0.82rem">
+    <option value="cherno">Chernarus+</option>
+  </select>
+</div>
+
+<div id="map"></div>
+
+<div class="legend">
+  <h4>Legend</h4>
+  <div class="legend-row"><div class="dot" style="background:#c8960c"></div> Delivery Zone</div>
+  <div class="legend-row"><div class="dot" style="background:#2ecc71"></div> Active Delivery</div>
+  <div class="legend-row"><div class="dot" style="background:#e74c3c"></div> Failed Delivery</div>
+  <div class="legend-row"><div class="dot" style="background:#3498db"></div> Pending Queue</div>
+  <div class="legend-row"><div class="dot" style="background:#9b59b6"></div> Raffle Prize Zone</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── Map init ──────────────────────────────────────────────────────────────
+const API_KEY = localStorage.getItem("dayz_api_key") || prompt("Enter API Key:") || "";
+if (API_KEY) localStorage.setItem("dayz_api_key", API_KEY);
+const H = { "X-API-Key": API_KEY };
+
+// iZurvive Chernarus+ tile layer (free, no auth required)
+const chernarusTiles = L.tileLayer(
+  "https://www.izurvive.com/chernarusplus/tiles/{z}/{x}/{y}.png",
+  {
+    attribution: "&copy; <a href='https://www.izurvive.com'>iZurvive</a> | &copy; Bohemia Interactive",
+    maxZoom: 7,
+    minZoom: 1,
+    tileSize: 256,
+    errorTileUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+  }
+);
+
+const map = L.map("map", {
+  center: [47.0, 50.0],
+  zoom: 4,
+  layers: [chernarusTiles],
+  zoomControl: true,
+  attributionControl: true
+});
+
+// ── Layer groups ──────────────────────────────────────────────────────────
+const zoneLayer  = L.layerGroup().addTo(map);
+const queueLayer = L.layerGroup().addTo(map);
+
+// ── Icon factories ────────────────────────────────────────────────────────
+function makeIcon(color, emoji) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      background:${color}; border:2px solid #fff;
+      border-radius:50%; width:28px; height:28px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    ">${emoji}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
+}
+
+const icons = {
+  zone:       makeIcon("#c8960c", "📦"),
+  active:     makeIcon("#2ecc71", "✅"),
+  pending:    makeIcon("#3498db", "⏳"),
+  failed:     makeIcon("#e74c3c", "❌"),
+  vehicle:    makeIcon("#c8960c", "🚗"),
+  raffle:     makeIcon("#9b59b6", "🎰")
+};
+
+// ── Load delivery zones from API ──────────────────────────────────────────
+async function loadZones() {
+  zoneLayer.clearLayers();
+  try {
+    const res  = await fetch("/api/delivery/zones");
+    const zones = await res.json();
+    if (!Array.isArray(zones)) return;
+    zones.forEach(z => {
+      if (!z.map_lat || !z.map_lng) return;
+      const icon = z.vehicle_ok ? icons.vehicle : icons.zone;
+      const marker = L.marker([z.map_lat, z.map_lng], { icon })
+        .bindPopup(`
+          <div class="zone-popup">
+            <h4>📦 ${z.display}</h4>
+            <p>Zone ID: <code>${z.zone_id}</code></p>
+            <p>Vehicles: ${z.vehicle_ok ? "✅ Yes" : "❌ No"}</p>
+            <p>Items: ${z.item_ok ? "✅ Yes" : "❌ No"}</p>
+            <p>Coords: ${z.coord_x}, ${z.coord_z}</p>
+          </div>
+        `);
+      zoneLayer.addLayer(marker);
+    });
+  } catch(e) { console.warn("Could not load zones", e); }
+}
+
+// ── Load delivery queue pins ───────────────────────────────────────────────
+async function loadQueuePins() {
+  queueLayer.clearLayers();
+  try {
+    const res   = await fetch("/api/delivery/queue?status=pending", { headers: H });
+    const items  = await res.json();
+    if (!Array.isArray(items)) return;
+
+    // Get zone coords
+    const zRes   = await fetch("/api/delivery/zones");
+    const zones  = await zRes.json();
+    const zMap   = {};
+    if (Array.isArray(zones)) zones.forEach(z => { zMap[z.zone_id] = z; });
+
+    items.forEach(item => {
+      const zone = zMap[item.delivery_zone];
+      if (!zone?.map_lat) return;
+      // Offset slightly so multiple items at same zone don't stack
+      const jitter = () => (Math.random() - 0.5) * 0.3;
+      const lat = zone.map_lat + jitter();
+      const lng = zone.map_lng + jitter();
+      const icon = item.status === "complete" ? icons.active
+                 : item.status === "failed"   ? icons.failed
+                 : item.is_vehicle             ? icons.vehicle
+                 : icons.pending;
+      L.marker([lat, lng], { icon })
+        .bindPopup(`
+          <div class="zone-popup">
+            <h4>${item.is_vehicle ? "🚗" : "📦"} ${item.item_display}</h4>
+            <p>Player: <code>${item.discord_id}</code></p>
+            <p>Zone: ${zone.display}</p>
+            <p>Qty: ${item.quantity}</p>
+            <p>Status: <b>${item.status}</b></p>
+            <p>Queued: ${item.queued_at?.slice(0,16)}</p>
+            ${item.revert_at ? `<p>Reverts: ${item.revert_at.slice(0,16)}</p>` : ""}
+          </div>
+        `)
+        .addTo(queueLayer);
+    });
+  } catch(e) { console.warn("Could not load queue", e); }
+}
+
+// ── Toggle buttons ────────────────────────────────────────────────────────
+document.getElementById("toggle-zones").addEventListener("click", function() {
+  if (map.hasLayer(zoneLayer))  { map.removeLayer(zoneLayer);  this.style.opacity="0.5"; }
+  else                          { map.addLayer(zoneLayer);     this.style.opacity="1"; }
+});
+
+document.getElementById("toggle-queue").addEventListener("click", function() {
+  if (map.hasLayer(queueLayer)) { map.removeLayer(queueLayer); this.style.opacity="0.5"; }
+  else                          { map.addLayer(queueLayer);    this.style.opacity="1"; }
+});
+
+// ── Right-click to get coords ─────────────────────────────────────────────
+map.on("contextmenu", function(e) {
+  L.popup()
+    .setLatLng(e.latlng)
+    .setContent(`<b>Map Coords</b><br>Lat: ${e.latlng.lat.toFixed(4)}<br>Lng: ${e.latlng.lng.toFixed(4)}`)
+    .openOn(map);
+});
+
+// ── Auto-refresh queue every 60s ─────────────────────────────────────────
+loadZones();
+loadQueuePins();
+setInterval(loadQueuePins, 60000);
+</script>
+</body>
+</html>

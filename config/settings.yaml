@@ -1,33 +1,39 @@
-# DayZ Trader Bot Configuration
+# ============================================================
+# DayZ Trader Bot - Full Configuration
+# ============================================================
 
 bot:
   prefix: "!"
+  guild_id: 0                        # YOUR Discord server ID
   admin_role: "Trader Admin"
   log_channel: "admin-logs"
-  announce_channel: "general"
-  trader_channel: "trader"
-  market_channel: "player-market"
+  delivery_log_channel: "delivery-log"
+  announcement_channel: "general"
 
 nitrado:
+  token: ""                          # Nitrado API token (use .env)
+  server_id: ""                      # Nitrado server ID (use .env)
   base_url: "https://api.nitrado.net"
-  # token and server_id loaded from .env
-  files:
-    types_xml: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/db/types.xml"
-    events_xml: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/events.xml"
-    cfgspawnabletypes: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
-    cfgeconomycore: "/games/{server_id}/noftp/dayzxbox/config/dayzStandalone/mpmissions/dayzOffline.chernarusplus/cfgeconomycore.xml"
+  # Paths to your server XML files on Nitrado
+  paths:
+    types:          "/games/{id}/ftpserver/mpmissions/dayzOffline.chernarusplus/db/types.xml"
+    events:         "/games/{id}/ftpserver/mpmissions/dayzOffline.chernarusplus/db/events.xml"
+    spawnabletypes: "/games/{id}/ftpserver/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
+    economycore:    "/games/{id}/ftpserver/mpmissions/dayzOffline.chernarusplus/cfgeconomycore.xml"
 
 economy:
   starting_balance: 1000
-  currency_name: "Credits"
-  currency_symbol: "💰"
   daily_reward: 500
   daily_cooldown_hours: 24
+  max_balance: 10000000
+  currency_name: "Credits"
+  currency_emoji: "💰"
 
 shop:
   enabled: true
-  tax_rate: 0.05  # 5% tax on all purchases
-  max_bundle_items: 10
+  max_stock_per_item: 999
+  price_floor: 100
+  price_ceiling: 5000000
   categories:
     - weapons
     - vehicles
@@ -35,64 +41,42 @@ shop:
     - food
     - tools
     - ammo
-    - medical
-    - building
+    - misc
 
 market:
   enabled: true
-  listing_fee: 50
   max_listings_per_player: 5
-  listing_expiry_hours: 72
-  escrow_enabled: true
+  listing_fee_pct: 5             # % of asking price charged to seller on listing
+  max_listing_duration_days: 7
   min_price: 100
-  max_price: 500000
+  max_price: 5000000
+  escrow_enabled: true
+  auto_expire_check_minutes: 30
 
 delivery:
-  # CE cycle based - NO forced restarts
-  item_lifetime_seconds: 7200     # 2 hours to collect
-  vehicle_lifetime_seconds: 14400 # 4 hours to collect
-  restock_value: 0                # spawn on next CE cycle
-  # Pre-configured delivery zones (admin picks on purchase confirm)
-  zones:
-    NWAF:
-      x: 4541.0
-      z: 11254.0
-      description: "Northwest Airfield"
-    Berezino:
-      x: 11822.0
-      z: 9234.0
-      description: "Berezino"
-    Elektro:
-      x: 10440.0
-      z: 2500.0
-      description: "Elektrozavodsk"
-    Cherno:
-      x: 7200.0
-      z: 2400.0
-      description: "Chernogorsk"
-    Balota:
-      x: 6091.0
-      z: 2400.0
-      description: "Balota Airstrip"
-    NEAF:
-      x: 13412.0
-      z: 13100.0
-      description: "Northeast Airfield"
-    Tisy:
-      x: 1050.0
-      z: 13210.0
-      description: "Tisy Military Base"
+  # CE cycle timing - NEVER force restart
+  item_lifetime_seconds: 7200     # 2 hours for players to collect items
+  vehicle_lifetime_seconds: 14400 # 4 hours for players to collect vehicles
+  restock_value: 0                # 0 = spawn on next CE cycle (~1-5 min)
+  queue_delay_seconds: 3          # delay between sequential XML edits
+  max_retry_attempts: 3
+  # Status update DMs
+  dm_on_queued: true
+  dm_on_delivered: true
+  dm_on_failed: true
 
 raffle:
   enabled: true
   auto_start_weekly: true
   start_day: "monday"
-  start_time: "12:00"
+  start_time: "12:00"             # UTC
   default_entry_cost: 500
   default_max_entries: 10
-  default_duration_hours: 168
+  default_duration_hours: 168     # 1 week
   announce_channel: "general"
   admin_log_channel: "admin-logs"
+  auto_announce_winners: true
+  dm_winners: true
 
 casino:
   enabled: true
@@ -111,7 +95,6 @@ casino:
       enabled: true
       min_bet: 100
       max_bet: 50000
-      machines: [classic, diamond, lucky, deluxe, mega]
       cooldown_seconds: 10
     roulette:
       enabled: true
@@ -125,8 +108,23 @@ casino:
       cooldown_seconds: 25
   max_daily_losses: 100000
   loss_warning_threshold: 5000
+  large_win_threshold: 50000
+  large_win_log_channel: "admin-logs"
 
 web:
   host: "0.0.0.0"
   port: 5000
   debug: false
+  # Set via .env: WEB_API_KEY
+  rate_limit: "100 per minute"
+  cors_origins:
+    - "https://trader.yourdomain.com"
+
+map:
+  default_lat: 47.0
+  default_lng: 50.0
+  default_zoom: 4
+  tile_url: "https://www.izurvive.com/chernarusplus/tiles/{z}/{x}/{y}.png"
+  tile_attribution: "&copy; iZurvive | &copy; Bohemia Interactive"
+  max_zoom: 7
+  min_zoom: 1
