@@ -1,164 +1,201 @@
 """
-Player Marketplace Service - P2P trading with escrow security
+Player Market Service - Escrow-protected P2P trading
 """
 import aiosqlite
 import uuid
-from enum import Enum
+import os
 from datetime import datetime, timedelta
-from typing import List, Optional
-from db.init_db import DB_PATH
+from typing import Optional, List
 
-class TradeStatus(Enum):
-    PENDING   = "pending"
-    ESCROWED  = "escrowed"
-    DELIVERED = "delivered"
-    CANCELLED = "cancelled"
-    DISPUTED  = "disputed"
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'db', 'trader.db')
 
 class MarketService:
-    def __init__(self, economy):
-        self.economy = economy
+    def __init__(self):
+        self.db_path = DB_PATH
 
-    async def create_listing(self, seller_id: int, seller_name: str,
-                              item_class: str, item_display: str,
-                              quantity: int, asking_price: int,
-                              duration_days: int = 7) -> dict:
+    async def create_listing(self, seller_id: int, item_class: str,
+                              item_display: str, quantity: int,
+                              asking_price: int, expiry_hours: int = 72) -> dict:
+        listing_id = str(uuid.uuid4())[:10].upper()
+        expires_at = datetime.now() + timedelta(hours=expiry_hours)
+
         # Check active listing count
-        count = await self._active_listing_count(seller_id)
-        if count >= 5:
-            return {"success": False, "message": "\u274c Max 5 active listings per player."}
-        if asking_price < 100:
-            return {"success": False, "message": "\u274c Minimum listing price is 100 credits."}
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM market_listings WHERE seller_id = ? AND status = 'pending'",
+                (seller_id,)
+            )
+            row = await cursor.fetchone()
+            if row[0] >= 5:
+                return {'success': False, 'message': 'Max 5 active listings reached'}
 
-        listing_id = str(uuid.uuid4())[:12]
-        expires = datetime.now() + timedelta(days=duration_days)
-
-        async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
-                """
-                INSERT INTO market_listings
+                """INSERT INTO market_listings
+                   (listing_id, seller_id, item_class, item_display, quantity, asking_price, expires_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (listing_id, seller_id, item_class, item_display, quantity,
-                 asking_price, status, expires_at)
-                VALUES (?,?,?,?,?,?,?,?)
-                """,
-                (listing_id, seller_id, item_class, item_display, quantity,
-                 asking_price, TradeStatus.PENDING.value, expires.isoformat())
+                 asking_price, expires_at.isoformat())
             )
             await db.commit()
-        return {"success": True, "listing_id": listing_id, "expires": expires}
+        return {'success': True, 'listing_id': listing_id, 'expires_at': expires_at}
 
-    async def buy_listing(self, buyer_id: int, buyer_name: str, listing_id: str) -> dict:
-        listing = await self._get_listing(listing_id)
-        if not listing:
-            return {"success": False, "message": "\u274c Listing not found."}
-        if listing["status"] != TradeStatus.PENDING.value:
-            return {"success": False, "message": "\u274c Listing not available."}
-        if listing["seller_id"] == buyer_id:
-            return {"success": False, "message": "\u274c You cannot buy your own listing."}
-        if datetime.fromisoformat(listing["expires_at"]) < datetime.now():
-            return {"success": False, "message": "\u274c Listing has expired."}
+    async def buy_listing(self, buyer_id: int, listing_id: str,
+                          delivery_zone: str, economy_service) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM market_listings WHERE listing_id = ? AND status = 'pending'",
+                (listing_id,)
+            )
+            listing = await cursor.fetchone()
+            if not listing:
+                return {'success': False, 'message': 'Listing not found or already sold'}
+            listing = dict(listing)
 
-        price = listing["asking_price"]
-        balance = await self.economy.get_balance(buyer_id)
-        if balance < price:
-            return {"success": False, "message": f"\u274c Need {price:,} credits, you have {balance:,}."}
+            if listing['seller_id'] == buyer_id:
+                return {'success': False, 'message': 'Cannot buy your own listing'}
 
-        # Lock credits into escrow
-        await self.economy.update_balance(buyer_id, -price)
-        async with aiosqlite.connect(DB_PATH) as db:
+            # Check if expired
+            if datetime.fromisoformat(listing['expires_at']) < datetime.now():
+                await db.execute(
+                    "UPDATE market_listings SET status = 'cancelled' WHERE listing_id = ?",
+                    (listing_id,)
+                )
+                await db.commit()
+                return {'success': False, 'message': 'Listing has expired'}
+
+            balance = await economy_service.get_balance(buyer_id)
+            if balance < listing['asking_price']:
+                return {'success': False, 'message': f'Need {listing["asking_price"]} credits, have {balance}'}
+
+            # Lock credits into escrow
+            await economy_service.update_balance(buyer_id, -listing['asking_price'], f'escrow_{listing_id}')
+
             await db.execute(
-                "UPDATE market_listings SET status=?, buyer_id=?, escrow_held=? WHERE listing_id=?",
-                (TradeStatus.ESCROWED.value, buyer_id, price, listing_id)
+                """UPDATE market_listings
+                   SET status = 'escrowed', buyer_id = ?, escrow_held = ?, delivery_zone = ?
+                   WHERE listing_id = ?""",
+                (buyer_id, listing['asking_price'], delivery_zone, listing_id)
+            )
+            # Audit
+            await db.execute(
+                "INSERT INTO trade_audit_log (trade_type, actor_id, target_id, item_ref, amount, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                ('escrow', buyer_id, listing['seller_id'], listing_id, listing['asking_price'], 'buyer_paid_escrow')
             )
             await db.commit()
-        return {
-            "success": True,
-            "message": f"\u2705 Purchase locked! {price:,} credits held in escrow. Admin will deliver your item.",
-            "listing": listing
-        }
 
-    async def confirm_delivery(self, admin_id: int, listing_id: str) -> dict:
-        """Admin confirms item delivered in-game. Releases escrow to seller."""
-        listing = await self._get_listing(listing_id)
-        if not listing or listing["status"] != TradeStatus.ESCROWED.value:
-            return {"success": False, "message": "\u274c Listing not in escrow state."}
+        return {'success': True, 'listing': listing}
 
-        seller_id = listing["seller_id"]
-        escrow = listing["escrow_held"]
-        fee = int(escrow * 0.02)  # 2% market fee
-        payout = escrow - fee
+    async def confirm_delivery(self, admin_id: int, listing_id: str, economy_service) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM market_listings WHERE listing_id = ? AND status = 'escrowed'",
+                (listing_id,)
+            )
+            listing = await cursor.fetchone()
+            if not listing:
+                return {'success': False, 'message': 'Listing not in escrow state'}
+            listing = dict(listing)
 
-        await self.economy.update_balance(seller_id, payout)
-        async with aiosqlite.connect(DB_PATH) as db:
+            # Release escrow to seller
+            await economy_service.update_balance(
+                listing['seller_id'], listing['escrow_held'],
+                f'escrow_release_{listing_id}'
+            )
+
             await db.execute(
-                "UPDATE market_listings SET status=?, completed_at=? WHERE listing_id=?",
-                (TradeStatus.DELIVERED.value, datetime.now().isoformat(), listing_id)
+                """UPDATE market_listings
+                   SET status = 'delivered', completed_at = ?
+                   WHERE listing_id = ?""",
+                (datetime.now().isoformat(), listing_id)
             )
             await db.execute(
-                "INSERT INTO audit_log (action, actor_id, target_id, amount, notes, admin_id) VALUES (?,?,?,?,?,?)",
-                ("market_delivery", listing["buyer_id"], seller_id, payout, f"Listing {listing_id}", admin_id)
+                "INSERT INTO trade_audit_log (trade_type, actor_id, target_id, item_ref, amount, notes, admin_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ('delivery', listing['buyer_id'], listing['seller_id'], listing_id,
+                 listing['escrow_held'], 'escrow_released_to_seller', admin_id)
             )
             await db.commit()
-        return {"success": True, "payout": payout, "fee": fee}
+
+        return {'success': True, 'listing': listing}
 
     async def dispute_trade(self, user_id: int, listing_id: str, reason: str) -> dict:
-        listing = await self._get_listing(listing_id)
-        if not listing:
-            return {"success": False, "message": "\u274c Listing not found."}
-        if user_id not in [listing["seller_id"], listing["buyer_id"]]:
-            return {"success": False, "message": "\u274c You are not party to this trade."}
-        async with aiosqlite.connect(DB_PATH) as db:
+        async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
-                "UPDATE market_listings SET status=?, dispute_reason=? WHERE listing_id=?",
-                (TradeStatus.DISPUTED.value, reason, listing_id)
+                "UPDATE market_listings SET status = 'disputed' WHERE listing_id = ? AND (seller_id = ? OR buyer_id = ?)",
+                (listing_id, user_id, user_id)
+            )
+            await db.execute(
+                "INSERT INTO trade_audit_log (trade_type, actor_id, item_ref, notes) VALUES (?, ?, ?, ?)",
+                ('dispute', user_id, listing_id, reason)
             )
             await db.commit()
-        return {"success": True, "message": "\u26a0\ufe0f Dispute filed. Admin will review and release or refund escrow."}
+        return {'success': True}
 
-    async def refund_escrow(self, admin_id: int, listing_id: str) -> dict:
-        """Admin refunds escrow to buyer (dispute resolution or cancellation)."""
-        listing = await self._get_listing(listing_id)
-        if not listing or listing["escrow_held"] <= 0:
-            return {"success": False, "message": "\u274c No escrow to refund."}
-        buyer_id = listing["buyer_id"]
-        await self.economy.update_balance(buyer_id, listing["escrow_held"])
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "UPDATE market_listings SET status=?, escrow_held=0 WHERE listing_id=?",
-                (TradeStatus.CANCELLED.value, listing_id)
-            )
-            await db.commit()
-        return {"success": True, "refunded": listing["escrow_held"]}
-
-    async def get_listings(self, status: str = "pending", seller_id: int = None) -> List[dict]:
-        async with aiosqlite.connect(DB_PATH) as db:
+    async def refund_escrow(self, admin_id: int, listing_id: str, economy_service) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM market_listings WHERE listing_id = ? AND status IN ('escrowed','disputed')",
+                (listing_id,)
+            )
+            listing = await cursor.fetchone()
+            if not listing:
+                return {'success': False, 'message': 'Listing not found or not in refundable state'}
+            listing = dict(listing)
+
+            await economy_service.update_balance(
+                listing['buyer_id'], listing['escrow_held'],
+                f'escrow_refund_{listing_id}'
+            )
+            await db.execute(
+                "UPDATE market_listings SET status = 'cancelled', completed_at = ? WHERE listing_id = ?",
+                (datetime.now().isoformat(), listing_id)
+            )
+            await db.execute(
+                "INSERT INTO trade_audit_log (trade_type, actor_id, target_id, item_ref, amount, notes, admin_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ('refund', listing['buyer_id'], listing['seller_id'], listing_id,
+                 listing['escrow_held'], 'admin_refunded_escrow', admin_id)
+            )
+            await db.commit()
+        return {'success': True}
+
+    async def get_listings(self, category: str = None, seller_id: int = None,
+                           status: str = 'pending') -> List[dict]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            query = "SELECT * FROM market_listings WHERE status = ?"
+            params = [status]
             if seller_id:
-                async with db.execute(
-                    "SELECT * FROM market_listings WHERE seller_id=? ORDER BY created_at DESC",
-                    (seller_id,)
-                ) as cur:
-                    rows = await cur.fetchall()
-            else:
-                async with db.execute(
-                    "SELECT * FROM market_listings WHERE status=? ORDER BY created_at DESC",
-                    (status,)
-                ) as cur:
-                    rows = await cur.fetchall()
-        return [dict(r) for r in rows]
+                query += " AND seller_id = ?"
+                params.append(seller_id)
+            query += " ORDER BY created_at DESC LIMIT 50"
+            cursor = await db.execute(query, params)
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
 
-    async def _get_listing(self, listing_id: str) -> Optional[dict]:
-        async with aiosqlite.connect(DB_PATH) as db:
+    async def expire_old_listings(self, economy_service) -> int:
+        """Auto-expire listings and refund any escrowed funds"""
+        count = 0
+        async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM market_listings WHERE listing_id=?", (listing_id,)) as cur:
-                row = await cur.fetchone()
-        return dict(row) if row else None
-
-    async def _active_listing_count(self, seller_id: int) -> int:
-        async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute(
-                "SELECT COUNT(*) FROM market_listings WHERE seller_id=? AND status IN ('pending','escrowed')",
-                (seller_id,)
-            ) as cur:
-                row = await cur.fetchone()
-        return row[0] if row else 0
+            cursor = await db.execute(
+                """SELECT * FROM market_listings
+                   WHERE status IN ('pending','escrowed') AND expires_at < ?""",
+                (datetime.now().isoformat(),)
+            )
+            rows = await cursor.fetchall()
+            for row in rows:
+                listing = dict(row)
+                if listing['status'] == 'escrowed' and listing['buyer_id']:
+                    await economy_service.update_balance(
+                        listing['buyer_id'], listing['escrow_held'],
+                        f'auto_refund_expired_{listing["listing_id"]}'
+                    )
+                await db.execute(
+                    "UPDATE market_listings SET status = 'cancelled' WHERE listing_id = ?",
+                    (listing['listing_id'],)
+                )
+                count += 1
+            await db.commit()
+        return count
