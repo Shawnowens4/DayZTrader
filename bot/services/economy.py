@@ -1,87 +1,92 @@
 """
-Economy Service - Balance management, transactions, daily rewards
+Economy Service - Manages player balances and transactions
 """
 
-import aiosqlite
-import os
+import sqlite3
 from datetime import datetime, timedelta
 from typing import Optional
 
-DB_PATH = os.getenv("DB_PATH", "db/dayz_trader.db")
-
 class EconomyService:
-    def __init__(self, db_path: str = DB_PATH):
+    def __init__(self, db_path: str):
         self.db_path = db_path
 
-    async def ensure_user(self, discord_id: int, username: str):
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                "INSERT OR IGNORE INTO users (discord_id, username) VALUES (?, ?)",
-                (discord_id, username)
-            )
-            await db.execute(
-                "UPDATE users SET username=?, last_active=CURRENT_TIMESTAMP WHERE discord_id=?",
-                (username, discord_id)
-            )
-            await db.commit()
+    def _conn(self):
+        return sqlite3.connect(self.db_path)
 
     async def get_balance(self, discord_id: int) -> int:
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                "SELECT balance FROM users WHERE discord_id=?", (discord_id,)
-            ) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else 0
+        with self._conn() as conn:
+            row = conn.execute(
+                'SELECT balance FROM users WHERE discord_id = ?', (discord_id,)
+            ).fetchone()
+            return row[0] if row else 0
 
-    async def update_balance(self, discord_id: int, amount: int, description: str = "") -> int:
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                "UPDATE users SET balance = balance + ? WHERE discord_id = ?",
+    async def ensure_user(self, discord_id: int, username: str, starting_balance: int = 1000):
+        with self._conn() as conn:
+            conn.execute(
+                'INSERT OR IGNORE INTO users (discord_id, username, balance) VALUES (?, ?, ?)',
+                (discord_id, username, starting_balance)
+            )
+
+    async def update_balance(self, discord_id: int, amount: int, reason: str = '') -> int:
+        """Add or subtract from balance. Returns new balance."""
+        with self._conn() as conn:
+            conn.execute(
+                'UPDATE users SET balance = balance + ? WHERE discord_id = ?',
                 (amount, discord_id)
             )
-            await db.execute(
-                "INSERT INTO transactions (discord_id, amount, type, description) VALUES (?, ?, ?, ?)",
-                (discord_id, amount, 'credit' if amount > 0 else 'debit', description)
+            row = conn.execute(
+                'SELECT balance FROM users WHERE discord_id = ?', (discord_id,)
+            ).fetchone()
+            new_balance = row[0] if row else 0
+            # Audit
+            conn.execute(
+                'INSERT INTO trade_audit_log (trade_type, actor_id, amount, notes) VALUES (?, ?, ?, ?)',
+                ('balance_change', discord_id, amount, reason)
             )
-            if amount > 0:
-                await db.execute(
-                    "UPDATE users SET total_earned = total_earned + ? WHERE discord_id = ?",
-                    (amount, discord_id)
-                )
-            else:
-                await db.execute(
-                    "UPDATE users SET total_spent = total_spent + ? WHERE discord_id = ?",
-                    (abs(amount), discord_id)
-                )
-            await db.commit()
-            async with db.execute(
-                "SELECT balance FROM users WHERE discord_id=?", (discord_id,)
-            ) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else 0
+            return new_balance
 
-    async def transfer(self, sender_id: int, receiver_id: int, amount: int) -> dict:
-        sender_balance = await self.get_balance(sender_id)
-        if sender_balance < amount:
-            return {'success': False, 'message': 'Insufficient balance'}
-        await self.update_balance(sender_id, -amount, f'Transfer to {receiver_id}')
-        await self.update_balance(receiver_id, amount, f'Transfer from {sender_id}')
-        return {'success': True, 'message': f'Transferred {amount} credits'}
+    async def transfer(self, from_id: int, to_id: int, amount: int) -> bool:
+        """Transfer credits between players."""
+        if amount <= 0:
+            return False
+        balance = await self.get_balance(from_id)
+        if balance < amount:
+            return False
+        with self._conn() as conn:
+            conn.execute('UPDATE users SET balance = balance - ? WHERE discord_id = ?', (amount, from_id))
+            conn.execute('UPDATE users SET balance = balance + ? WHERE discord_id = ?', (amount, to_id))
+            conn.execute(
+                'INSERT INTO trade_audit_log (trade_type, actor_id, target_id, amount, notes) VALUES (?, ?, ?, ?, ?)',
+                ('transfer', from_id, to_id, amount, 'player transfer')
+            )
+        return True
+
+    async def claim_daily(self, discord_id: int, amount: int = 500) -> dict:
+        """Claim daily reward."""
+        with self._conn() as conn:
+            row = conn.execute(
+                'SELECT last_daily FROM users WHERE discord_id = ?', (discord_id,)
+            ).fetchone()
+            if not row:
+                return {'success': False, 'message': 'User not registered.'}
+            last = row[0]
+            if last:
+                last_dt = datetime.fromisoformat(last)
+                if datetime.now() - last_dt < timedelta(hours=24):
+                    remaining = timedelta(hours=24) - (datetime.now() - last_dt)
+                    hours = int(remaining.total_seconds() // 3600)
+                    mins = int((remaining.total_seconds() % 3600) // 60)
+                    return {'success': False, 'message': f'Come back in {hours}h {mins}m!'}
+            conn.execute(
+                'UPDATE users SET balance = balance + ?, last_daily = ? WHERE discord_id = ?',
+                (amount, datetime.now().isoformat(), discord_id)
+            )
+        return {'success': True, 'amount': amount}
 
     async def get_leaderboard(self, limit: int = 10) -> list:
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                "SELECT discord_id, username, balance FROM users ORDER BY balance DESC LIMIT ?",
+        with self._conn() as conn:
+            rows = conn.execute(
+                'SELECT discord_id, username, balance FROM users ORDER BY balance DESC LIMIT ?',
                 (limit,)
-            ) as cursor:
-                rows = await cursor.fetchall()
-                return [{'discord_id': r[0], 'username': r[1], 'balance': r[2]} for r in rows]
-
-    async def get_transaction_history(self, discord_id: int, limit: int = 20) -> list:
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute(
-                "SELECT amount, type, description, timestamp FROM transactions WHERE discord_id=? ORDER BY timestamp DESC LIMIT ?",
-                (discord_id, limit)
-            ) as cursor:
-                rows = await cursor.fetchall()
-                return [{'amount': r[0], 'type': r[1], 'description': r[2], 'timestamp': r[3]} for r in rows]
+            ).fetchall()
+        return [{'discord_id': r[0], 'username': r[1], 'balance': r[2]} for r in rows]
