@@ -1,0 +1,90 @@
+bot:
+  prefix: "!"
+  admin_role: "Trader Admin"
+  admin_channel: "admin-logs"
+  general_channel: "general"
+  market_channel: "player-market"
+  shop_channel: "trader-shop"
+
+economy:
+  starting_balance: 1000
+  daily_reward: 500
+  currency_name: "credits"
+  currency_emoji: "💰"
+
+shop:
+  enabled: true
+  max_stock_per_item: 999
+  allow_player_bundles: false
+  admin_bundle_discount_max: 50
+  categories:
+    - weapons
+    - vehicles
+    - clothing
+    - food
+    - building
+    - ammo
+    - medical
+    - misc
+
+market:
+  enabled: true
+  listing_fee_pct: 5
+  max_listings_per_player: 5
+  listing_expiry_days: 7
+  escrow_enabled: true
+  min_price: 100
+  max_price: 1000000
+  dispute_window_hours: 48
+
+casino:
+  enabled: true
+  games:
+    poker:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 30
+    blackjack:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 20
+    slots:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      machines: [classic, diamond, lucky, deluxe, mega]
+      cooldown_seconds: 10
+    roulette:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 15
+    horse_race:
+      enabled: true
+      min_bet: 100
+      max_bet: 50000
+      cooldown_seconds: 25
+  max_daily_losses: 100000
+  loss_warning_threshold: 5000
+  large_win_threshold: 100000
+
+raffle:
+  enabled: true
+  auto_start_weekly: true
+  start_day: monday
+  start_time: "12:00"
+  default_entry_cost: 500
+  default_max_entries: 10
+  default_duration_hours: 168
+  announce_channel: general
+  admin_log_channel: admin-logs
+  auto_announce_winners: true
+  dm_winners: true
+
+web:
+  host: "0.0.0.0"
+  port: 5000
+  secret_key: "change-me-in-env"
+  rate_limit: "100 per minute"
