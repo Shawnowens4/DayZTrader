@@ -1,47 +1,77 @@
 """
 Delivery Queue - Serializes all XML file edits to prevent race conditions.
-Multiple simultaneous purchases are processed one at a time.
-NEVER restarts the server.
+Multiple simultaneous purchases are safe - processed one at a time.
 """
-
 import asyncio
-import sqlite3
+from dataclasses import dataclass
+from typing import Optional, Callable
 from datetime import datetime
-from bot.services.delivery import DeliveryJob
+
+@dataclass
+class DeliveryJob:
+    job_id: str
+    item_class: str
+    item_type: str        # 'item' or 'vehicle'
+    delivery_zone: str
+    quantity: int = 1
+    fully_kitted: bool = False
+    purchase_id: Optional[int] = None
+    discord_id: Optional[int] = None
+    callback: Optional[Callable] = None
+    queued_at: datetime = None
+    retries: int = 0
+    max_retries: int = 3
+
+    def __post_init__(self):
+        if self.queued_at is None:
+            self.queued_at = datetime.now()
 
 class DeliveryQueue:
-    def __init__(self):
-        self._queue: asyncio.Queue = asyncio.Queue()
+    def __init__(self, delivery_service):
+        self.delivery = delivery_service
+        self._queue = asyncio.Queue()
         self._lock = asyncio.Lock()
-        self._delivery_service = None  # Set after bot init
-
-    def set_delivery_service(self, svc):
-        self._delivery_service = svc
+        self._running = False
 
     async def add(self, job: DeliveryJob):
         await self._queue.put(job)
+        print(f"[DeliveryQueue] Job queued: {job.job_id} ({job.item_class})")
 
     async def process_loop(self):
-        """
-        Runs forever as a background task.
-        Processes one delivery job at a time — no overlapping XML edits.
-        """
+        """Runs forever. Processes one delivery at a time. Never restarts server."""
+        self._running = True
         while True:
-            job: DeliveryJob = await self._queue.get()
+            job = await self._queue.get()
             async with self._lock:
                 try:
-                    if self._delivery_service:
-                        if job.job_type == 'item':
-                            await self._delivery_service.deliver_item(job)
-                        elif job.job_type == 'vehicle':
-                            await self._delivery_service.deliver_vehicle(job)
-                    # Brief pause between sequential file edits
-                    await asyncio.sleep(3)
+                    print(f"[DeliveryQueue] Processing: {job.job_id}")
+                    if job.item_type == "vehicle":
+                        result = await self.delivery.queue_vehicle_delivery(
+                            job.item_class, job.delivery_zone, job.fully_kitted
+                        )
+                    else:
+                        result = await self.delivery.queue_item_delivery(
+                            job.item_class, job.quantity, job.delivery_zone
+                        )
+
+                    if result["success"]:
+                        print(f"[DeliveryQueue] Success: {job.job_id}")
+                        if job.callback:
+                            await job.callback(job, result)
+                    else:
+                        raise Exception(result.get("message", "Unknown delivery error"))
+
                 except Exception as e:
-                    print(f'[DELIVERY QUEUE] Error processing job {job.job_id}: {e}')
+                    job.retries += 1
+                    print(f"[DeliveryQueue] Failed ({job.retries}/{job.max_retries}): {e}")
+                    if job.retries < job.max_retries:
+                        await asyncio.sleep(30)
+                        await self._queue.put(job)  # Re-queue
+                    else:
+                        print(f"[DeliveryQueue] Job {job.job_id} permanently failed.")
+                        if job.callback:
+                            await job.callback(job, {"success": False, "message": str(e)})
                 finally:
                     self._queue.task_done()
-
-    @property
-    def queue_size(self) -> int:
-        return self._queue.qsize()
+                    # Brief pause between file edits to avoid Nitrado rate limits
+                    await asyncio.sleep(3)

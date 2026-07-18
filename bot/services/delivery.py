@@ -1,297 +1,251 @@
 """
-Delivery Service - Edits Nitrado XML files for CE-based item/vehicle spawns.
-
-CRITICAL RULE: This service NEVER restarts the server.
-All spawns are handled by DayZ's Central Economy cleanup cycle
-which runs continuously in the background (~1-5 minutes).
-
-Strategy:
-  Items:    Bump nominal/min in types.xml + set restock=0
-  Vehicles: Inject one-time event in events.xml + cfgspawnabletypes
-  Revert:   Scheduled async task resets values after pickup window
+Delivery Service - Edits DayZ XML files via Nitrado API.
+NEVER forces a server restart. CE cycle handles all spawns naturally.
 """
-
 import aiohttp
 import asyncio
-import sqlite3
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from typing import List, Optional
+from datetime import datetime
+from typing import Optional
+import os
 import yaml
 
-with open('config/settings.yaml') as f:
-    _cfg = yaml.safe_load(f)
+with open("config/settings.yaml") as f:
+    CONFIG = yaml.safe_load(f)
 
-NITRADO_BASE   = 'https://api.nitrado.net'
-TYPES_PATH     = _cfg['nitrado']['files']['types_xml']
-EVENTS_PATH    = _cfg['nitrado']['files']['events_xml']
-SPAWNABLE_PATH = _cfg['nitrado']['files']['cfgspawnabletypes_xml']
+DELIVERY_ZONES = CONFIG["delivery"]["delivery_zones"]
+CE_WAIT = CONFIG["delivery"]["ce_cycle_wait_seconds"]
+ITEM_LIFETIME = CONFIG["delivery"]["item_lifetime_seconds"]
+VEHICLE_LIFETIME = CONFIG["delivery"]["vehicle_lifetime_seconds"]
 
-DELIVERY_ZONES = _cfg['delivery']['delivery_zones']
-ITEM_LIFETIME  = _cfg['delivery']['item_lifetime_seconds']     # 7200s default
-VEH_LIFETIME   = _cfg['delivery']['vehicle_lifetime_seconds']  # 14400s default
-
-
-@dataclass
-class DeliveryJob:
-    job_id: int
-    job_type: str          # 'item' or 'vehicle'
-    item_class: str
-    quantity: int = 1
-    delivery_zone: str = 'NWAF'
-    fully_kitted: bool = False
-    purchase_id: Optional[int] = None
-    listing_id: Optional[str] = None
-
+NITRADO_BASE = "https://api.nitrado.net"
 
 class NitradoAPI:
     def __init__(self, token: str, server_id: str):
         self.token = token
         self.server_id = server_id
-        self.headers = {'Authorization': f'Bearer {token}'}
+        self.headers = {"Authorization": f"Bearer {token}"}
+        self.file_base = f"{NITRADO_BASE}/services/{server_id}/gameservers/file_server"
 
-    async def download_file(self, path: str) -> str:
-        url = f'{NITRADO_BASE}/services/{self.server_id}/gameservers/file_server/download'
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params={'file': path}, headers=self.headers) as r:
-                r.raise_for_status()
-                data = await r.json()
-                # Nitrado returns a download token URL
-                dl_url = data['data']['token']['url']
-            async with session.get(dl_url) as r2:
-                return await r2.text()
+    def _resolve_path(self, path_template: str) -> str:
+        return path_template.replace("{server_id}", self.server_id)
 
-    async def upload_file(self, path: str, content: str):
-        url = f'{NITRADO_BASE}/services/{self.server_id}/gameservers/file_server/upload'
-        async with aiohttp.ClientSession() as session:
+    async def download_file(self, path_template: str) -> str:
+        path = self._resolve_path(path_template)
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            async with session.get(f"{self.file_base}/download", params={"file": path}) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+                # Nitrado returns a temp download URL
+                dl_url = data["data"]["token"]["url"]
+            async with session.get(dl_url) as file_resp:
+                return await file_resp.text()
+
+    async def upload_file(self, path_template: str, content: str):
+        path = self._resolve_path(path_template)
+        async with aiohttp.ClientSession(headers=self.headers) as session:
             form = aiohttp.FormData()
-            form.add_field('path', path)
-            form.add_field('file', content, filename='upload.xml', content_type='application/xml')
-            async with session.post(url, data=form, headers=self.headers) as r:
-                r.raise_for_status()
-
-    # NOTE: restart_server() is intentionally NOT implemented.
-    # The CE cycle handles all spawns automatically.
-
+            form.add_field("path", os.path.dirname(path))
+            form.add_field("file", content, filename=os.path.basename(path), content_type="text/xml")
+            async with session.post(f"{self.file_base}/upload", data=form) as resp:
+                resp.raise_for_status()
 
 class DeliveryService:
-    def __init__(self, nitrado_token: str, server_id: str, queue, db_path: str = 'db/dayz_trader.db'):
+    def __init__(self, nitrado_token: str, server_id: str):
         self.api = NitradoAPI(nitrado_token, server_id)
-        self.queue = queue
-        self.db_path = db_path
-        self._revert_tasks = {}  # job_id -> asyncio.Task
+        self._revert_tasks = []  # Track scheduled reverts
 
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
+    # ========================
+    # ITEM DELIVERY (types.xml)
+    # ========================
 
-    # ─────────────────────────────────────────
-    # PUBLIC: Queue a delivery (thread-safe)
-    # ─────────────────────────────────────────
-
-    async def queue_delivery(self, job: DeliveryJob):
-        """Add delivery to queue. Multiple purchases are serialized safely."""
-        with self._conn() as conn:
-            conn.execute(
-                '''INSERT INTO delivery_jobs
-                (purchase_id, listing_id, job_type, item_class, quantity, delivery_zone, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'queued')''',
-                (job.purchase_id, job.listing_id, job.job_type,
-                 job.item_class, job.quantity, job.delivery_zone)
-            )
-            job.job_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-        await self.queue.add(job)
-
-    # ─────────────────────────────────────────
-    # ITEM DELIVERY via types.xml
-    # ─────────────────────────────────────────
-
-    async def deliver_item(self, job: DeliveryJob):
+    async def queue_item_delivery(self, item_class: str, quantity: int = 1,
+                                   delivery_zone: str = "NWAF") -> dict:
         """
         Bumps nominal/min in types.xml and sets restock=0.
-        CE engine spawns item on its next cycle (1-5 min).
-        NEVER restarts server.
+        CE engine picks this up on its next natural cycle.
+        Server is NEVER restarted.
         """
-        self._set_job_status(job.job_id, 'processing')
         try:
-            xml_str = await self.api.download_file(TYPES_PATH)
-            root = ET.fromstring(xml_str)
+            types_path = CONFIG["delivery"]["types_xml_path"]
+            xml_str = await self.api.download_file(types_path)
+            tree = ET.fromstring(xml_str)
 
             original_nominal = None
-            original_min = None
+            found = False
 
-            for type_elem in root.findall('type'):
-                if type_elem.get('name') == job.item_class:
-                    nom_el = type_elem.find('nominal')
-                    min_el = type_elem.find('min')
-                    rst_el = type_elem.find('restock')
-                    lft_el = type_elem.find('lifetime')
+            for type_elem in tree.findall("type"):
+                if type_elem.get("name") == item_class:
+                    found = True
+                    nom_el = type_elem.find("nominal")
+                    min_el = type_elem.find("min")
+                    restock_el = type_elem.find("restock")
+                    lifetime_el = type_elem.find("lifetime")
 
                     original_nominal = int(nom_el.text) if nom_el is not None else 0
-                    original_min = int(min_el.text) if min_el is not None else 0
 
-                    # Bump by quantity — CE sees the deficit and fills it
-                    if nom_el is not None: nom_el.text = str(original_nominal + job.quantity)
-                    if min_el is not None: min_el.text = str(original_min + job.quantity)
-                    # restock=0 means spawn on NEXT CE cycle
-                    if rst_el is not None: rst_el.text = '0'
-                    # Give player a generous pickup window
-                    if lft_el is not None: lft_el.text = str(ITEM_LIFETIME)
+                    if nom_el is not None:
+                        nom_el.text = str(original_nominal + quantity)
+                    if min_el is not None:
+                        min_el.text = str(original_nominal + quantity)
+                    if restock_el is not None:
+                        restock_el.text = "0"  # spawn on next CE cycle
+                    if lifetime_el is not None:
+                        lifetime_el.text = str(ITEM_LIFETIME)
                     break
 
-            if original_nominal is None:
-                self._set_job_status(job.job_id, 'failed', f'Class {job.item_class} not found in types.xml')
-                return
+            if not found:
+                return {"success": False, "message": f"Item class '{item_class}' not found in types.xml"}
 
-            await self.api.upload_file(TYPES_PATH, ET.tostring(root, encoding='unicode', xml_declaration=True))
+            updated_xml = ET.tostring(tree, encoding="unicode", xml_declaration=True)
+            await self.api.upload_file(types_path, updated_xml)
 
-            # Store originals for revert
-            with self._conn() as conn:
-                conn.execute(
-                    'UPDATE delivery_jobs SET original_nominal=?, original_min=?, revert_at=? WHERE id=?',
-                    (original_nominal, original_min,
-                     (datetime.now() + timedelta(seconds=ITEM_LIFETIME)).isoformat(),
-                     job.job_id)
-                )
-
-            self._set_job_status(job.job_id, 'done')
-
-            # Schedule automatic revert after pickup window
-            task = asyncio.create_task(
-                self._revert_item_after(job, original_nominal, original_min, ITEM_LIFETIME)
+            # Schedule revert after pickup window — no restart ever
+            asyncio.create_task(
+                self._revert_item(item_class, original_nominal, ITEM_LIFETIME)
             )
-            self._revert_tasks[job.job_id] = task
 
+            return {
+                "success": True,
+                "item_class": item_class,
+                "delivery_zone": delivery_zone,
+                "ce_wait_seconds": CE_WAIT,
+                "pickup_window_seconds": ITEM_LIFETIME
+            }
         except Exception as e:
-            self._set_job_status(job.job_id, 'failed', str(e))
-            raise
+            return {"success": False, "message": str(e)}
 
-    async def _revert_item_after(self, job: DeliveryJob, orig_nominal: int, orig_min: int, delay: int):
-        """Wait for pickup window then reset types.xml back to original values."""
+    async def _revert_item(self, item_class: str, original_nominal: int, delay: int):
+        """After pickup window, revert nominal/min back. No restart needed."""
         await asyncio.sleep(delay)
         try:
-            xml_str = await self.api.download_file(TYPES_PATH)
-            root = ET.fromstring(xml_str)
-            for type_elem in root.findall('type'):
-                if type_elem.get('name') == job.item_class:
-                    nom_el = type_elem.find('nominal')
-                    min_el = type_elem.find('min')
-                    if nom_el is not None: nom_el.text = str(orig_nominal)
-                    if min_el is not None: min_el.text = str(orig_min)
+            types_path = CONFIG["delivery"]["types_xml_path"]
+            xml_str = await self.api.download_file(types_path)
+            tree = ET.fromstring(xml_str)
+            for type_elem in tree.findall("type"):
+                if type_elem.get("name") == item_class:
+                    nom_el = type_elem.find("nominal")
+                    min_el = type_elem.find("min")
+                    restock_el = type_elem.find("restock")
+                    if nom_el is not None:
+                        nom_el.text = str(original_nominal)
+                    if min_el is not None:
+                        min_el.text = str(max(0, original_nominal - 1))
+                    if restock_el is not None:
+                        restock_el.text = "1800"  # restore default restock
                     break
-            await self.api.upload_file(TYPES_PATH, ET.tostring(root, encoding='unicode', xml_declaration=True))
-            self._set_job_status(job.job_id, 'reverted')
+            await self.api.upload_file(types_path, ET.tostring(tree, encoding="unicode", xml_declaration=True))
         except Exception:
             pass  # Revert failure is non-critical
 
-    # ─────────────────────────────────────────
-    # VEHICLE DELIVERY via events.xml
-    # ─────────────────────────────────────────
+    # ===========================
+    # VEHICLE DELIVERY (events.xml)
+    # ===========================
 
-    async def deliver_vehicle(self, job: DeliveryJob):
+    async def queue_vehicle_delivery(self, vehicle_class: str,
+                                      delivery_zone: str = "NWAF",
+                                      fully_kitted: bool = True) -> dict:
         """
         Injects a one-time vehicle spawn event into events.xml.
-        CE engine processes events on next cycle.
-        Optionally patches cfgspawnabletypes for full kit.
-        NEVER restarts server.
+        Uses coordinates from the chosen delivery zone.
+        CE processes on next natural cycle. NO restart.
         """
-        self._set_job_status(job.job_id, 'processing')
-        zone = DELIVERY_ZONES.get(job.delivery_zone, DELIVERY_ZONES['NWAF'])
-
         try:
-            events_str = await self.api.download_file(EVENTS_PATH)
-            root = ET.fromstring(events_str)
+            if delivery_zone not in DELIVERY_ZONES:
+                return {"success": False, "message": f"Unknown delivery zone: {delivery_zone}"}
 
-            event_name = f'VehicleDelivery_{job.item_class}_{job.job_id}'
+            coords = DELIVERY_ZONES[delivery_zone]
+            events_path = CONFIG["delivery"]["events_xml_path"]
+            xml_str = await self.api.download_file(events_path)
+            root = ET.fromstring(xml_str)
 
-            event = ET.SubElement(root, 'event')
-            event.set('name', event_name)
+            # Build event element
+            event_name = f"VehicleDelivery_{vehicle_class}_{int(datetime.now().timestamp())}"
+            event = ET.SubElement(root, "event")
+            event.set("name", event_name)
 
-            ET.SubElement(event, 'nominal').text = '1'
-            ET.SubElement(event, 'min').text = '1'
-            ET.SubElement(event, 'max').text = '1'
-            ET.SubElement(event, 'lifetime').text = str(VEH_LIFETIME)
-            ET.SubElement(event, 'restock').text = '0'  # Spawn next CE cycle
-            ET.SubElement(event, 'saferadius').text = '5'
-            ET.SubElement(event, 'distanceradius').text = '20'
-            ET.SubElement(event, 'cleanupradius').text = '200'
-            ET.SubElement(event, 'flags').set('deletable', '1')
+            ET.SubElement(event, "nominal").text = "1"
+            ET.SubElement(event, "min").text = "1"
+            ET.SubElement(event, "max").text = "1"
+            ET.SubElement(event, "lifetime").text = str(VEHICLE_LIFETIME)
+            ET.SubElement(event, "restock").text = "0"  # spawn next CE cycle
+            ET.SubElement(event, "saferadius").text = "500"
+            ET.SubElement(event, "distanceradius").text = "500"
+            ET.SubElement(event, "cleanupradius").text = "200"
 
-            child = ET.SubElement(event, 'child')
-            child.set('lootmax', '0')
-            child.set('lootmin', '0')
-            child.set('max', '1')
-            child.set('min', '1')
-            child.set('type', job.item_class)
+            children = ET.SubElement(event, "children")
+            child = ET.SubElement(children, "child")
+            child.set("lootmax", "0")
+            child.set("lootmin", "0")
+            child.set("max", "1")
+            child.set("min", "1")
+            child.set("type", vehicle_class)
 
-            # Set spawn position to chosen delivery zone
-            pos = ET.SubElement(event, 'position')
-            pos.set('x', str(zone['x']))
-            pos.set('y', '0')
-            pos.set('z', str(zone['z']))
+            # Set spawn position
+            pos = ET.SubElement(event, "position")
+            pos.set("x", str(coords["x"]))
+            pos.set("z", str(coords["z"]))
 
-            await self.api.upload_file(EVENTS_PATH, ET.tostring(root, encoding='unicode', xml_declaration=True))
+            updated_xml = ET.tostring(root, encoding="unicode", xml_declaration=True)
+            await self.api.upload_file(events_path, updated_xml)
 
-            # Optionally apply full kit attachments
-            if job.fully_kitted:
-                await self._apply_vehicle_kit(job.item_class)
+            if fully_kitted:
+                await self._apply_vehicle_attachments(vehicle_class)
 
-            self._set_job_status(job.job_id, 'done')
-
-            # Schedule cleanup of the injected event
+            # Schedule cleanup of this event entry
             asyncio.create_task(
-                self._cleanup_vehicle_event_after(job, event_name, VEH_LIFETIME)
+                self._cleanup_vehicle_event(event_name, VEHICLE_LIFETIME)
             )
 
+            return {
+                "success": True,
+                "vehicle_class": vehicle_class,
+                "delivery_zone": delivery_zone,
+                "coords": coords,
+                "ce_wait_seconds": CE_WAIT,
+                "pickup_window_seconds": VEHICLE_LIFETIME
+            }
         except Exception as e:
-            self._set_job_status(job.job_id, 'failed', str(e))
-            raise
+            return {"success": False, "message": str(e)}
 
-    async def _cleanup_vehicle_event_after(self, job: DeliveryJob, event_name: str, delay: int):
-        """Remove the injected event from events.xml after pickup window."""
-        await asyncio.sleep(delay)
+    async def _apply_vehicle_attachments(self, vehicle_class: str):
+        """Patch cfgspawnabletypes.xml to give vehicle full parts/attachments."""
         try:
-            events_str = await self.api.download_file(EVENTS_PATH)
-            root = ET.fromstring(events_str)
-            for event in root.findall('event'):
-                if event.get('name') == event_name:
-                    root.remove(event)
-                    break
-            await self.api.upload_file(EVENTS_PATH, ET.tostring(root, encoding='unicode', xml_declaration=True))
-            self._set_job_status(job.job_id, 'reverted')
+            path = CONFIG["delivery"]["cfgspawnabletypes_path"]
+            xml_str = await self.api.download_file(path)
+            root = ET.fromstring(xml_str)
+            # Check if entry already exists
+            for vtype in root.findall("type"):
+                if vtype.get("name") == vehicle_class:
+                    return  # Already has attachments defined
+            # Add fully kitted entry
+            vtype = ET.SubElement(root, "type")
+            vtype.set("name", vehicle_class)
+            attachments = ET.SubElement(vtype, "attachments")
+            attachments.set("chance", "1.00")
+            # Generic full-kit attachment slots — customize per vehicle as needed
+            for slot in ["CarBattery", "SparkPlug", "CarRadiator",
+                          "CarWheel", "CarWheel", "CarWheel", "CarWheel",
+                          "GasolineCanister"]:
+                item = ET.SubElement(attachments, "item")
+                item.set("name", slot)
+                item.set("chance", "1.00")
+            updated = ET.tostring(root, encoding="unicode", xml_declaration=True)
+            await self.api.upload_file(path, updated)
         except Exception:
             pass
 
-    async def _apply_vehicle_kit(self, vehicle_class: str):
-        """Patch cfgspawnabletypes to include all parts/attachments for the vehicle."""
-        spawnable_str = await self.api.download_file(SPAWNABLE_PATH)
-        root = ET.fromstring(spawnable_str)
-        # Only add if not already present
-        existing = [t.get('name') for t in root.findall('type')]
-        if vehicle_class not in existing:
-            vtype = ET.SubElement(root, 'type')
-            vtype.set('name', vehicle_class)
-            # Add all standard vehicle parts
-            for part in ['CarRadiator','CarBattery','SparkPlug','CarWheel','CarDoor1','CarDoor2','CarDoor3','CarDoor4']:
-                att = ET.SubElement(vtype, 'attachments')
-                att.set('chance', '1.00')
-                item = ET.SubElement(att, 'item')
-                item.set('name', part)
-                item.set('chance', '1.00')
-            await self.api.upload_file(SPAWNABLE_PATH, ET.tostring(root, encoding='unicode', xml_declaration=True))
-
-    # ─────────────────────────────────────────
-    # HELPERS
-    # ─────────────────────────────────────────
-
-    def _set_job_status(self, job_id: int, status: str, error: str = None):
-        with self._conn() as conn:
-            conn.execute(
-                'UPDATE delivery_jobs SET status=?, error_text=?, completed_at=? WHERE id=?',
-                (status, error, datetime.now().isoformat() if status in ('done','failed','reverted') else None, job_id)
-            )
-
-    def get_job_status(self, job_id: int) -> Optional[str]:
-        with self._conn() as conn:
-            row = conn.execute('SELECT status FROM delivery_jobs WHERE id=?', (job_id,)).fetchone()
-        return row[0] if row else None
+    async def _cleanup_vehicle_event(self, event_name: str, delay: int):
+        """Remove the one-time event entry after delivery window expires."""
+        await asyncio.sleep(delay)
+        try:
+            events_path = CONFIG["delivery"]["events_xml_path"]
+            xml_str = await self.api.download_file(events_path)
+            root = ET.fromstring(xml_str)
+            for event in root.findall("event"):
+                if event.get("name") == event_name:
+                    root.remove(event)
+                    break
+            await self.api.upload_file(events_path, ET.tostring(root, encoding="unicode", xml_declaration=True))
+        except Exception:
+            pass
