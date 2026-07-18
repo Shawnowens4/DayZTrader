@@ -1,103 +1,81 @@
-# DayZ Console Trader Bot - Full Configuration
-
 bot:
-  prefix: '!'
-  admin_role: 'Trader Admin'
-  mod_role: 'Trader Mod'
-  log_channel: 'trader-logs'
-  delivery_channel: 'delivery-log'
-  admin_panel_channel: 'admin-tools'
+  token: "YOUR_DISCORD_BOT_TOKEN"
+  application_id: "YOUR_APPLICATION_ID"
+  admin_role: "Trader Admin"
+  admin_log_channel: "admin-logs"
+  delivery_log_channel: "delivery-log"
+  trader_channel: "trader"
+  market_channel: "marketplace"
+  casino_channel: "casino"
+  raffle_channel: "raffle"
+
+database:
+  path: "db/dayz_trader.db"
 
 nitrado:
-  base_url: 'https://api.nitrado.net'
-  mission_path: '/games/{server_id}/ftp/dayzxb_missions/dayzOffline.chernarusplus'
+  token: "YOUR_NITRADO_API_TOKEN"
+  server_id: "YOUR_SERVER_ID"
   files:
-    types: 'db/types.xml'
-    events: 'db/events.xml'
-    spawnabletypes: 'db/cfgspawnabletypes.xml'
-    economycore: 'cfgeconomycore.xml'
-    playerspawns: 'cfgplayerspawns.xml'
+    types_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/db/types.xml"
+    events_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/events.xml"
+    cfgspawnabletypes_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
+    cfgeconomycore_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/cfgeconomycore.xml"
 
 delivery:
-  ce_cycle_wait_seconds: 300      # 5 min — time to wait after XML write before notifying player
-  item_lifetime_seconds: 7200     # 2 hr pickup window for items
-  vehicle_lifetime_seconds: 14400 # 4 hr pickup window for vehicles
-  revert_after_delivery: true     # restore nominal/min after lifetime
-  max_queue_size: 50
-  file_edit_delay_seconds: 3      # pause between sequential XML edits
-
-  # Pre-configured safe delivery zones on Chernarus
-  zones:
+  # CE cycle picks up file changes — NEVER force restart the server
+  # restock=0 means item spawns on the next CE cycle (1-5 minutes)
+  item_lifetime_seconds: 7200       # 2hr pickup window for items
+  vehicle_lifetime_seconds: 14400   # 4hr pickup window for vehicles
+  restock_value: 0                  # 0 = spawn on next CE cycle
+  queue_delay_seconds: 3            # pause between sequential XML edits
+  # Preset admin-configured delivery zones on the map
+  delivery_zones:
     NWAF:
       x: 4500.0
-      z: 10200.0
-      label: 'Northwest Airfield'
-    Balota:
-      x: 4800.0
-      z: 2400.0
-      label: 'Balota Airstrip'
+      z: 11000.0
+      description: "Northwest Airfield"
     Berezino:
-      x: 13600.0
-      z: 6100.0
-      label: 'Berezino'
-    Elektro:
       x: 11800.0
-      z: 2300.0
-      label: 'Elektrozavodsk'
-    Cherno:
-      x: 9100.0
-      z: 2300.0
-      label: 'Chernogorsk'
-    Vybor:
-      x: 4200.0
-      z: 9300.0
-      label: 'Vybor'
-    Zelenogorsk:
-      x: 2500.0
-      z: 5800.0
-      label: 'Zelenogorsk'
-    Stary_Sobor:
-      x: 6000.0
       z: 9000.0
-      label: 'Stary Sobor'
+      description: "Berezino"
+    Airfield_South:
+      x: 7600.0
+      z: 2400.0
+      description: "South Airfield"
+    Vybor:
+      x: 4800.0
+      z: 9200.0
+      description: "Vybor"
+    Elektro:
+      x: 10500.0
+      z: 2100.0
+      description: "Elektrozavodsk"
+    Cherno:
+      x: 9000.0
+      z: 2300.0
+      description: "Chernogorsk"
 
 economy:
   starting_balance: 1000
   daily_reward: 500
   daily_reward_cooldown_hours: 24
-  max_balance: 9999999
-  currency_name: 'Credits'
-  currency_emoji: '💰'
 
 shop:
   enabled: true
-  tax_rate: 0.05             # 5% tax on all purchases → admin fund
-  max_items_per_category: 100
-  categories:
-    - weapons
-    - vehicles
-    - clothing
-    - food
-    - tools
-    - medical
-    - ammo
-    - containers
-    - bundles
+  max_bundles_per_admin: 50
+  price_floor: 100
+  price_ceiling: 999999
 
 market:
   enabled: true
-  listing_fee_pct: 0.02      # 2% listing fee (non-refundable)
-  escrow_hold: true
   max_listings_per_player: 5
   listing_expiry_days: 7
+  escrow_enabled: true
   min_price: 100
-  max_price: 9999999
+  max_price: 999999
 
 casino:
   enabled: true
-  channel_id: null
-  max_daily_losses: 100000
-  large_win_threshold: 50000
   games:
     poker:
       enabled: true
@@ -113,6 +91,7 @@ casino:
       enabled: true
       min_bet: 100
       max_bet: 50000
+      machines: ['classic', 'diamond', 'lucky', 'deluxe', 'mega']
       cooldown_seconds: 10
     roulette:
       enabled: true
@@ -124,25 +103,25 @@ casino:
       min_bet: 100
       max_bet: 50000
       cooldown_seconds: 25
+  max_daily_losses: 100000
+  loss_warning_threshold: 5000
 
 raffle:
   enabled: true
   auto_start_weekly: true
-  start_day: 'monday'
-  start_time: '12:00'
+  start_day: "monday"
+  start_time: "12:00"
   default_entry_cost: 500
   default_max_entries: 10
   default_duration_hours: 168
-  announce_channel: 'general'
-  admin_log_channel: 'admin-logs'
+  announce_channel: "general"
+  admin_log_channel: "admin-logs"
+  auto_announce_winners: true
+  dm_winners: true
 
 web:
-  dashboard_host: '0.0.0.0'
-  dashboard_port: 5000
-  map_host: '0.0.0.0'
-  map_port: 5001
-  dashboard_domain: 'dashboard.tz420.ninja'
-  map_domain: 'dayz.tz420.ninja'
-  cors_origins:
-    - 'https://dashboard.tz420.ninja'
-    - 'https://dayz.tz420.ninja'
+  host: "0.0.0.0"
+  port: 5000
+  api_key: "YOUR_WEB_API_KEY"
+  secret_key: "YOUR_FLASK_SECRET_KEY"
+  debug: false

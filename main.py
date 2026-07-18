@@ -1,65 +1,79 @@
 """
 DayZ Console Trader Bot - Main Entry Point
-Supports: Xbox/PS5 Nitrado servers via XML CE delivery
 """
 
-import asyncio
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
+import asyncio
 import os
-import logging
+import yaml
+import sqlite3
+from bot.services.economy import EconomyService
+from bot.services.shop import ShopService
+from bot.services.market import MarketService
+from bot.services.delivery import DeliveryService
+from bot.services.delivery_queue import DeliveryQueue
+from bot.services.security import SecurityService
 
-load_dotenv()
+with open('config/settings.yaml', 'r') as f:
+    config = yaml.safe_load(f)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-)
-log = logging.getLogger('DayZTrader')
-
-INITIAL_COGS = [
-    'bot.cogs.admin',
-    'bot.cogs.trader',
-    'bot.cogs.market',
-    'bot.cogs.casino',
-    'bot.cogs.raffle',
-]
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
 
 class DayZTraderBot(commands.Bot):
     def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        intents.members = True
         super().__init__(
             command_prefix='!',
             intents=intents,
-            application_id=os.getenv('DISCORD_APP_ID')
+            application_id=config['bot']['application_id']
         )
+        self.config = config
+        self.db_path = config['database']['path']
+        self._init_db()
+        self.economy = EconomyService(self.db_path)
+        self.shop = ShopService(self.db_path)
+        self.market_service = MarketService(self.db_path, self.economy)
+        self.delivery_queue = DeliveryQueue()
+        self.delivery = DeliveryService(
+            nitrado_token=config['nitrado']['token'],
+            server_id=config['nitrado']['server_id'],
+            queue=self.delivery_queue
+        )
+        self.security = SecurityService(self.db_path)
+
+    def _init_db(self):
+        conn = sqlite3.connect(self.db_path)
+        with open('db/schema.sql', 'r') as f:
+            conn.executescript(f.read())
+        conn.commit()
+        conn.close()
 
     async def setup_hook(self):
-        for cog in INITIAL_COGS:
-            try:
-                await self.load_extension(cog)
-                log.info(f'Loaded cog: {cog}')
-            except Exception as e:
-                log.error(f'Failed to load cog {cog}: {e}')
+        cogs = [
+            'bot.cogs.trader',
+            'bot.cogs.market',
+            'bot.cogs.casino',
+            'bot.cogs.raffle',
+            'bot.cogs.admin',
+        ]
+        for cog in cogs:
+            await self.load_extension(cog)
         await self.tree.sync()
-        log.info('Slash commands synced.')
+        asyncio.create_task(self.delivery_queue.process_loop())
+        print(f'[BOT] Synced slash commands.')
 
     async def on_ready(self):
-        log.info(f'Bot online as {self.user} (ID: {self.user.id})')
+        print(f'[BOT] Logged in as {self.user} (ID: {self.user.id})')
         await self.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name='the DayZ Trader | /shop'
+                name='the DayZ Trader'
             )
         )
 
-async def main():
-    bot = DayZTraderBot()
-    async with bot:
-        await bot.start(os.getenv('DISCORD_TOKEN'))
+bot = DayZTraderBot()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    bot.run(config['bot']['token'])
