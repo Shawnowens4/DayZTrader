@@ -1,110 +1,55 @@
 bot:
-  token: "YOUR_DISCORD_BOT_TOKEN"
-  application_id: "YOUR_APPLICATION_ID"
+  prefix: "!"
   admin_role: "Trader Admin"
-  admin_log_channel: "admin-logs"
+  log_channel: "admin-logs"
   delivery_log_channel: "delivery-log"
-  trader_channel: "trader"
-  market_channel: "marketplace"
-  casino_channel: "casino"
-  raffle_channel: "raffle"
-
-database:
-  path: "db/dayz_trader.db"
-
-nitrado:
-  token: "YOUR_NITRADO_API_TOKEN"
-  server_id: "YOUR_SERVER_ID"
-  files:
-    types_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/db/types.xml"
-    events_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/events.xml"
-    cfgspawnabletypes_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
-    cfgeconomycore_xml: "/games/YOUR_SERVICE/dayz/config/mpmissions/dayzOffline.chernarusplus/cfgeconomycore.xml"
-
-delivery:
-  # CE cycle picks up file changes — NEVER force restart the server
-  # restock=0 means item spawns on the next CE cycle (1-5 minutes)
-  item_lifetime_seconds: 7200       # 2hr pickup window for items
-  vehicle_lifetime_seconds: 14400   # 4hr pickup window for vehicles
-  restock_value: 0                  # 0 = spawn on next CE cycle
-  queue_delay_seconds: 3            # pause between sequential XML edits
-  # Preset admin-configured delivery zones on the map
-  delivery_zones:
-    NWAF:
-      x: 4500.0
-      z: 11000.0
-      description: "Northwest Airfield"
-    Berezino:
-      x: 11800.0
-      z: 9000.0
-      description: "Berezino"
-    Airfield_South:
-      x: 7600.0
-      z: 2400.0
-      description: "South Airfield"
-    Vybor:
-      x: 4800.0
-      z: 9200.0
-      description: "Vybor"
-    Elektro:
-      x: 10500.0
-      z: 2100.0
-      description: "Elektrozavodsk"
-    Cherno:
-      x: 9000.0
-      z: 2300.0
-      description: "Chernogorsk"
+  shop_channel: "trader-shop"
+  market_channel: "player-market"
 
 economy:
-  starting_balance: 1000
+  starting_balance: 5000
   daily_reward: 500
-  daily_reward_cooldown_hours: 24
+  currency_name: "Credits"
+  currency_emoji: "💰"
 
 shop:
   enabled: true
-  max_bundles_per_admin: 50
-  price_floor: 100
-  price_ceiling: 999999
+  tax_rate: 0.05
+  max_bundle_items: 20
+  purchase_cooldown_seconds: 10
 
 market:
   enabled: true
   max_listings_per_player: 5
-  listing_expiry_days: 7
-  escrow_enabled: true
+  listing_fee_pct: 0.02
+  listing_duration_days: 7
   min_price: 100
-  max_price: 999999
+  escrow_release_on_delivery_confirm: true
+
+delivery:
+  ce_cycle_wait_seconds: 300
+  item_lifetime_seconds: 7200
+  vehicle_lifetime_seconds: 14400
+  types_xml_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/db/types.xml"
+  events_xml_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/db/events.xml"
+  cfgspawnabletypes_path: "/games/ni{server_id}/noftp/dayzxb/mpmissions/dayzOffline.chernarusplus/cfgspawnabletypes.xml"
+  delivery_zones:
+    NWAF: {x: 4498.0, z: 10050.0}
+    Airfield: {x: 7580.0, z: 2380.0}
+    Berezino: {x: 11832.0, z: 9132.0}
+    Cherno: {x: 3005.0, z: 2496.0}
+    Elektro: {x: 5765.0, z: 2328.0}
+    BalotaAF: {x: 1316.0, z: 2426.0}
+    Zelenogorsk: {x: 2506.0, z: 6146.0}
+    Vybor: {x: 3852.0, z: 8450.0}
 
 casino:
   enabled: true
-  games:
-    poker:
-      enabled: true
-      min_bet: 100
-      max_bet: 50000
-      cooldown_seconds: 30
-    blackjack:
-      enabled: true
-      min_bet: 100
-      max_bet: 50000
-      cooldown_seconds: 20
-    slots:
-      enabled: true
-      min_bet: 100
-      max_bet: 50000
-      machines: ['classic', 'diamond', 'lucky', 'deluxe', 'mega']
-      cooldown_seconds: 10
-    roulette:
-      enabled: true
-      min_bet: 100
-      max_bet: 50000
-      cooldown_seconds: 15
-    horse_race:
-      enabled: true
-      min_bet: 100
-      max_bet: 50000
-      cooldown_seconds: 25
+  min_bet: 100
+  max_bet: 50000
   max_daily_losses: 100000
-  loss_warning_threshold: 5000
+  large_win_threshold: 10000
+  cooldown_seconds: 15
 
 raffle:
   enabled: true
@@ -116,12 +61,11 @@ raffle:
   default_duration_hours: 168
   announce_channel: "general"
   admin_log_channel: "admin-logs"
-  auto_announce_winners: true
-  dm_winners: true
+
+nitrado:
+  api_base: "https://api.nitrado.net"
 
 web:
   host: "0.0.0.0"
   port: 5000
-  api_key: "YOUR_WEB_API_KEY"
-  secret_key: "YOUR_FLASK_SECRET_KEY"
-  debug: false
+  secret_key: "CHANGE_ME_IN_ENV"
