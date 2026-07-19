@@ -72,10 +72,12 @@ CREATE TABLE IF NOT EXISTS purchases (
 
 -- ------------------------------------------------------------
 -- DELIVERY QUEUE
+-- Added: job_type column (used by delivery.py inserts)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS delivery_queue (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     purchase_id   INTEGER,
+    job_type      TEXT DEFAULT 'item',
     discord_id    INTEGER NOT NULL,
     item_class    TEXT NOT NULL,
     item_display  TEXT NOT NULL,
