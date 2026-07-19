@@ -8,6 +8,21 @@
 </head>
 <body>
 
+<!-- API Key Modal -->
+<div id="key-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#1e2130;border:1px solid #3a3f5c;border-radius:12px;padding:32px;min-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+    <h2 style="margin:0 0 8px;color:#e2e8f0">🔑 Admin Login</h2>
+    <p style="color:#94a3b8;margin:0 0 20px;font-size:14px">Enter your API key to access the dashboard.<br>It will be saved in your browser.</p>
+    <input id="key-input" type="password" placeholder="Paste API key here…"
+      style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:8px;border:1px solid #3a3f5c;background:#0f1117;color:#e2e8f0;font-size:15px;margin-bottom:16px"
+      onkeydown="if(event.key==='Enter')saveKey()">
+    <div style="display:flex;gap:10px">
+      <button onclick="saveKey()" style="flex:1;padding:10px;background:#4f6df5;border:none;border-radius:8px;color:#fff;font-size:15px;cursor:pointer">Save & Continue</button>
+      <button onclick="clearKey()" style="padding:10px 16px;background:#2d3250;border:none;border-radius:8px;color:#94a3b8;font-size:14px;cursor:pointer" title="Forget saved key">🗑</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="sidebar-logo">
@@ -40,6 +55,9 @@
   </a>
   <a class="nav-item" href="/map" style="margin-top:auto">
     <span class="nav-icon">🗺️</span> Map
+  </a>
+  <a class="nav-item" onclick="clearKey()" style="margin-top:8px;color:#ef4444">
+    <span class="nav-icon">🔑</span> Change Key
   </a>
 </nav>
 
@@ -219,57 +237,110 @@
 <div id="toast"></div>
 
 <script>
-const API_KEY = prompt("Enter API Key:") || "";
-const H = { "Content-Type": "application/json", "X-API-Key": API_KEY };
+// ── API Key: stored in localStorage, prompt only once ──────────────────────
+const STORAGE_KEY = 'dayz_admin_api_key';
 
+let API_KEY = localStorage.getItem(STORAGE_KEY) || '';
+let H = buildHeaders(API_KEY);
+
+function buildHeaders(key) {
+  return { 'Content-Type': 'application/json', 'X-API-Key': key };
+}
+
+function showKeyModal() {
+  const modal = document.getElementById('key-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('key-input').focus(), 50);
+}
+
+function hideKeyModal() {
+  document.getElementById('key-modal').style.display = 'none';
+}
+
+function saveKey() {
+  const val = document.getElementById('key-input').value.trim();
+  if (!val) { toast('⚠️ Key cannot be empty', false); return; }
+  API_KEY = val;
+  H = buildHeaders(API_KEY);
+  localStorage.setItem(STORAGE_KEY, API_KEY);
+  hideKeyModal();
+  loadOverview();
+}
+
+function clearKey() {
+  localStorage.removeItem(STORAGE_KEY);
+  API_KEY = '';
+  H = buildHeaders('');
+  document.getElementById('key-input').value = '';
+  showKeyModal();
+}
+
+// Show modal only if no key saved yet
+if (!API_KEY) {
+  showKeyModal();
+} else {
+  // Key already saved — load dashboard immediately, no prompt
+  document.addEventListener('DOMContentLoaded', loadOverview);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 function showSection(id) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  event.currentTarget.classList.add("active");
-  const loaders = { overview: loadOverview, shop: loadShop, market: () => loadMarket('pending'),
-    delivery: () => loadDelivery('pending'), economy: loadEconomy,
-    raffle: loadRaffle, casino: loadCasino, audit: loadAudit };
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  const loaders = {
+    overview: loadOverview, shop: loadShop,
+    market: () => loadMarket('pending'),
+    delivery: () => loadDelivery('pending'),
+    economy: loadEconomy,
+    raffle: loadRaffle, casino: loadCasino, audit: loadAudit
+  };
   if (loaders[id]) loaders[id]();
 }
 
 function toast(msg, ok=true) {
-  const t = document.getElementById("toast");
+  const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.borderLeftColor = ok ? "var(--green)" : "var(--red)";
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 3000);
+  t.style.borderLeftColor = ok ? 'var(--green)' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 async function api(path, opts={}) {
-  const r = await fetch("/api" + path, { headers: H, ...opts });
+  const r = await fetch('/api' + path, { headers: H, ...opts });
+  if (r.status === 401) {
+    toast('❌ Invalid API key — please re-enter', false);
+    clearKey();
+    return {};
+  }
   return r.json();
 }
 
 // ── Overview ──
 async function loadOverview() {
   const [bal, listings, queue, items, audit] = await Promise.all([
-    api("/economy/balances?per_page=1"),
-    api("/market/listings?status=pending"),
-    api("/delivery/queue?status=pending"),
-    api("/shop/items"),
-    api("/audit?limit=10")
+    api('/economy/balances?per_page=1'),
+    api('/market/listings?status=pending'),
+    api('/delivery/queue?status=pending'),
+    api('/shop/items'),
+    api('/audit?limit=10')
   ]);
-  document.getElementById("stat-players").textContent = Array.isArray(bal) ? bal.length + "+ " : "—";
-  document.getElementById("stat-listings").textContent = Array.isArray(listings) ? listings.length : "—";
-  document.getElementById("stat-queue").textContent = Array.isArray(queue) ? queue.length : "—";
-  document.getElementById("stat-items").textContent = Array.isArray(items) ? items.length : "—";
-  const tb = document.getElementById("audit-recent");
+  document.getElementById('stat-players').textContent = Array.isArray(bal) ? bal.length + '+ ' : '—';
+  document.getElementById('stat-listings').textContent = Array.isArray(listings) ? listings.length : '—';
+  document.getElementById('stat-queue').textContent = Array.isArray(queue) ? queue.length : '—';
+  document.getElementById('stat-items').textContent = Array.isArray(items) ? items.length : '—';
+  const tb = document.getElementById('audit-recent');
   tb.innerHTML = Array.isArray(audit) ? audit.map(r =>
-    `<tr><td>${r.timestamp?.slice(0,19) || ""}</td><td><span class="tag tag-blue">${r.trade_type}</span></td>
-     <td>${r.actor_id||""}</td><td>${r.amount!=null?r.amount:""}</td><td>${r.notes||""}</td></tr>`
-  ).join("") : "";
+    `<tr><td>${r.timestamp?.slice(0,19) || ''}</td><td><span class="tag tag-blue">${r.trade_type}</span></td>
+     <td>${r.actor_id||''}</td><td>${r.amount!=null?r.amount:''}</td><td>${r.notes||''}</td></tr>`
+  ).join('') : '';
 }
 
 // ── Shop ──
 async function loadShop() {
-  const items = await api("/shop/items");
-  const tb = document.getElementById("shop-table");
+  const items = await api('/shop/items');
+  const tb = document.getElementById('shop-table');
   tb.innerHTML = Array.isArray(items) ? items.map(i =>
     `<tr>
       <td><code>${i.item_id}</code></td>
@@ -277,44 +348,44 @@ async function loadShop() {
       <td><code>${i.class_name}</code></td>
       <td>💰 ${i.price?.toLocaleString()}</td>
       <td><span class="tag tag-blue">${i.category}</span></td>
-      <td>${i.stock===-1?"∞":i.stock}</td>
-      <td>${i.is_bundle?'<span class="tag tag-yellow">Bundle</span>':""}</td>
+      <td>${i.stock===-1?'∞':i.stock}</td>
+      <td>${i.is_bundle?'<span class="tag tag-yellow">Bundle</span>':''}</td>
       <td>${i.enabled?'<span class="tag tag-green">ON</span>':'<span class="tag tag-red">OFF</span>'}</td>
       <td>
-        <button class="btn btn-danger" style="padding:4px 8px" onclick="toggleItem('${i.item_id}',${i.enabled?0:1})">${i.enabled?"Disable":"Enable"}</button>
+        <button class="btn btn-danger" style="padding:4px 8px" onclick="toggleItem('${i.item_id}',${i.enabled?0:1})">${i.enabled?'Disable':'Enable'}</button>
       </td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 async function createItem() {
-  const bd = document.getElementById("s-bundle-data").value.trim();
+  const bd = document.getElementById('s-bundle-data').value.trim();
   const body = {
-    item_id: document.getElementById("s-id").value,
-    class_name: document.getElementById("s-class").value,
-    display_name: document.getElementById("s-name").value,
-    price: parseInt(document.getElementById("s-price").value),
-    category: document.getElementById("s-cat").value,
-    stock: parseInt(document.getElementById("s-stock").value),
-    is_bundle: document.getElementById("s-bundle").value === "1",
+    item_id: document.getElementById('s-id').value,
+    class_name: document.getElementById('s-class').value,
+    display_name: document.getElementById('s-name').value,
+    price: parseInt(document.getElementById('s-price').value),
+    category: document.getElementById('s-cat').value,
+    stock: parseInt(document.getElementById('s-stock').value),
+    is_bundle: document.getElementById('s-bundle').value === '1',
     bundle_data: bd ? JSON.parse(bd) : null,
-    description: document.getElementById("s-desc").value
+    description: document.getElementById('s-desc').value
   };
-  const r = await api("/shop/items", { method:"POST", body: JSON.stringify(body) });
-  toast(r.success ? "✅ Item added!" : "❌ " + r.error, r.success);
+  const r = await api('/shop/items', { method:'POST', body: JSON.stringify(body) });
+  toast(r.success ? '✅ Item added!' : '❌ ' + r.error, r.success);
   if (r.success) loadShop();
 }
 
 async function toggleItem(id, enabled) {
-  const r = await api(`/shop/items/${id}`, { method:"PATCH", body: JSON.stringify({enabled}) });
-  toast(r.success ? "✅ Updated" : "❌ Failed", r.success);
+  const r = await api(`/shop/items/${id}`, { method:'PATCH', body: JSON.stringify({enabled}) });
+  toast(r.success ? '✅ Updated' : '❌ Failed', r.success);
   loadShop();
 }
 
 // ── Market ──
 async function loadMarket(status) {
   const rows = await api(`/market/listings?status=${status}`);
-  const tb = document.getElementById("market-table");
+  const tb = document.getElementById('market-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
     `<tr>
       <td><code>${r.listing_id?.slice(0,8)}</code></td>
@@ -324,50 +395,69 @@ async function loadMarket(status) {
       <td>💰 ${r.asking_price?.toLocaleString()}</td>
       <td><span class="tag ${r.status==='escrowed'?'tag-yellow':r.status==='delivered'?'tag-green':r.status==='disputed'?'tag-red':'tag-blue'}">${r.status}</span></td>
       <td>${r.escrow_held?.toLocaleString()||0}</td>
-      <td>${r.expires_at?.slice(0,10)||""}</td>
+      <td>${r.expires_at?.slice(0,10)||''}</td>
       <td>
-        ${r.status==='escrowed'?`<button class="btn btn-success" style="padding:4px 8px" onclick="confirmDelivery('${r.listing_id}')">✅ Confirm</button>`:""}
-        ${r.status==='disputed'?`<button class="btn btn-danger" style="padding:4px 8px" onclick="resolveDispute('${r.listing_id}')">⚖️ Resolve</button>`:""}
+        ${r.status==='escrowed'?`<button class="btn btn-success" style="padding:4px 8px" onclick="confirmDelivery('${r.listing_id}')">✅ Confirm</button>`:''}
+        ${r.status==='disputed'?`<button class="btn btn-danger" style="padding:4px 8px" onclick="resolveDispute('${r.listing_id}')">⚖️ Resolve</button>`:''}
       </td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 async function confirmDelivery(id) {
-  const r = await api(`/market/listings/${id}/confirm`, {method:"POST"});
-  toast(r.success ? "✅ Delivery confirmed, funds released" : "❌ Failed", r.success);
-  loadMarket("escrowed");
+  const r = await api(`/market/listings/${id}/confirm`, {method:'POST'});
+  toast(r.success ? '✅ Delivery confirmed, funds released' : '❌ Failed', r.success);
+  loadMarket('escrowed');
 }
 
 async function resolveDispute(id) {
-  const resolution = prompt("Resolution? (refunded / released)") || "refunded";
-  const r = await api(`/market/listings/${id}/dispute`, {method:"POST", body: JSON.stringify({resolution})});
-  toast(r.success ? "✅ Dispute resolved" : "❌ Failed", r.success);
-  loadMarket("disputed");
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center">
+      <div style="background:#1e2130;border:1px solid #3a3f5c;border-radius:12px;padding:28px;min-width:300px">
+        <h3 style="color:#e2e8f0;margin:0 0 16px">⚖️ Resolve Dispute</h3>
+        <select id="res-sel" style="width:100%;padding:8px;border-radius:8px;background:#0f1117;color:#e2e8f0;border:1px solid #3a3f5c;margin-bottom:16px">
+          <option value="refunded">Refund buyer</option>
+          <option value="released">Release to seller</option>
+        </select>
+        <div style="display:flex;gap:10px">
+          <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:8px;background:#2d3250;border:none;border-radius:8px;color:#94a3b8;cursor:pointer">Cancel</button>
+          <button id="res-btn" style="flex:1;padding:8px;background:#4f6df5;border:none;border-radius:8px;color:#fff;cursor:pointer">Confirm</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#res-btn').onclick = async () => {
+    const resolution = modal.querySelector('#res-sel').value;
+    modal.remove();
+    const r = await api(`/market/listings/${id}/dispute`, {method:'POST', body: JSON.stringify({resolution})});
+    toast(r.success ? '✅ Dispute resolved' : '❌ Failed', r.success);
+    loadMarket('disputed');
+  };
 }
 
 // ── Delivery ──
 async function loadDelivery(status) {
   const rows = await api(`/delivery/queue?status=${status}`);
-  const tb = document.getElementById("delivery-table");
+  const tb = document.getElementById('delivery-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
     `<tr>
       <td>${r.id}</td>
       <td>${r.discord_id}</td>
       <td>${r.item_display} x${r.quantity}</td>
       <td><span class="tag tag-blue">${r.delivery_zone}</span></td>
-      <td>${r.is_vehicle?'<span class="tag tag-yellow">🚗 Yes</span>':"No"}</td>
+      <td>${r.is_vehicle?'<span class="tag tag-yellow">🚗 Yes</span>':'No'}</td>
       <td><span class="tag ${r.status==='complete'?'tag-green':r.status==='failed'?'tag-red':r.status==='processing'?'tag-yellow':'tag-blue'}">${r.status}</span></td>
-      <td>${r.queued_at?.slice(0,16)||""}</td>
-      <td>${r.revert_at?.slice(0,16)||""}</td>
+      <td>${r.queued_at?.slice(0,16)||''}</td>
+      <td>${r.revert_at?.slice(0,16)||''}</td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 // ── Economy ──
 async function loadEconomy() {
-  const rows = await api("/economy/balances?per_page=50");
-  const tb = document.getElementById("economy-table");
+  const rows = await api('/economy/balances?per_page=50');
+  const tb = document.getElementById('economy-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map((r,i) =>
     `<tr>
       <td>${i+1}</td>
@@ -377,88 +467,88 @@ async function loadEconomy() {
       <td>${r.total_earned?.toLocaleString()}</td>
       <td>${r.total_spent?.toLocaleString()}</td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 async function adjustBalance() {
   const body = {
-    discord_id: document.getElementById("eco-id").value,
-    amount: parseInt(document.getElementById("eco-amt").value),
-    reason: document.getElementById("eco-reason").value
+    discord_id: document.getElementById('eco-id').value,
+    amount: parseInt(document.getElementById('eco-amt').value),
+    reason: document.getElementById('eco-reason').value
   };
-  const r = await api("/economy/adjust", {method:"POST", body: JSON.stringify(body)});
-  toast(r.success ? "✅ Balance adjusted" : "❌ " + r.error, r.success);
+  const r = await api('/economy/adjust', {method:'POST', body: JSON.stringify(body)});
+  toast(r.success ? '✅ Balance adjusted' : '❌ ' + r.error, r.success);
   loadEconomy();
 }
 
 // ── Raffle ──
 async function loadRaffle() {
-  const rows = await api("/raffle/history");
-  const tb = document.getElementById("raffle-table");
+  const rows = await api('/raffle/history');
+  const tb = document.getElementById('raffle-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
     `<tr>
       <td>${r.week_number}</td>
       <td>${r.vehicle_display}</td>
       <td><span class="tag ${r.status==='open'?'tag-green':r.status==='complete'?'tag-blue':'tag-red'}">${r.status}</span></td>
-      <td>${r.winner_name||"—"}</td>
+      <td>${r.winner_name||'—'}</td>
       <td>💰 ${r.entry_cost}</td>
-      <td>${r.created_at?.slice(0,10)||""}</td>
+      <td>${r.created_at?.slice(0,10)||''}</td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 async function startRaffle() {
   const body = {
-    vehicle: document.getElementById("r-class").value,
-    vehicle_display: document.getElementById("r-name").value,
-    entry_cost: parseInt(document.getElementById("r-cost").value),
-    max_entries: parseInt(document.getElementById("r-max").value),
-    end_time: document.getElementById("r-end").value
+    vehicle: document.getElementById('r-class').value,
+    vehicle_display: document.getElementById('r-name').value,
+    entry_cost: parseInt(document.getElementById('r-cost').value),
+    max_entries: parseInt(document.getElementById('r-max').value),
+    end_time: document.getElementById('r-end').value
   };
-  const r = await api("/raffle/start", {method:"POST", body: JSON.stringify(body)});
-  toast(r.success ? "✅ Raffle started!" : "❌ " + r.error, r.success);
+  const r = await api('/raffle/start', {method:'POST', body: JSON.stringify(body)});
+  toast(r.success ? '✅ Raffle started!' : '❌ ' + r.error, r.success);
   loadRaffle();
 }
 
 // ── Casino ──
 async function loadCasino() {
-  const rows = await api("/casino/stats");
-  const tb = document.getElementById("casino-table");
+  const rows = await api('/casino/stats');
+  const tb = document.getElementById('casino-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
     `<tr>
       <td>${r.username}</td>
       <td>${r.games_played}</td>
       <td>💰 ${r.total_wagered?.toLocaleString()}</td>
       <td>💰 ${r.total_winnings?.toLocaleString()}</td>
-      <td class="${(r.total_winnings-r.total_wagered)>=0?'':''}" style="color:${(r.total_winnings-r.total_wagered)>=0?'var(--green)':'var(--red)'}">
+      <td style="color:${(r.total_winnings-r.total_wagered)>=0?'var(--green)':'var(--red)'}">
         ${((r.total_winnings||0)-(r.total_wagered||0)).toLocaleString()}
       </td>
       <td>💰 ${r.biggest_win?.toLocaleString()}</td>
-      <td>${r.favorite_game||"—"}</td>
+      <td>${r.favorite_game||'—'}</td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
 // ── Audit ──
 async function loadAudit(type) {
-  const url = type ? `/audit?type=${type}&limit=100` : "/audit?limit=100";
+  const url = type ? `/audit?type=${type}&limit=100` : '/audit?limit=100';
   const rows = await api(url);
-  const tb = document.getElementById("audit-table");
+  const tb = document.getElementById('audit-table');
   tb.innerHTML = Array.isArray(rows) ? rows.map(r =>
     `<tr>
-      <td>${r.timestamp?.slice(0,19)||""}</td>
+      <td>${r.timestamp?.slice(0,19)||''}</td>
       <td><span class="tag tag-blue">${r.trade_type}</span></td>
-      <td>${r.actor_id||""}</td>
-      <td>${r.target_id||""}</td>
-      <td>${r.item_ref||""}</td>
-      <td>${r.amount!=null?r.amount:""}</td>
-      <td>${r.notes||""}</td>
+      <td>${r.actor_id||''}</td>
+      <td>${r.target_id||''}</td>
+      <td>${r.item_ref||''}</td>
+      <td>${r.amount!=null?r.amount:''}</td>
+      <td>${r.notes||''}</td>
     </tr>`
-  ).join("") : "";
+  ).join('') : '';
 }
 
-// Load overview on start
-loadOverview();
+// Load overview on start (if key already saved)
+if (API_KEY) loadOverview();
 </script>
 </body>
 </html>
