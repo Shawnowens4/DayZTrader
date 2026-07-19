@@ -1,0 +1,18 @@
+# ============================================================
+# Cloudflare Tunnel Configuration
+# Place this file at: cloudflared/tunnel.yml
+# (or copy to ~/.cloudflared/config.yml for system-wide use)
+# ============================================================
+
+# Your tunnel UUID — filled in automatically after `cloudflared tunnel create`
+# or paste it manually from the Cloudflare Zero Trust dashboard.
+tunnel: YOUR_TUNNEL_UUID_HERE
+credentials-file: /path/to/DayZTrader/cloudflared/YOUR_TUNNEL_UUID_HERE.json
+
+# Route all incoming HTTPS traffic to your local Flask web server
+ingress:
+  - hostname: YOUR_SUBDOMAIN.YOUR_DOMAIN.com
+    service: http://localhost:5000
+
+  # Catch-all — required by cloudflared, returns 404 for unlisted routes
+  - service: http_status:404
