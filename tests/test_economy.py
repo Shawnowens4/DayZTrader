@@ -38,7 +38,7 @@ UID_B = 999888777666555444
 
 
 def run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 @pytest.fixture
