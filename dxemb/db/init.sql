@@ -1,11 +1,24 @@
 -- =============================================================
 -- DXEMB Schema — Epic A1 + A2
 -- Tables: player, item, escrow_transaction
--- Creation order: player → item → escrow_transaction
+-- Creation order: function → player → item → escrow_transaction
 -- All FKs are now real constraints (tables exist in same file).
 -- Idempotent: safe to run multiple times.
 -- Postgres-compatible. No custom ENUM types.
 -- =============================================================
+
+
+-- =============================================================
+-- Shared trigger function — MUST be defined before any trigger
+-- that references it. CREATE OR REPLACE is idempotent.
+-- =============================================================
+CREATE OR REPLACE FUNCTION dxemb_set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- =============================================================
@@ -66,19 +79,6 @@ DROP TRIGGER IF EXISTS trg_item_updated_at ON item;
 CREATE TRIGGER trg_item_updated_at
     BEFORE UPDATE ON item
     FOR EACH ROW EXECUTE FUNCTION dxemb_set_updated_at();
-
-
--- =============================================================
--- shared updated_at trigger function (must exist before triggers)
--- CREATE OR REPLACE is idempotent — safe to re-run.
--- =============================================================
-CREATE OR REPLACE FUNCTION dxemb_set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 
 -- =============================================================
