@@ -5,32 +5,23 @@
 # Uses asyncpg. Pool is created once on first call (lazy init).
 # =============================================================
 import os
-import asyncpg
+import sys
+from pathlib import Path
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://dxemb:dxemb@db:5432/dxemb",  # matches docker-compose defaults
-)
+# Ensure shared package is importable in script mode (python bot/main.py).
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-_pool: asyncpg.Pool | None = None
+from shared.db import close_pool as shared_close_pool
+from shared.db import get_pool as shared_get_pool
 
 
-async def get_pool() -> asyncpg.Pool:
+async def get_pool():
     """Return the shared connection pool, creating it if needed."""
-    global _pool
-    if _pool is None:
-        _pool = await asyncpg.create_pool(
-            DATABASE_URL,
-            min_size=1,
-            max_size=5,
-            command_timeout=10,
-        )
-    return _pool
+    return await shared_get_pool()
 
 
 async def close_pool() -> None:
     """Gracefully close the pool on shutdown."""
-    global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    await shared_close_pool()

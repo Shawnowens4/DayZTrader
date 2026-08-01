@@ -2,5 +2,5 @@
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY dxemb/bot ./bot
-CMD ["python", "bot/main.py"]
+COPY dxemb ./dxemb
+CMD ["python", "dxemb/bot/main.py"]

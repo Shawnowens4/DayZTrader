@@ -5,18 +5,23 @@
 #   GET /         — HTML status dashboard (admin-facing)
 #   GET /health   — JSON health check (bot + monitoring use)
 # =============================================================
-import os
-import time
+import sys
+from pathlib import Path
 
-import psycopg2
 from flask import Flask, jsonify, render_template_string
 
-app = Flask(__name__)
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+  sys.path.insert(0, str(ROOT_DIR))
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://dxemb:dxemb@db:5432/dxemb",
-)
+from shared.db import get_sync_health
+try:
+    from web.catalog_admin import catalog_bp
+except ModuleNotFoundError:
+    from catalog_admin import catalog_bp
+
+app = Flask(__name__)
+app.register_blueprint(catalog_bp)
 
 TABLES = ["player", "item", "escrow_transaction"]
 
@@ -25,24 +30,14 @@ TABLES = ["player", "item", "escrow_transaction"]
 # DB helper — synchronous psycopg2 (Flask is sync; asyncpg is bot-only)
 # ------------------------------------------------------------------
 def _db_check() -> dict:
-    """Run a quick DB ping and table row-count check.
-    Returns a dict with status, latency_ms, and per-table counts.
-    """
-    result = {"ok": False, "latency_ms": None, "tables": {}, "error": None}
-    try:
-        t0 = time.monotonic()
-        conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
-        cur = conn.cursor()
-        for table in TABLES:
-            cur.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608
-            result["tables"][table] = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-        result["latency_ms"] = round((time.monotonic() - t0) * 1000)
-        result["ok"] = True
-    except Exception as exc:
-        result["error"] = str(exc)
-    return result
+  """Run DB health check via the shared database layer."""
+  db = get_sync_health(TABLES)
+  return {
+    "ok": db["connected"],
+    "latency_ms": db["latency_ms"],
+    "tables": db["tables"],
+    "error": db["error"],
+  }
 
 
 # ------------------------------------------------------------------
@@ -146,6 +141,14 @@ _DASHBOARD_TMPL = """
     {% endfor %}
   </div>
   {% endif %}
+
+  <div class="card">
+    <h2>Admin</h2>
+    <div class="row">
+      <span class="label">Catalog management</span>
+      <a class="val" href="/catalog">Open /catalog</a>
+    </div>
+  </div>
 
 </body>
 </html>

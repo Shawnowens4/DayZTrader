@@ -21,13 +21,18 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 # ----------------------------------------------------------------
 INITIAL_COGS = [
     "cogs.health",
+    "cogs.trader",
 ]
 
 
 @bot.event
 async def on_ready():
-    print(f"[DXEMB] Bot online as {bot.user} (id={bot.user.id})")
-    print(f"[DXEMB] Prefix: '{PREFIX}'  |  Guilds: {len(bot.guilds)}")
+    gateway_ms = round(bot.latency * 1000)
+    print(
+        f"[DXEMB] READY | user={bot.user} id={bot.user.id} "
+        f"guilds={len(bot.guilds)} gateway_ms={gateway_ms}"
+    )
+    print(f"[DXEMB] Command prefix: '{PREFIX}'")
 
 
 async def load_cogs():
@@ -41,9 +46,16 @@ async def load_cogs():
 
 async def main():
     if not TOKEN:
-        print("[DXEMB] DISCORD_BOT_TOKEN not set — running in no-op mode.")
+        print("[DXEMB] Startup check: DISCORD_BOT_TOKEN is missing or blank.")
+        print("[DXEMB] Running in no-op mode; Discord connection disabled.")
         while True:
             await asyncio.sleep(60)
+
+    print(
+        "[DXEMB] Startup check: DISCORD_BOT_TOKEN is present "
+        f"(len={len(TOKEN)})."
+    )
+    print("[DXEMB] Attempting Discord Gateway connection...")
 
     async with bot:
         await load_cogs()

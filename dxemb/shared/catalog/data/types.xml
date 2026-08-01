@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<types>
+  <type name="AKM">
+    <nominal>5</nominal>
+    <lifetime>10800</lifetime>
+    <restock>0</restock>
+    <min>2</min>
+    <quantmin>-1</quantmin>
+    <quantmax>-1</quantmax>
+    <cost>100</cost>
+    <category name="weapons"/>
+    <usage name="military"/>
+  </type>
+  <type name="M4A1_Black">
+    <nominal>4</nominal>
+    <lifetime>10800</lifetime>
+    <restock>0</restock>
+    <min>1</min>
+    <quantmin>-1</quantmin>
+    <quantmax>-1</quantmax>
+    <cost>100</cost>
+    <category name="weapons"/>
+    <usage name="military"/>
+  </type>
+  <type name="SodaCan_Cola">
+    <nominal>20</nominal>
+    <lifetime>7200</lifetime>
+    <restock>0</restock>
+    <min>10</min>
+    <quantmin>-1</quantmin>
+    <quantmax>-1</quantmax>
+    <cost>100</cost>
+    <category name="food"/>
+    <usage name="town"/>
+  </type>
+  <type name="Hatchback_02">
+    <nominal>2</nominal>
+    <lifetime>388800</lifetime>
+    <restock>0</restock>
+    <min>1</min>
+    <quantmin>-1</quantmin>
+    <quantmax>-1</quantmax>
+    <cost>100</cost>
+    <category name="vehicles"/>
+    <usage name="industrial"/>
+  </type>
+</types>
