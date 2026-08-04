@@ -1,0 +1,72 @@
+{
+  "__note__": "Seed placeholder. Replace with output of shared/catalog/tools/generate_resolver.py.",
+  "Olga247": {
+    "display_name": "Olga 247",
+    "category": "Car",
+    "body_thumbnail": "Olga247.webp",
+    "colors": {
+      "black": {
+        "classname": "Olga247_Black",
+        "display_name": "Black",
+        "thumbnail": "Olga247_Black.webp"
+      },
+      "green": {
+        "classname": "Olga247_Green",
+        "display_name": "Olive Green",
+        "thumbnail": "Olga247_Green.webp"
+      }
+    },
+    "slots": [
+      { "slot_name": "hood",    "classname": "Olga247_Hood",    "display_name": "Hood",    "required": true,  "thumbnail": "Olga247_Hood.webp" },
+      { "slot_name": "trunk",   "classname": "Olga247_Trunk",   "display_name": "Trunk",   "required": true,  "thumbnail": "Olga247_Trunk.webp" },
+      { "slot_name": "door_fl", "classname": "Olga247_Door1",   "display_name": "Front Left Door",  "required": false, "thumbnail": "Olga247_Door1.webp" },
+      { "slot_name": "door_fr", "classname": "Olga247_Door2",   "display_name": "Front Right Door", "required": false, "thumbnail": "Olga247_Door2.webp" }
+    ]
+  },
+  "Hatchback02": {
+    "display_name": "Hatchback 02",
+    "category": "Car",
+    "body_thumbnail": "Hatchback02.webp",
+    "colors": {
+      "blue": {
+        "classname": "Hatchback02_Blue",
+        "display_name": "Blue",
+        "thumbnail": "Hatchback02_Blue.webp"
+      },
+      "grey": {
+        "classname": "Hatchback02_Grey",
+        "display_name": "Grey",
+        "thumbnail": "Hatchback02_Grey.webp"
+      }
+    },
+    "slots": [
+      { "slot_name": "hood",  "classname": "Hatchback02_Hood",  "display_name": "Hood",  "required": true,  "thumbnail": "Hatchback02_Hood.webp" },
+      { "slot_name": "trunk", "classname": "Hatchback02_Trunk", "display_name": "Trunk", "required": true,  "thumbnail": "Hatchback02_Trunk.webp" },
+      { "slot_name": "door_fl", "classname": "Hatchback02_Door1", "display_name": "Front Left Door",  "required": false, "thumbnail": "Hatchback02_Door1.webp" },
+      { "slot_name": "door_fr", "classname": "Hatchback02_Door2", "display_name": "Front Right Door", "required": false, "thumbnail": "Hatchback02_Door2.webp" }
+    ]
+  },
+  "OffroadHatchback": {
+    "display_name": "Offroad Hatchback",
+    "category": "Car",
+    "body_thumbnail": "OffroadHatchback.webp",
+    "colors": {
+      "beige": {
+        "classname": "OffroadHatchback",
+        "display_name": "Beige",
+        "thumbnail": "OffroadHatchback.webp"
+      },
+      "blue": {
+        "classname": "OffroadHatchback_Blue",
+        "display_name": "Blue",
+        "thumbnail": "OffroadHatchback_Blue.webp"
+      }
+    },
+    "slots": [
+      { "slot_name": "hood",  "classname": "OffroadHatchback_Hood",  "display_name": "Hood",  "required": true,  "thumbnail": "OffroadHatchback_Hood.webp" },
+      { "slot_name": "trunk", "classname": "OffroadHatchback_Trunk", "display_name": "Trunk", "required": true,  "thumbnail": "OffroadHatchback_Trunk.webp" },
+      { "slot_name": "door_fl", "classname": "OffroadHatchback_Door1", "display_name": "Front Left Door",  "required": false, "thumbnail": "OffroadHatchback_Door1.webp" },
+      { "slot_name": "door_fr", "classname": "OffroadHatchback_Door2", "display_name": "Front Right Door", "required": false, "thumbnail": "OffroadHatchback_Door2.webp" }
+    ]
+  }
+}
