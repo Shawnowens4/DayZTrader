@@ -1,15 +1,15 @@
 # =============================================================
-# DXEMB Bot — main.py  (Epic A3 / B0)
+# DXEMB Bot — main.py  (A3 / B0)
 # commands.Bot with cog loader.
-# Prefix commands (!health, !shop, etc.) — unchanged.
+# Prefix commands (!health, !shop) — unchanged.
 # Slash commands — synced on ready via bot.tree.sync().
 #
-# Sync behaviour (controlled by SLASH_SYNC env var):
-#   global   — sync to all guilds (up to 1h propagation) [default]
-#   guild    — instant sync to GUILD_IDS only (dev/test)
-#   off      — skip sync entirely (fastest cold start)
+# Sync behaviour (SLASH_SYNC env var):
+#   global  — sync to all guilds (up to 1h propagation) [default]
+#   guild   — instant sync to GUILD_IDS only (dev/test)
+#   off     — skip sync entirely (fastest cold start)
 #
-# GUILD_IDS env var: comma-separated guild IDs for guild sync.
+# GUILD_IDS: comma-separated guild IDs for guild sync mode.
 # =============================================================
 import os
 import asyncio
@@ -41,6 +41,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 INITIAL_COGS = [
     "cogs.health",
     "cogs.trader",
+    "cogs.health_slash",
 ]
 
 
@@ -52,17 +53,11 @@ async def on_ready():
         f"guilds={len(bot.guilds)} gateway_ms={gateway_ms}"
     )
     print(f"[DXEMB] Command prefix: '{PREFIX}'")
-
     await _sync_slash_commands()
 
 
 async def _sync_slash_commands() -> None:
-    """Sync the app command tree based on SLASH_SYNC env var.
-
-    global  — bot.tree.sync() → all guilds (slow propagation, use for prod)
-    guild   — bot.tree.sync(guild=g) per GUILD_IDS → instant (use for dev)
-    off     — skip (fastest cold start, no changes pushed)
-    """
+    """Sync the app command tree based on SLASH_SYNC env var."""
     if SLASH_SYNC == "off":
         print("[DXEMB] Slash sync: OFF (SLASH_SYNC=off)")
         return
