@@ -1,5 +1,5 @@
 # =============================================================
-# DXEMB Web — app.py  (Epic A4)
+# DXEMB Web — app.py  (Epic A4 / A9)
 # Flask admin panel entry point.
 # Routes:
 #   GET /         — HTML status dashboard (admin-facing)
@@ -15,13 +15,20 @@ if str(ROOT_DIR) not in sys.path:
   sys.path.insert(0, str(ROOT_DIR))
 
 from shared.db import get_sync_health
+
 try:
     from web.catalog_admin import catalog_bp
 except ModuleNotFoundError:
     from catalog_admin import catalog_bp
 
+try:
+    from web.vehicle_admin import vehicle_bp
+except ModuleNotFoundError:
+    from vehicle_admin import vehicle_bp
+
 app = Flask(__name__)
 app.register_blueprint(catalog_bp)
+app.register_blueprint(vehicle_bp)
 
 TABLES = ["player", "item", "escrow_transaction"]
 
@@ -147,6 +154,10 @@ _DASHBOARD_TMPL = """
     <div class="row">
       <span class="label">Catalog management</span>
       <a class="val" href="/catalog">Open /catalog</a>
+    </div>
+    <div class="row">
+      <span class="label">Vehicle builder</span>
+      <a class="val" href="/vehicles">Open /vehicles</a>
     </div>
   </div>
 
