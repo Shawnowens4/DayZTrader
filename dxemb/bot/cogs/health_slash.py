@@ -1,9 +1,9 @@
 from __future__ import annotations
 # =============================================================
-# DXEMB  bot/cogs/health_slash.py  (B0)
-# First slash command — /health
-# Proves bot.tree.sync infrastructure works.
-# Mirrors !health output as a slash command.
+# DXEMB  bot/cogs/health_slash.py  (B1)
+# Slash command — /health
+# discord.py 2.x wires @app_commands.command into bot.tree
+# automatically when add_cog() is called. No manual loop needed.
 # Admin-only: ephemeral reply visible only to the user.
 # =============================================================
 
@@ -40,11 +40,11 @@ class HealthSlashCog(commands.Cog, name="HealthSlash"):
             db = get_sync_health(TABLES)
         except Exception as exc:
             await interaction.followup.send(
-                f"❌ DB health check failed: `{exc}`", ephemeral=True
+                f"\u274c DB health check failed: `{exc}`", ephemeral=True
             )
             return
 
-        status_emoji = "✅" if db["connected"] else "❌"
+        status_emoji = "\u2705" if db["connected"] else "\u274c"
         color = discord.Color.green() if db["connected"] else discord.Color.red()
 
         embed = discord.Embed(
@@ -67,17 +67,13 @@ class HealthSlashCog(commands.Cog, name="HealthSlash"):
 
         if db.get("tables"):
             table_lines = "\n".join(
-                f"`{t}` — {c} rows" for t, c in db["tables"].items()
+                f"`{t}` \u2014 {c} rows" for t, c in db["tables"].items()
             )
             embed.add_field(name="Tables", value=table_lines, inline=False)
 
-        embed.set_footer(text="DXEMB Admin — visible only to you")
+        embed.set_footer(text="DXEMB Admin \u2014 visible only to you")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
-    cog = HealthSlashCog(bot)
-    await bot.add_cog(cog)
-    # Wire the cog's app_commands into the tree so they are visible to sync()
-    for cmd in cog.__cog_app_commands__:
-        bot.tree.add_command(cmd)
+    await bot.add_cog(HealthSlashCog(bot))
