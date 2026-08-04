@@ -76,4 +76,8 @@ class HealthSlashCog(commands.Cog, name="HealthSlash"):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(HealthSlashCog(bot))
+    cog = HealthSlashCog(bot)
+    await bot.add_cog(cog)
+    # Wire the cog's app_commands into the tree so they are visible to sync()
+    for cmd in cog.__cog_app_commands__:
+        bot.tree.add_command(cmd)
