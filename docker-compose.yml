@@ -1,4 +1,4 @@
-﻿services:
+services:
   bot:
     build:
       context: .
@@ -7,6 +7,8 @@
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+    volumes:
+      - ./dxemb:/app/dxemb
     depends_on:
       db:
         condition: service_healthy
@@ -18,6 +20,10 @@
       dockerfile: Dockerfile.web
     env_file:
       - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./dxemb:/app/dxemb
     ports:
       - "5000:5000"
     depends_on:
@@ -44,3 +50,9 @@
 
 volumes:
   dxemb_db_data:
+
+# Commands to apply:
+# 1) Replace your project docker-compose.yml with this file.
+# 2) docker compose up -d --no-deps --build --force-recreate bot web
+# 3) docker compose exec bot sh -c "wc -c /app/dxemb/shared/catalog/data/classname_displayname_map.seed.json"
+# 4) docker compose exec bot sh -c "cd /app/dxemb && python -m shared.catalog.tools.build_thumbnail_map"

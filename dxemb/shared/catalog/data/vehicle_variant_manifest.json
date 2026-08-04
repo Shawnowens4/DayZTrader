@@ -1,0 +1,1474 @@
+{
+  "generated_from": "/app/dxemb/web/static/items",
+  "families": {
+    "civiliansedan": {
+      "label": "Olga 24",
+      "family_key": "civiliansedan",
+      "aliases": [
+        "civiliansedan",
+        "olga24",
+        "civsedan"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "rear_left_door",
+        "rear_right_door",
+        "trunk",
+        "wheel"
+      ],
+      "variants": {
+        "black": {
+          "vehicle_images": [
+            "civiliansedan_black.webp"
+          ],
+          "parts": {},
+          "all_files": [
+            {
+              "file": "civiliansedan_black.webp",
+              "slot": "body",
+              "color": "black",
+              "rust": false,
+              "stem": "civiliansedan_black"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ]
+          }
+        },
+        "default": {
+          "vehicle_images": [
+            "civiliansedan.webp",
+            "olga_24.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "civsedandoors_codriver.webp"
+            ],
+            "driver_door": [
+              "civsedandoors_driver.webp",
+              "olga_24_front_left_door.webp"
+            ],
+            "hood": [
+              "civsedanhood.webp",
+              "olga_24_hood.webp"
+            ],
+            "rear_left_door": [
+              "civsedandoors_backleft.webp"
+            ],
+            "rear_right_door": [
+              "civsedandoors_backright.webp"
+            ],
+            "trunk": [
+              "civsedantrunk.webp",
+              "olga_24_trunk_lid.webp"
+            ],
+            "wheel": [
+              "civsedanwheel.webp",
+              "civsedanwheel_ruined.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "civiliansedan.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "civiliansedan"
+            },
+            {
+              "file": "civsedandoors_backleft.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedandoors_backleft"
+            },
+            {
+              "file": "civsedandoors_backright.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedandoors_backright"
+            },
+            {
+              "file": "civsedandoors_codriver.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedandoors_codriver"
+            },
+            {
+              "file": "civsedandoors_driver.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedandoors_driver"
+            },
+            {
+              "file": "civsedanhood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedanhood"
+            },
+            {
+              "file": "civsedantrunk.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedantrunk"
+            },
+            {
+              "file": "civsedanwheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedanwheel"
+            },
+            {
+              "file": "civsedanwheel_ruined.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "civsedanwheel_ruined"
+            },
+            {
+              "file": "olga_24.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "olga_24"
+            },
+            {
+              "file": "olga_24_front_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "olga_24_front_left_door"
+            },
+            {
+              "file": "olga_24_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "olga_24_hood"
+            },
+            {
+              "file": "olga_24_trunk_lid.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "olga_24_trunk_lid"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        },
+        "wine": {
+          "vehicle_images": [
+            "civiliansedan_wine.webp"
+          ],
+          "parts": {},
+          "all_files": [
+            {
+              "file": "civiliansedan_wine.webp",
+              "slot": "body",
+              "color": "wine",
+              "rust": false,
+              "stem": "civiliansedan_wine"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ]
+          }
+        }
+      }
+    },
+    "hatchback_02": {
+      "label": "Ada 4x4",
+      "family_key": "hatchback_02",
+      "aliases": [
+        "hatchback_02",
+        "hatchback02",
+        "ada4x4",
+        "ada44"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "trunk",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "ada_4_4.webp",
+            "hatchback_02.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "ada_4_4_right_door.webp"
+            ],
+            "driver_door": [
+              "ada_4_4_left_door.webp",
+              "ada_4x4_left_door.webp",
+              "hatchback_02_door_1_1.webp"
+            ],
+            "hood": [
+              "ada_4_4_hood.webp",
+              "ada_4x4_hood.webp"
+            ],
+            "trunk": [
+              "ada_4_4_trunk_door.webp"
+            ],
+            "wheel": [
+              "ada_4_4_wheel.webp",
+              "hatchback_02_wheel.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "ada_4_4.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4"
+            },
+            {
+              "file": "ada_4_4_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4_hood"
+            },
+            {
+              "file": "ada_4_4_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4_left_door"
+            },
+            {
+              "file": "ada_4_4_right_door.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4_right_door"
+            },
+            {
+              "file": "ada_4_4_trunk_door.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4_trunk_door"
+            },
+            {
+              "file": "ada_4_4_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4_4_wheel"
+            },
+            {
+              "file": "ada_4x4_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4x4_hood"
+            },
+            {
+              "file": "ada_4x4_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "ada_4x4_left_door"
+            },
+            {
+              "file": "hatchback_02.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "hatchback_02"
+            },
+            {
+              "file": "hatchback_02_door_1_1.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "hatchback_02_door_1_1"
+            },
+            {
+              "file": "hatchback_02_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "hatchback_02_wheel"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "trunk",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        }
+      }
+    },
+    "landrover": {
+      "label": "Land Rover",
+      "family_key": "landrover",
+      "aliases": [
+        "landrover"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "rear_left_door",
+        "rear_right_door",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "land_rover_range_rover_classic.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "land_rover_front_right_door.webp"
+            ],
+            "driver_door": [
+              "land_rover_front_left_door.webp"
+            ],
+            "rear_left_door": [
+              "land_rover_rear_left_door.webp"
+            ],
+            "rear_right_door": [
+              "land_rover_rear_right_door.webp"
+            ],
+            "wheel": [
+              "land_rover_wheel.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "land_rover_front_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_front_left_door"
+            },
+            {
+              "file": "land_rover_front_right_door.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_front_right_door"
+            },
+            {
+              "file": "land_rover_range_rover_classic.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_range_rover_classic"
+            },
+            {
+              "file": "land_rover_rear_left_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_rear_left_door"
+            },
+            {
+              "file": "land_rover_rear_right_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_rear_right_door"
+            },
+            {
+              "file": "land_rover_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "land_rover_wheel"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "rear_left_door",
+              "rear_right_door",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        }
+      }
+    },
+    "m1025": {
+      "label": "M1025",
+      "family_key": "m1025",
+      "aliases": [
+        "m1025"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "rear_left_door",
+        "rear_right_door",
+        "trunk",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "m1025.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "m1025_front_right_door.webp"
+            ],
+            "driver_door": [
+              "m1025_front_left_door.webp"
+            ],
+            "hood": [
+              "m1025_hood.webp"
+            ],
+            "rear_left_door": [
+              "m1025_rear_left_door.webp"
+            ],
+            "rear_right_door": [
+              "m1025_rear_right_door.webp"
+            ],
+            "trunk": [
+              "m1025_trunk_door.webp"
+            ],
+            "wheel": [
+              "m1025_wheel.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "m1025.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025"
+            },
+            {
+              "file": "m1025_front_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_front_left_door"
+            },
+            {
+              "file": "m1025_front_right_door.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_front_right_door"
+            },
+            {
+              "file": "m1025_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_hood"
+            },
+            {
+              "file": "m1025_rear_left_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_rear_left_door"
+            },
+            {
+              "file": "m1025_rear_right_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_rear_right_door"
+            },
+            {
+              "file": "m1025_trunk_door.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_trunk_door"
+            },
+            {
+              "file": "m1025_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "m1025_wheel"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        }
+      }
+    },
+    "offroad_02": {
+      "label": "Gunter 2",
+      "family_key": "offroad_02",
+      "aliases": [
+        "offroad_02",
+        "offroad02",
+        "gunter2",
+        "gunter"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "rear_left_door",
+        "rear_right_door",
+        "trunk",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "gunter_2.webp",
+            "offroad_02.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "gunter_2_front_right_door.webp",
+              "offroad_02_door_1_2.webp"
+            ],
+            "driver_door": [
+              "gunter_2_front_left_door.webp",
+              "offroad_02_door_1_1.webp"
+            ],
+            "hood": [
+              "gunter_2_hood.webp",
+              "offroad_02_hood.webp"
+            ],
+            "rear_left_door": [
+              "gunter_2_rear_left_door.webp",
+              "offroad_02_door_2_1.webp"
+            ],
+            "rear_right_door": [
+              "gunter_2_rear_right_door.webp"
+            ],
+            "trunk": [
+              "gunter_2_trunk_door.webp"
+            ],
+            "wheel": [
+              "gunter_2_wheel.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "gunter_2.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2"
+            },
+            {
+              "file": "gunter_2_front_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_front_left_door"
+            },
+            {
+              "file": "gunter_2_front_right_door.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_front_right_door"
+            },
+            {
+              "file": "gunter_2_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_hood"
+            },
+            {
+              "file": "gunter_2_rear_left_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_rear_left_door"
+            },
+            {
+              "file": "gunter_2_rear_right_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_rear_right_door"
+            },
+            {
+              "file": "gunter_2_trunk_door.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_trunk_door"
+            },
+            {
+              "file": "gunter_2_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "gunter_2_wheel"
+            },
+            {
+              "file": "offroad_02.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "offroad_02"
+            },
+            {
+              "file": "offroad_02_door_1_1.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "offroad_02_door_1_1"
+            },
+            {
+              "file": "offroad_02_door_1_2.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "offroad_02_door_1_2"
+            },
+            {
+              "file": "offroad_02_door_2_1.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "offroad_02_door_2_1"
+            },
+            {
+              "file": "offroad_02_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "offroad_02_hood"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        }
+      }
+    },
+    "sedan_02": {
+      "label": "Sarka 120",
+      "family_key": "sedan_02",
+      "aliases": [
+        "sedan_02",
+        "sedan02",
+        "sarka120",
+        "sarka"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "rear_left_door",
+        "rear_right_door",
+        "trunk",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "sarka_120.webp",
+            "sedan_02.webp"
+          ],
+          "parts": {
+            "driver_door": [
+              "sarka_120_front_left_door.webp"
+            ],
+            "hood": [
+              "sarka_120_hood.webp"
+            ],
+            "rear_left_door": [
+              "sarka_120_rear_left_door.webp"
+            ],
+            "rear_right_door": [
+              "sarka_120_rear_right_door.webp"
+            ],
+            "trunk": [
+              "sarka_120_trunk_door.webp",
+              "sedan_02_trunk.webp"
+            ],
+            "wheel": [
+              "sarka_120_wheel.webp",
+              "sedan_02_wheel.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "sarka_120.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120"
+            },
+            {
+              "file": "sarka_120_front_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_front_left_door"
+            },
+            {
+              "file": "sarka_120_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_hood"
+            },
+            {
+              "file": "sarka_120_rear_left_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_rear_left_door"
+            },
+            {
+              "file": "sarka_120_rear_right_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_rear_right_door"
+            },
+            {
+              "file": "sarka_120_trunk_door.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_trunk_door"
+            },
+            {
+              "file": "sarka_120_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "sarka_120_wheel"
+            },
+            {
+              "file": "sedan_02.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "sedan_02"
+            },
+            {
+              "file": "sedan_02_trunk.webp",
+              "slot": "trunk",
+              "color": "default",
+              "rust": false,
+              "stem": "sedan_02_trunk"
+            },
+            {
+              "file": "sedan_02_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "sedan_02_wheel"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "driver_door",
+              "hood",
+              "rear_left_door",
+              "rear_right_door",
+              "trunk",
+              "wheel"
+            ],
+            "missing_configured_slots": [
+              "codriver_door"
+            ]
+          }
+        }
+      }
+    },
+    "truck_01": {
+      "label": "M3S",
+      "family_key": "truck_01",
+      "aliases": [
+        "truck_01",
+        "truck01",
+        "m3s"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "hood",
+        "wheel"
+      ],
+      "variants": {
+        "blue": {
+          "vehicle_images": [
+            "truck_01_door_1_1_blue.webp",
+            "truck_01_door_1_1_bluerust.webp",
+            "truck_01_door_2_1_blue.webp",
+            "truck_01_door_2_1_bluerust.webp"
+          ],
+          "parts": {
+            "hood": [
+              "truck_01_hood_blue.webp",
+              "truck_01_hood_bluerust.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "truck_01_door_1_1_blue.webp",
+              "slot": "body",
+              "color": "blue",
+              "rust": false,
+              "stem": "truck_01_door_1_1_blue"
+            },
+            {
+              "file": "truck_01_door_1_1_bluerust.webp",
+              "slot": "body",
+              "color": "blue",
+              "rust": true,
+              "stem": "truck_01_door_1_1_bluerust"
+            },
+            {
+              "file": "truck_01_door_2_1_blue.webp",
+              "slot": "body",
+              "color": "blue",
+              "rust": false,
+              "stem": "truck_01_door_2_1_blue"
+            },
+            {
+              "file": "truck_01_door_2_1_bluerust.webp",
+              "slot": "body",
+              "color": "blue",
+              "rust": true,
+              "stem": "truck_01_door_2_1_bluerust"
+            },
+            {
+              "file": "truck_01_hood_blue.webp",
+              "slot": "hood",
+              "color": "blue",
+              "rust": false,
+              "stem": "truck_01_hood_blue"
+            },
+            {
+              "file": "truck_01_hood_bluerust.webp",
+              "slot": "hood",
+              "color": "blue",
+              "rust": true,
+              "stem": "truck_01_hood_bluerust"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "hood"
+            ],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "wheel"
+            ]
+          }
+        },
+        "default": {
+          "vehicle_images": [
+            "truck_01_door_1_1.webp",
+            "truck_01_door_2_1.webp"
+          ],
+          "parts": {
+            "codriver_door": [
+              "m3s_right_door.webp"
+            ],
+            "driver_door": [
+              "m3s_left_door.webp"
+            ],
+            "hood": [
+              "m3s_hood.webp",
+              "truck_01_hood.webp"
+            ],
+            "wheel": [
+              "m3s_wheel.webp",
+              "truck_01_wheel.webp",
+              "truck_01_wheel_ruined.webp",
+              "truck_01_wheeldouble.webp",
+              "truck_01_wheeldouble_ruined.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "m3s_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "m3s_hood"
+            },
+            {
+              "file": "m3s_left_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m3s_left_door"
+            },
+            {
+              "file": "m3s_right_door.webp",
+              "slot": "codriver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "m3s_right_door"
+            },
+            {
+              "file": "m3s_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "m3s_wheel"
+            },
+            {
+              "file": "truck_01_door_1_1.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_door_1_1"
+            },
+            {
+              "file": "truck_01_door_2_1.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_door_2_1"
+            },
+            {
+              "file": "truck_01_hood.webp",
+              "slot": "hood",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_hood"
+            },
+            {
+              "file": "truck_01_wheel.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_wheel"
+            },
+            {
+              "file": "truck_01_wheel_ruined.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_wheel_ruined"
+            },
+            {
+              "file": "truck_01_wheeldouble.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_wheeldouble"
+            },
+            {
+              "file": "truck_01_wheeldouble_ruined.webp",
+              "slot": "wheel",
+              "color": "default",
+              "rust": false,
+              "stem": "truck_01_wheeldouble_ruined"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "wheel"
+            ],
+            "missing_configured_slots": []
+          }
+        },
+        "green": {
+          "vehicle_images": [
+            "truck_01_door_1_1_greenrust.webp",
+            "truck_01_door_2_1_greenrust.webp"
+          ],
+          "parts": {
+            "hood": [
+              "truck_01_hood_greenrust.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "truck_01_door_1_1_greenrust.webp",
+              "slot": "body",
+              "color": "green",
+              "rust": true,
+              "stem": "truck_01_door_1_1_greenrust"
+            },
+            {
+              "file": "truck_01_door_2_1_greenrust.webp",
+              "slot": "body",
+              "color": "green",
+              "rust": true,
+              "stem": "truck_01_door_2_1_greenrust"
+            },
+            {
+              "file": "truck_01_hood_greenrust.webp",
+              "slot": "hood",
+              "color": "green",
+              "rust": true,
+              "stem": "truck_01_hood_greenrust"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "hood"
+            ],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "wheel"
+            ]
+          }
+        },
+        "orange": {
+          "vehicle_images": [
+            "truck_01_door_1_1_orange.webp",
+            "truck_01_door_1_1_orangerust.webp",
+            "truck_01_door_2_1_orange.webp",
+            "truck_01_door_2_1_orangerust.webp"
+          ],
+          "parts": {
+            "hood": [
+              "truck_01_hood_orange.webp",
+              "truck_01_hood_orangerust.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "truck_01_door_1_1_orange.webp",
+              "slot": "body",
+              "color": "orange",
+              "rust": false,
+              "stem": "truck_01_door_1_1_orange"
+            },
+            {
+              "file": "truck_01_door_1_1_orangerust.webp",
+              "slot": "body",
+              "color": "orange",
+              "rust": true,
+              "stem": "truck_01_door_1_1_orangerust"
+            },
+            {
+              "file": "truck_01_door_2_1_orange.webp",
+              "slot": "body",
+              "color": "orange",
+              "rust": false,
+              "stem": "truck_01_door_2_1_orange"
+            },
+            {
+              "file": "truck_01_door_2_1_orangerust.webp",
+              "slot": "body",
+              "color": "orange",
+              "rust": true,
+              "stem": "truck_01_door_2_1_orangerust"
+            },
+            {
+              "file": "truck_01_hood_orange.webp",
+              "slot": "hood",
+              "color": "orange",
+              "rust": false,
+              "stem": "truck_01_hood_orange"
+            },
+            {
+              "file": "truck_01_hood_orangerust.webp",
+              "slot": "hood",
+              "color": "orange",
+              "rust": true,
+              "stem": "truck_01_hood_orangerust"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "hood"
+            ],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "wheel"
+            ]
+          }
+        },
+        "red": {
+          "vehicle_images": [
+            "m3s_covered.webp",
+            "truck_01_covered.webp"
+          ],
+          "parts": {},
+          "all_files": [
+            {
+              "file": "m3s_covered.webp",
+              "slot": "body",
+              "color": "red",
+              "rust": false,
+              "stem": "m3s_covered"
+            },
+            {
+              "file": "truck_01_covered.webp",
+              "slot": "body",
+              "color": "red",
+              "rust": false,
+              "stem": "truck_01_covered"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "wheel"
+            ]
+          }
+        },
+        "red+blue": {
+          "vehicle_images": [
+            "truck_01_covered_blue.webp"
+          ],
+          "parts": {},
+          "all_files": [
+            {
+              "file": "truck_01_covered_blue.webp",
+              "slot": "body",
+              "color": "red+blue",
+              "rust": false,
+              "stem": "truck_01_covered_blue"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "wheel"
+            ]
+          }
+        },
+        "red+orange": {
+          "vehicle_images": [
+            "truck_01_covered_orange.webp"
+          ],
+          "parts": {},
+          "all_files": [
+            {
+              "file": "truck_01_covered_orange.webp",
+              "slot": "body",
+              "color": "red+orange",
+              "rust": false,
+              "stem": "truck_01_covered_orange"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [],
+            "missing_configured_slots": [
+              "codriver_door",
+              "driver_door",
+              "hood",
+              "wheel"
+            ]
+          }
+        }
+      }
+    },
+    "uaz_452": {
+      "label": "UAZ-452",
+      "family_key": "uaz_452",
+      "aliases": [
+        "uaz-452",
+        "uaz452"
+      ],
+      "parts_configured": [
+        "codriver_door",
+        "driver_door",
+        "rear_left_door",
+        "rear_right_door",
+        "side_door",
+        "wheel"
+      ],
+      "variants": {
+        "default": {
+          "vehicle_images": [
+            "uaz-452.webp",
+            "uaz_452.webp"
+          ],
+          "parts": {
+            "driver_door": [
+              "uaz-452_co-driver_door.webp",
+              "uaz-452_driver_door.webp",
+              "uaz_452_co_driver_door.webp",
+              "uaz_452_driver_door.webp"
+            ],
+            "rear_left_door": [
+              "uaz-452_left_rear_door.webp",
+              "uaz_452_left_rear_door.webp"
+            ],
+            "rear_right_door": [
+              "uaz-452_right_rear_door.webp",
+              "uaz_452_right_rear_door.webp"
+            ],
+            "side_door": [
+              "uaz-452_side_door.webp",
+              "uaz_452_side_door.webp"
+            ]
+          },
+          "all_files": [
+            {
+              "file": "uaz-452.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452"
+            },
+            {
+              "file": "uaz-452_co-driver_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452_co-driver_door"
+            },
+            {
+              "file": "uaz-452_driver_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452_driver_door"
+            },
+            {
+              "file": "uaz-452_left_rear_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452_left_rear_door"
+            },
+            {
+              "file": "uaz-452_right_rear_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452_right_rear_door"
+            },
+            {
+              "file": "uaz-452_side_door.webp",
+              "slot": "side_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz-452_side_door"
+            },
+            {
+              "file": "uaz_452.webp",
+              "slot": "body",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452"
+            },
+            {
+              "file": "uaz_452_co_driver_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452_co_driver_door"
+            },
+            {
+              "file": "uaz_452_driver_door.webp",
+              "slot": "driver_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452_driver_door"
+            },
+            {
+              "file": "uaz_452_left_rear_door.webp",
+              "slot": "rear_left_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452_left_rear_door"
+            },
+            {
+              "file": "uaz_452_right_rear_door.webp",
+              "slot": "rear_right_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452_right_rear_door"
+            },
+            {
+              "file": "uaz_452_side_door.webp",
+              "slot": "side_door",
+              "color": "default",
+              "rust": false,
+              "stem": "uaz_452_side_door"
+            }
+          ],
+          "completeness": {
+            "has_body_image": true,
+            "part_slots_found": [
+              "driver_door",
+              "rear_left_door",
+              "rear_right_door",
+              "side_door"
+            ],
+            "missing_configured_slots": [
+              "codriver_door",
+              "wheel"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "unknown_vehicle_like_files": [
+    "armored_hood.webp",
+    "armored_hood_-_image_2.webp",
+    "armored_hood_-_image_3.webp",
+    "datsun_b210_front_left_door.webp",
+    "datsun_b210_front_right_door.webp",
+    "datsun_b210_trunk_door.webp",
+    "dingo_co-driver_door.webp",
+    "dingo_co_driver_door.webp",
+    "dingo_driver_door.webp",
+    "dingo_hood_door.webp",
+    "dingo_left_rear_door.webp",
+    "dingo_right_rear_door.webp",
+    "dingo_trunk_door.webp",
+    "dingo_wheel.webp",
+    "fireplaceindoor.webp",
+    "ford_escort_front_left_door.webp",
+    "ford_escort_front_right_door.webp",
+    "ford_escort_trunk_door.webp",
+    "gaz_tigr_co-driver_door.webp",
+    "gaz_tigr_co_driver_door.webp",
+    "gaz_tigr_driver_door.webp",
+    "gaz_tigr_hood_door.webp",
+    "gaz_tigr_left_rear_door.webp",
+    "gaz_tigr_right_rear_door.webp",
+    "gaz_tigr_wheel.webp",
+    "ghillie_hood.webp",
+    "ghillie_hood_-_image_2.webp",
+    "ghillie_hood_-_image_3.webp",
+    "ghilliehood_mossy.webp",
+    "ghilliehood_tan.webp",
+    "ghilliehood_woodland.webp",
+    "hatchbackdoors_codriver.webp",
+    "hatchbackdoors_driver.webp",
+    "hatchbackhood.webp",
+    "hatchbacktrunk.webp",
+    "hatchbackwheel.webp",
+    "hatchbackwheel_ruined.webp",
+    "hoodie.webp",
+    "hoodie_-_image_2.webp",
+    "hoodie_-_image_3.webp",
+    "hoodie_-_image_4.webp",
+    "hoodie_-_image_5.webp",
+    "hoodie_-_image_6.webp",
+    "hoodie_black.webp",
+    "hoodie_blue.webp",
+    "kamaz_driver_door.webp",
+    "kamaz_trunk_door.webp",
+    "kamaz_wheel.webp",
+    "kamazdoors_codriver.webp",
+    "mercedes_250_front_left_door.webp",
+    "mercedes_250_front_right_door.webp",
+    "mercedes_250_rear_left_door.webp",
+    "mercedes_250_rear_right_door.webp",
+    "mercedes_250_wheel.webp",
+    "nbc_hood.webp",
+    "nbchoodgray.webp",
+    "nbchoodwhite.webp",
+    "nbchoodyellow.webp",
+    "ovenindoor.webp",
+    "toyota_hilux_hood.webp",
+    "toyota_hilux_left_door.webp",
+    "toyota_hilux_right_door.webp",
+    "toyota_hilux_wheel.webp",
+    "witch_hood.webp",
+    "witch_hood_-_image_2.webp",
+    "witch_hood_-_image_3.webp",
+    "witchhood_black.webp",
+    "witchhood_brown.webp",
+    "witchhoodcoif_black.webp",
+    "witchhoodcoif_brown.webp",
+    "witchhoodcoif_red.webp"
+  ]
+}

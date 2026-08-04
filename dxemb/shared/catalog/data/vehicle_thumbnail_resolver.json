@@ -1,0 +1,1788 @@
+{
+  "generated_from": "/app/dxemb/shared/catalog/data/vehicle_variant_manifest.json",
+  "families": {
+    "civiliansedan": {
+      "label": "Olga 24",
+      "family_key": "civiliansedan",
+      "variants": {
+        "black": {
+          "vehicle_body": {
+            "image": "civiliansedan_black.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "civsedanhood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "civsedandoors_driver.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "civsedandoors_codriver.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "civsedandoors_backleft.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "civsedandoors_backright.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "civiliansedan_black.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "black",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "civsedantrunk.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "civsedanwheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "black",
+            "default"
+          ]
+        },
+        "default": {
+          "vehicle_body": {
+            "image": "civiliansedan.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "civsedanhood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "civsedandoors_driver.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "civsedandoors_codriver.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "civsedandoors_backleft.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "civsedandoors_backright.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "civiliansedan.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "civsedantrunk.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "wheel": {
+              "image": "civsedanwheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "wine": {
+          "vehicle_body": {
+            "image": "civiliansedan_wine.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "civsedanhood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "civsedandoors_driver.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "civsedandoors_codriver.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "civsedandoors_backleft.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "civsedandoors_backright.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "civiliansedan_wine.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "wine",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "civsedantrunk.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "civsedanwheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "wine",
+            "default"
+          ]
+        }
+      }
+    },
+    "hatchback_02": {
+      "label": "Ada 4x4",
+      "family_key": "hatchback_02",
+      "variants": {
+        "blue": {
+          "vehicle_body": {
+            "image": "ada_4_4.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "ada_4_4_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "ada_4_4_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "ada_4_4_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "ada_4_4_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "ada_4_4_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "default": {
+          "vehicle_body": {
+            "image": "ada_4_4.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "ada_4_4_hood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "ada_4_4_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "ada_4_4_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "ada_4_4_trunk_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "wheel": {
+              "image": "ada_4_4_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "green": {
+          "vehicle_body": {
+            "image": "ada_4_4.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "ada_4_4_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "ada_4_4_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "ada_4_4_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "ada_4_4_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "ada_4_4_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "grey": {
+          "vehicle_body": {
+            "image": "ada_4_4.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "ada_4_4_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "ada_4_4_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "ada_4_4_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "ada_4_4_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "ada_4_4_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "white": {
+          "vehicle_body": {
+            "image": "ada_4_4.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "ada_4_4_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "ada_4_4_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "ada_4_4_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "ada_4_4.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "ada_4_4_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "ada_4_4_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    },
+    "landrover": {
+      "label": "Land Rover",
+      "family_key": "landrover",
+      "variants": {
+        "default": {
+          "vehicle_body": {
+            "image": "land_rover_range_rover_classic.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "land_rover_range_rover_classic.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "land_rover_front_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "land_rover_front_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "land_rover_rear_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "land_rover_rear_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "land_rover_range_rover_classic.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "land_rover_range_rover_classic.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "land_rover_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    },
+    "m1025": {
+      "label": "M1025",
+      "family_key": "m1025",
+      "variants": {
+        "default": {
+          "vehicle_body": {
+            "image": "m1025.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "m1025_hood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "m1025_front_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "m1025_front_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "m1025_rear_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "m1025_rear_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "m1025.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "m1025_trunk_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "wheel": {
+              "image": "m1025_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    },
+    "offroad_02": {
+      "label": "Gunter 2",
+      "family_key": "offroad_02",
+      "variants": {
+        "blue": {
+          "vehicle_body": {
+            "image": "gunter_2.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "gunter_2_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "gunter_2_front_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "gunter_2_front_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "gunter_2_rear_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "gunter_2_rear_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "gunter_2.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "gunter_2_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "gunter_2_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "default": {
+          "vehicle_body": {
+            "image": "gunter_2.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "gunter_2_hood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "gunter_2_front_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "gunter_2_front_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "gunter_2_rear_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "gunter_2_rear_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "gunter_2.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "gunter_2_trunk_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "wheel": {
+              "image": "gunter_2_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "green": {
+          "vehicle_body": {
+            "image": "gunter_2.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "gunter_2_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "gunter_2_front_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "gunter_2_front_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "gunter_2_rear_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "gunter_2_rear_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "gunter_2.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "gunter_2_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "gunter_2_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "white": {
+          "vehicle_body": {
+            "image": "gunter_2.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "gunter_2_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "gunter_2_front_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "gunter_2_front_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "gunter_2_rear_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "gunter_2_rear_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "gunter_2.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "gunter_2_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "gunter_2_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    },
+    "sedan_02": {
+      "label": "Sarka 120",
+      "family_key": "sedan_02",
+      "variants": {
+        "default": {
+          "vehicle_body": {
+            "image": "sarka_120.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "sarka_120_hood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "sarka_120_front_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "sarka_120_rear_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "sarka_120_rear_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "sarka_120_trunk_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "wheel": {
+              "image": "sarka_120_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "grey": {
+          "vehicle_body": {
+            "image": "sarka_120.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "sarka_120_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "sarka_120_front_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "sarka_120_rear_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "sarka_120_rear_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "sarka_120_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "sarka_120_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "red": {
+          "vehicle_body": {
+            "image": "sarka_120.webp",
+            "source": "default_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "sarka_120_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "sarka_120_front_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "sarka_120_rear_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "sarka_120_rear_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "sarka_120.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "sarka_120_trunk_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "sarka_120_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    },
+    "truck_01": {
+      "label": "M3S",
+      "family_key": "truck_01",
+      "variants": {
+        "blue": {
+          "vehicle_body": {
+            "image": "truck_01_door_1_1_blue.webp",
+            "source": "part_like_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": true
+          },
+          "slots": {
+            "hood": {
+              "image": "truck_01_hood_blue.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "blue",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "truck_01_door_1_1_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "blue",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_door_1_1_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "blue",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_door_1_1_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "blue",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_door_1_1_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "blue",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "blue",
+            "default"
+          ]
+        },
+        "default": {
+          "vehicle_body": {
+            "image": "truck_01_door_1_1.webp",
+            "source": "part_like_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": true
+          },
+          "slots": {
+            "hood": {
+              "image": "m3s_hood.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_left_door": {
+              "image": "truck_01_door_1_1.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_door_1_1.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_door_1_1.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_door_1_1.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        },
+        "green": {
+          "vehicle_body": {
+            "image": "truck_01_door_1_1_greenrust.webp",
+            "source": "part_like_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": true
+          },
+          "slots": {
+            "hood": {
+              "image": "truck_01_hood_greenrust.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "green",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "truck_01_door_1_1_greenrust.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "green",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_door_1_1_greenrust.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "green",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_door_1_1_greenrust.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "green",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_door_1_1_greenrust.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "green",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "green",
+            "default"
+          ]
+        },
+        "orange": {
+          "vehicle_body": {
+            "image": "truck_01_door_1_1_orange.webp",
+            "source": "part_like_body_fallback",
+            "fallback_used": true,
+            "is_part_like_body": true
+          },
+          "slots": {
+            "hood": {
+              "image": "truck_01_hood_orange.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "orange",
+              "has_exact_color_part": true
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "truck_01_door_1_1_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "orange",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_door_1_1_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "orange",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_door_1_1_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "orange",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_door_1_1_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "orange",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "orange",
+            "default"
+          ]
+        },
+        "red": {
+          "vehicle_body": {
+            "image": "m3s_covered.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "m3s_hood.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "m3s_covered.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "m3s_covered.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "m3s_covered.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "m3s_covered.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "red",
+            "default"
+          ]
+        },
+        "red+blue": {
+          "vehicle_body": {
+            "image": "truck_01_covered_blue.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "truck_01_hood_blue.webp",
+              "source": "blue_part_fallback",
+              "fallback_used": true,
+              "matched_color": "blue",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "truck_01_covered_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+blue",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_covered_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+blue",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_covered_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+blue",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_covered_blue.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+blue",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "red+blue",
+            "blue",
+            "default"
+          ]
+        },
+        "red+orange": {
+          "vehicle_body": {
+            "image": "truck_01_covered_orange.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "truck_01_hood_orange.webp",
+              "source": "orange_part_fallback",
+              "fallback_used": true,
+              "matched_color": "orange",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "m3s_left_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "codriver_door": {
+              "image": "m3s_right_door.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "truck_01_covered_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+orange",
+              "has_exact_color_part": false
+            },
+            "rear_right_door": {
+              "image": "truck_01_covered_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+orange",
+              "has_exact_color_part": false
+            },
+            "side_door": {
+              "image": "truck_01_covered_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+orange",
+              "has_exact_color_part": false
+            },
+            "trunk": {
+              "image": "truck_01_covered_orange.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "red+orange",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "m3s_wheel.webp",
+              "source": "default_part_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "red+orange",
+            "orange",
+            "default"
+          ]
+        }
+      }
+    },
+    "uaz_452": {
+      "label": "UAZ-452",
+      "family_key": "uaz_452",
+      "variants": {
+        "default": {
+          "vehicle_body": {
+            "image": "uaz-452.webp",
+            "source": "exact_color_body",
+            "fallback_used": false,
+            "is_part_like_body": false
+          },
+          "slots": {
+            "hood": {
+              "image": "uaz-452.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "driver_door": {
+              "image": "uaz-452_co-driver_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "codriver_door": {
+              "image": "uaz-452.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "rear_left_door": {
+              "image": "uaz-452_left_rear_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "rear_right_door": {
+              "image": "uaz-452_right_rear_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "side_door": {
+              "image": "uaz-452_side_door.webp",
+              "source": "exact_color_part",
+              "fallback_used": false,
+              "matched_color": "default",
+              "has_exact_color_part": true
+            },
+            "trunk": {
+              "image": "uaz-452.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            },
+            "wheel": {
+              "image": "uaz-452.webp",
+              "source": "vehicle_body_fallback",
+              "fallback_used": true,
+              "matched_color": "default",
+              "has_exact_color_part": false
+            }
+          },
+          "search_chain": [
+            "default"
+          ]
+        }
+      }
+    }
+  }
+}

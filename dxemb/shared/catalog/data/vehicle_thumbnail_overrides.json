@@ -1,0 +1,25 @@
+{
+  "truck_01": {
+    "default": {
+      "vehicle_body": "m3s_covered.webp"
+    },
+    "green": {
+      "vehicle_body": "m3s_covered.webp"
+    },
+    "blue": {
+      "vehicle_body": "truck_01_covered_blue.webp"
+    },
+    "orange": {
+      "vehicle_body": "truck_01_covered_orange.webp"
+    },
+    "red": {
+      "vehicle_body": "m3s_covered.webp"
+    },
+    "red+blue": {
+      "vehicle_body": "truck_01_covered_blue.webp"
+    },
+    "red+orange": {
+      "vehicle_body": "truck_01_covered_orange.webp"
+    }
+  }
+}
