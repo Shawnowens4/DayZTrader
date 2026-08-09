@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types>
+  <type name="BROKEN_XML">
+    <nominal>15</nominal>
+    <lifetime>7200</lifetime>
+    <restock>0</restock>
+    <min>10</min>
+    <quantmin>80</quantmin>
+    <quantmax>80</quantmax>
+    <cost>100</cost>
+  <!-- Missing closing tags intentionally -->

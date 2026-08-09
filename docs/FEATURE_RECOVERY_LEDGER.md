@@ -19,6 +19,10 @@
 > - Intentionally deferred
 > - Rejected by owner
 
+## 2026-08-09 Completed Milestone — Run 3 types.xml import foundation
+
+- Completed and validated: local-first `types.xml` importer foundation with secure malformed-XML rejection, dry-run/apply reporting, idempotent `classname` upsert, curated storefront field protection (`buy_price`, `sell_price`, `is_enabled`, `thumbnail_url`), review-required defaults for newly imported items, and source provenance (`source_sha256`, evidence locator) persisted in item notes; validated by `tests.test_types_xml_import_foundation`, `tests.test_schema_contracts`, in-container importer dry-run/apply/idempotency checks, and HTTP 200 route checks for `/catalog`, `/vehicles`, and `/vehicles/Hatchback02`.
+
 ---
 
 ## 2026-08-09 Full Product + Design Audit Build Plan
