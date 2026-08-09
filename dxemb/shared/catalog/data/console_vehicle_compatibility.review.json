@@ -1809,6 +1809,118 @@
                 "review_status": "internally_consistent_no_console_provenance"
               }
             ]
+          },
+          {
+            "slot": "codriver_door",
+            "variant": "blue",
+            "part_classname": "truck_01_door_2_1_blue",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:Truck_01_Door_2_1_Blue",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
+          },
+          {
+            "slot": "driver_door",
+            "variant": "blue",
+            "part_classname": "truck_01_door_1_1_blue",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:Truck_01_Door_1_1_Blue",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
+          },
+          {
+            "slot": "codriver_door",
+            "variant": "orange",
+            "part_classname": "truck_01_door_2_1_orange",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:Truck_01_Door_2_1_Orange",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
+          },
+          {
+            "slot": "driver_door",
+            "variant": "orange",
+            "part_classname": "truck_01_door_1_1_orange",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:Truck_01_Door_1_1_Orange",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
+          }
+        ],
+        "battery": [
+          {
+            "slot": "battery",
+            "variant": "default",
+            "part_classname": "truckbattery",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:TruckBattery",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
+          }
+        ],
+        "headlights": [
+          {
+            "slot": "headlight",
+            "variant": "default",
+            "part_classname": "headlighth7",
+            "approved_status": "owner_review_required",
+            "selection_state": "blocked",
+            "confidence": "direct_console_proof_available",
+            "evidence_records": [
+              {
+                "source_type": "owner_local_console_reference",
+                "source_path": "local_console_reference/cfgspawnabletypes.xml",
+                "source_vehicle_type": "truck_01",
+                "evidence_excerpt_locator": "type:HeadlightH7",
+                "reviewed_by": "",
+                "review_status": "direct_console_proof_available"
+              }
+            ]
           }
         ],
         "wheels": [
