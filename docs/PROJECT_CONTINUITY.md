@@ -145,13 +145,13 @@
 Repository discovery and baseline: ██████████ 100%
 Documentation consolidation:     ██████████ 100%
 Docker/runtime re-verification:  ███████░░░  70%
-Bot/Discord verification:       ██████░░░░  58%
+Bot/Discord verification:       ███████░░░  64%
 Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          █████████░  90%
-Total verified project state:   ████████░░  82%
+Automated tests audit:          █████████░  91%
+Total verified project state:   ████████░░  83%
 ```
 
 ---
@@ -180,6 +180,7 @@ Total verified project state:   ████████░░  82%
 | Local moderation command adapter | Recovery implementation | `dxemb/bot/cogs/moderation_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v` passed (3 tests) | Slice C ticket foundation |
 | Local ticket lifecycle foundation | Recovery implementation | `dxemb/db/migrations/004_ticket_foundation.sql`, `dxemb/shared/ticket_service.py` | `docker compose up -d db; python -m unittest tests.test_ticket_service -v` passed (3 tests) | Slice D profile/onboarding persistence + dry-run |
 | Profile/onboarding persistence + dry-run | Recovery implementation | `dxemb/db/migrations/005_profile_onboarding_foundation.sql`, `dxemb/shared/profile_onboarding_service.py` | `docker compose up -d db; python -m unittest tests.test_profile_onboarding_service -v` passed (4 tests) | Slice E reconciliation and final evidence summary |
+| Wallet bot read-only integration | Recovery implementation | `dxemb/bot/cogs/wallet_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_wallet_bot_adapter -v` passed (3 tests) | Slice B wallet web read-only routes |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -365,6 +366,18 @@ git log -1 --oneline
 - Recommended next autonomous sprint selected:
   - **Bot/web integration for wallet plus Player Market/Escrow foundations**
 
+### 2026-08-08 — Wallet+P2P Integration Slice A: Wallet Bot Read-Only Surface
+- Added local-safe wallet bot cog/adapter at `dxemb/bot/cogs/wallet_local.py` with:
+  - balance view
+  - transaction history view
+  - dry-run credit/debit preview only
+- Added isolated adapter tests at `tests/test_wallet_bot_adapter.py` including a contract check that disallows common Discord mutation API usage in this module.
+- Slice A required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_wallet_bot_adapter -v` (pass, 3 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -419,8 +432,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Next autonomous sprint recommendation: **Bot/web integration for wallet plus Player Market/Escrow foundations**.
-- Reason: wallet/ledger and P2P market/escrow cores are implemented and tested but remain unintegrated with active bot/web user flows.
+- Wallet+P2P Integration Slice B: add wallet web read-only surface for balance and ledger history plus mutation preview-disabled response.
+- Keep all wallet web routes non-mutating.
 
 ---
 End of authoritative continuity record.

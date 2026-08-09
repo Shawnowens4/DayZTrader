@@ -43,6 +43,7 @@ INITIAL_COGS = [
     "cogs.trader",
     "cogs.health_slash",
     "cogs.moderation_local",
+    "cogs.wallet_local",
 ]
 
 
