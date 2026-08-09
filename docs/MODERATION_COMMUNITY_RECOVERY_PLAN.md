@@ -111,3 +111,39 @@ Mitigations:
 - No token, secret, or deployment setting changes.
 - No runtime moderation feature release.
 - No archive extraction or bulk-copy restoration.
+
+## 6. Slice A-D Implementation Reconciliation (2026-08-08)
+
+### Implemented in PERM (local-only)
+
+- Moderation immutable audit contract:
+  - `dxemb/db/migrations/003_moderation_audit_foundation.sql`
+  - `dxemb/shared/moderation_audit_service.py`
+  - tests: `tests/test_moderation_audit_service.py`
+- Moderation command adapters (strict scope):
+  - `dxemb/bot/cogs/moderation_local.py`
+  - warn, local status query, dry-run preview only
+  - tests: `tests/test_moderation_command_adapter.py`
+- Ticket foundation:
+  - `dxemb/db/migrations/004_ticket_foundation.sql`
+  - `dxemb/shared/ticket_service.py`
+  - tests: `tests/test_ticket_service.py`
+- Profile/onboarding persistence + dry-run evaluator:
+  - `dxemb/db/migrations/005_profile_onboarding_foundation.sql`
+  - `dxemb/shared/profile_onboarding_service.py`
+  - tests: `tests/test_profile_onboarding_service.py`
+
+### Explicitly not implemented
+
+- Kick/ban/timeout moderation actions
+- Role/channel/permission/webhook/message mutations
+- Marketplace moderation actions (`suspend listing`, `resolve dispute`)
+- Live Discord guild operations
+- Neon/Nitrado/external service writes
+
+### Remaining moderation/community gaps
+
+- Bot-level runtime integration for ticket commands/workflows
+- Web/admin visibility for moderation and ticket audit data
+- Feature-flag strategy for staged moderation rollout
+- End-to-end bot command integration tests beyond adapter/service scope
