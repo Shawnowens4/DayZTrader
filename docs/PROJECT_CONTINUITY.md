@@ -150,8 +150,8 @@ Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          █████████░  86%
-Total verified project state:   ████████░░  79%
+Automated tests audit:          █████████░  88%
+Total verified project state:   ████████░░  81%
 ```
 
 ---
@@ -179,6 +179,7 @@ Total verified project state:   ████████░░  79%
 | Moderation immutable audit foundation | Recovery implementation | `dxemb/db/migrations/003_moderation_audit_foundation.sql`, `dxemb/shared/moderation_audit_service.py` | `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v` passed (5 tests) | Slice B command adapters (warn/status/preview only) |
 | Local moderation command adapter | Recovery implementation | `dxemb/bot/cogs/moderation_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v` passed (3 tests) | Slice C ticket foundation |
 | Local ticket lifecycle foundation | Recovery implementation | `dxemb/db/migrations/004_ticket_foundation.sql`, `dxemb/shared/ticket_service.py` | `docker compose up -d db; python -m unittest tests.test_ticket_service -v` passed (3 tests) | Slice D profile/onboarding persistence + dry-run |
+| Profile/onboarding persistence + dry-run | Recovery implementation | `dxemb/db/migrations/005_profile_onboarding_foundation.sql`, `dxemb/shared/profile_onboarding_service.py` | `docker compose up -d db; python -m unittest tests.test_profile_onboarding_service -v` passed (4 tests) | Slice E reconciliation and final evidence summary |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -333,6 +334,22 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice D: Profile/Onboarding Persistence + Dry-Run Evaluator
+- Added additive migration `dxemb/db/migrations/005_profile_onboarding_foundation.sql` for:
+  - `player_profile` persistence
+  - `onboarding_session` state machine persistence
+  - `onboarding_event` transition audit history
+- Added local-only service `dxemb/shared/profile_onboarding_service.py` for:
+  - profile upsert/idempotency
+  - onboarding state transitions
+  - dry-run evaluator output only
+- Added tests `tests/test_profile_onboarding_service.py` validating idempotent profile upsert, valid/invalid onboarding transitions, and dry-run non-mutation behavior.
+- Slice D required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_profile_onboarding_service -v` (pass, 4 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -387,8 +404,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice D: implement minimal profile/onboarding persistence plus dry-run evaluator outputs only.
-- Do not create/assign roles, send welcome messages, create channels/threads, alter permissions, or perform any real Discord action.
+- Slice E: reconcile feature ledger + continuity docs with all moderation/community slice evidence and produce final sprint report.
+- Keep all moderation/community behavior local-only and non-mutating.
 
 ---
 End of authoritative continuity record.
