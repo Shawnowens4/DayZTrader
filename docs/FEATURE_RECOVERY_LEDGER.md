@@ -90,8 +90,8 @@ Before any implementation work, the agent must:
 | GAME-06 | Raffles/events | Tickets, winners, audit, announcements | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
 | AUTO-01 | Admin catalog | Allowed items, price, enabled/sellable controls | Catalog/admin routes present | Needs inventory | Active partial | Audit/extend | Console-safe only |
 | AUTO-02 | Vehicle builder | Admin-approved vehicle presets and valid parts/cargo | Present | Needs inventory | Active partial | Audit/extend | No PC/mod content |
-| AUTO-03 | Auto-Trader products | Admin-owned items/kits/vehicles/hordes/airdrops | Not schema-backed | Needs inventory | Needs recovery | Design then build | Separate from market |
-| AUTO-04 | Trader orders | Payment to completion state machine | Not present | Needs inventory | Needs recovery | Design then build | Dedicated `TraderOrder` domain |
+| AUTO-03 | Auto-Trader products | Admin-owned items/kits/vehicles/hordes/airdrops | Additive product schema in `dxemb/db/migrations/006_auto_trader_order_foundation.sql` with item/kit/vehicle references, sellability/stock controls, and console-safe metadata | `C:\DXEMB\core\services\admin_service.py`; `C:\DXEMB\database\migrations\005_product_tables.sql` | Active partial | Build then integrate | Separate from market; no P2P table coupling |
+| AUTO-04 | Trader orders | Payment to completion state machine | Additive `trader_order` + immutable `trader_order_event` schema and service/tests: `dxemb/shared/auto_trader_order_service.py`, `tests/test_auto_trader_order_service.py` | `C:\DXEMB\core\services\trader_service.py`; `C:\DXEMB\database\migrations\006_order_tables.sql` | Active partial | Build then integrate | Dedicated `TraderOrder` domain with auditable transitions |
 | AUTO-05 | Spawn queue | Audited physical spawn request/attempt/failure/refund | Not present | Needs inventory | Needs recovery | Design then build | No claim codes |
 | AUTO-06 | Custom kits | Console-valid attachment/nesting builder | Not verified | Needs inventory | Needs inventory | Recover/adapt | Validate build-time |
 | AUTO-07 | Zombie hordes | Admin product and controlled spawn flow | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
@@ -110,7 +110,7 @@ Before any implementation work, the agent must:
 | WEB-03 | Vehicle administration | Vehicle catalog/builder endpoints | Present | Needs inventory | Active partial | Preserve/audit | Validate console data |
 | WEB-04 | Economy dashboard | Wallet/ledger/admin adjustments | Not verified | Needs inventory | Needs recovery | Recover/adapt | Requires ECON tables |
 | WEB-05 | Ticket dashboard | View/assign/close tickets | Not verified | Needs inventory | Needs inventory | Recover/adapt | Requires BOT-07 |
-| WEB-06 | Order dashboard | Auto-Trader order/spawn management | Not verified | Needs inventory | Needs recovery | Design then build | Requires AUTO-04 |
+| WEB-06 | Order dashboard | Auto-Trader order/spawn management | Local-safe read-only/dry-run routes added in `dxemb/web/app.py` with route tests `tests/test_auto_trader_web_routes.py` | `C:\DXEMB\admin_panel\app\routes\trader.py`; `C:\DXEMB\core\services\trader_service.py` | Active partial | Expand with auth/session constraints then controlled delivery orchestration | Namespace separated under `/autotrader/*` |
 | WEB-07 | Market dashboard | Listing/dispute moderation | Not verified | Needs inventory | Needs recovery | Design then build | Requires MARKET-01 |
 | WEB-08 | Tester/audit dashboard | Bugs, feature checks, tester workflow | Separate related app | Needs inventory | Needs inventory | Keep separate unless approved | Do not merge blindly |
 | DATA-01 | DayZ item catalog | types.xml, display names, thumbnails, pricing/categories | Present | Needs inventory | Active partial | Preserve/audit | Console validation needed |
@@ -155,13 +155,12 @@ At the end of each major milestone, the agent must:
 
 ## Current Next Action
 
-Perform the strict read-only **Legacy Feature Recovery Inventory** across:
-- Current `PERM` repository
-- `C:\DXEMB`
-- `dayz-console-trader-bot.zip`
+Design the Auto-Trader **Nitrado delivery scheduler** foundation (design-only) for:
+- restart-window polling/cache model
+- pre-restart delivery-write timing contract
+- failure/refund orchestration boundaries
 
-Do not edit or restore anything until the inventory identifies the most complete,
-newest, and compatible source for every missing system.
+Do not connect live Nitrado/FTP/API flows during this design sprint.
 
 ### Inventory Notes (2026-08-08)
 - Preferred recovery candidates are structured modules under `C:\DXEMB\core`, `C:\DXEMB\discord_bot\src`, and `C:\DXEMB\database\migrations`, not `BACKUP_PHASE*` monolith snapshots.
@@ -206,6 +205,14 @@ newest, and compatible source for every missing system.
 - Wallet+P2P Slice D validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_market_web_routes -v`, `docker compose config`, `docker compose down`.
 - Wallet+P2P integration Slice E completed: final reconciliation and consolidated A-D regression run passed (`14` tests).
 - Wallet+P2P Slice E evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_wallet_bot_adapter tests.test_wallet_web_routes tests.test_market_bot_adapter tests.test_market_web_routes -v`, `docker compose config`, `docker compose down`.
+- Auto-Trader sprint Slice A completed: additive product/order/order-event schema and order service implemented with transition/idempotency/allow-list/P2P-separation tests.
+- Auto-Trader Slice A evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service -v`, `docker compose config`, `docker compose down`.
+- Auto-Trader sprint Slice B completed: atomic wallet-to-order bridge with idempotent debit and refund behavior implemented.
+- Auto-Trader Slice B evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_wallet_bridge -v`, `docker compose config`, `docker compose down`.
+- Auto-Trader sprint Slice C completed: local-safe bot/web preview surfaces added under separate Auto-Trader namespace.
+- Auto-Trader Slice C evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down`.
+- Auto-Trader sprint Slice D completed: reconciliation and consolidated sprint regression run passed (`15` tests).
+- Auto-Trader Slice D evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service tests.test_auto_trader_wallet_bridge tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down`.
 
 ---
 End of permanent feature recovery ledger.

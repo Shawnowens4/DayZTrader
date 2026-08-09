@@ -144,14 +144,14 @@
 ```text
 Repository discovery and baseline: ██████████ 100%
 Documentation consolidation:     ██████████ 100%
-Docker/runtime re-verification:  ████████░░  75%
-Bot/Discord verification:       ████████░░  75%
-Web/admin verification:         ████████░░  76%
+Docker/runtime re-verification:  ████████░░  78%
+Bot/Discord verification:       ████████░░  79%
+Web/admin verification:         ████████░░  81%
 Database/Neon verification:     ███████░░░  65%
-Auto-Trader audit:              ███░░░░░░░  30%
+Auto-Trader audit:              ██████░░░░  58%
 Player Market + Escrow audit:   ████████░░  78%
-Automated tests audit:          ██████████  96%
-Total verified project state:   ████████░░  88%
+Automated tests audit:          ██████████  97%
+Total verified project state:   █████████░  90%
 ```
 
 ---
@@ -168,7 +168,9 @@ Total verified project state:   ████████░░  88%
 | Vehicle catalog/resolver | Shared domain | vehicle resolver/builder services | Source/data present | Audit allowed-list connection |
 | Admin catalog UI | Auto-Trader admin surface | `web/catalog_admin.py` | Source present | Inspect routes and persistence |
 | Admin vehicle UI | Auto-Trader admin surface | `web/vehicle_admin.py` | Source present | Inspect routes and persistence |
-| Auto-Trader orders/spawn queue | Server store | To be verified | Not yet verified | Audit models, states, queue, and Nitrado boundary |
+| Auto-Trader order foundation | Server store | `dxemb/db/migrations/006_auto_trader_order_foundation.sql`, `dxemb/shared/auto_trader_order_service.py`, `tests/test_auto_trader_order_service.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service -v` passed (5 tests) | Extend toward controlled delivery scheduler design (no server writes yet) |
+| Auto-Trader wallet bridge foundation | Server store | `dxemb/shared/auto_trader_wallet_bridge.py`, `tests/test_auto_trader_wallet_bridge.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_wallet_bridge -v` passed (3 tests) | Add delivery-preparation orchestration after restart-window design |
+| Auto-Trader local bot/web previews | Server store | `dxemb/bot/cogs/autotrader_local.py`, `dxemb/web/app.py`, `tests/test_auto_trader_bot_adapter.py`, `tests/test_auto_trader_web_routes.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v` passed (7 tests) | Keep read-only/dry-run; add auth/session controls later |
 | Player Market + Escrow | P2P system | To be verified | Not yet verified | Locate active code/schema or mark unimplemented |
 | Wallet/Ledger + Market/Escrow design | Recovery planning | `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Slice 1 design completed; boundaries, lifecycle, idempotency, migration order documented | Use as contract for additive migrations and service tests |
 | Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
@@ -223,6 +225,53 @@ git log -1 --oneline
 ---
 
 ## Changelog
+
+### 2026-08-08 — Auto-Trader Order Foundation Sprint Slice A
+- Added additive schema foundation `dxemb/db/migrations/006_auto_trader_order_foundation.sql` for:
+  - admin-owned Auto-Trader products with item/kit/vehicle references, sellability, stock fields, and console-safe metadata
+  - `trader_order` state machine with auditable lifecycle states (`draft`, `pending_payment`, `paid`, `queued_for_delivery`, `awaiting_restart_window`, `delivery_written`, `delivered`, `failed`, `refunded`, `cancelled`)
+  - immutable `trader_order_event` audit log
+- Added `dxemb/shared/auto_trader_order_service.py` and tests `tests/test_auto_trader_order_service.py` covering transitions, idempotent order creation, allow-list enforcement, and P2P table separation.
+- Slice A validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service -v` (pass, 5 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network in-use warning remained non-fatal)
+
+### 2026-08-08 — Auto-Trader Order Foundation Sprint Slice B
+- Added atomic wallet bridge `dxemb/shared/auto_trader_wallet_bridge.py` to create paid Auto-Trader orders and apply one wallet debit in a single transaction path using idempotent debit references.
+- Added refund flow for failed/cancelled orders with idempotent refund behavior.
+- Added tests `tests/test_auto_trader_wallet_bridge.py` covering duplicate-call no-double-debit guarantees, refund behavior, and P2P escrow non-interference.
+- Slice B validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_auto_trader_wallet_bridge -v` (pass, 3 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network in-use warning remained non-fatal)
+
+### 2026-08-08 — Auto-Trader Order Foundation Sprint Slice C
+- Added local-safe bot preview surface `dxemb/bot/cogs/autotrader_local.py` with product browse, dry-run order preview, and read-only order history.
+- Added local-safe web preview routes in `dxemb/web/app.py` under `/autotrader/*`:
+  - `GET /autotrader/products`
+  - `POST /autotrader/orders/preview`
+  - `GET /autotrader/orders`
+  - `GET /autotrader/orders/<order_id>`
+  - `GET /autotrader/orders/<order_id>/history`
+- Added tests `tests/test_auto_trader_bot_adapter.py` and `tests/test_auto_trader_web_routes.py` validating read-only/dry-run behavior, no Discord mutation APIs, no external delivery side-effect tokens, and namespace separation from P2P routes.
+- Slice C validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v` (pass, 7 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network in-use warning remained non-fatal)
+
+### 2026-08-08 — Auto-Trader Order Foundation Sprint Slice D Reconciliation
+- Ran consolidated Auto-Trader sprint regression set:
+  - `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service tests.test_auto_trader_wallet_bridge tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v`
+  - Result: 15 tests passed.
+- Confirmed hard-boundary adherence for this sprint:
+  - no Nitrado/FTP/XML/restart scheduler/server write behavior added
+  - Player Market + Escrow services/routes/tables remained separate
+  - no real Discord/Neon/.env/deployment operations
+  - additive migration approach preserved
 
 ### 2026-08-08 — Legacy Feature Recovery Inventory (Read-Only)
 - Completed strict read-only inventory across active `PERM`, `C:\DXEMB`, and `dayz-console-trader-bot.zip`.
@@ -493,7 +542,7 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Candidate next sprint: add auth/session constraints and role-scoped access controls to new `/wallet/*` and `/market/*` web routes while keeping all mutation operations disabled by default.
+- Recommended next sprint: Nitrado delivery scheduler design for Auto-Trader (restart-window polling/cache model, spawn-write timing contract, and failure/refund orchestration design only; no live FTP/API writes).
 
 ---
 End of authoritative continuity record.
