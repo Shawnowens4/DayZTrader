@@ -6,15 +6,17 @@
 #   GET /health   — JSON health check (bot + monitoring use)
 # =============================================================
 import sys
+import os
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
   sys.path.insert(0, str(ROOT_DIR))
 
 from shared.db import get_sync_health
+from shared.wallet_ledger_service import WalletLedgerService
 
 try:
     from web.catalog_admin import catalog_bp
@@ -31,6 +33,10 @@ app.register_blueprint(catalog_bp)
 app.register_blueprint(vehicle_bp)
 
 TABLES = ["player", "item", "escrow_transaction"]
+
+
+def _wallet_service() -> WalletLedgerService:
+  return WalletLedgerService(database_url=os.getenv("DATABASE_URL"))
 
 
 # ------------------------------------------------------------------
@@ -64,6 +70,85 @@ def health():
     }
     status_code = 200 if db["ok"] else 503
     return jsonify(payload), status_code
+
+
+@app.get("/wallet/<discord_user_id>")
+def wallet_balance(discord_user_id: str):
+    service = _wallet_service()
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "balance": service.get_balance(discord_user_id),
+            "mode": "read-only",
+        }
+    )
+
+
+@app.get("/wallet/<discord_user_id>/ledger")
+def wallet_ledger(discord_user_id: str):
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _wallet_service()
+    rows = service.list_ledger_entries(discord_user_id=discord_user_id, limit=limit)
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+        }
+    )
+
+
+@app.post("/wallet/<discord_user_id>/preview")
+def wallet_preview(discord_user_id: str):
+    payload = request.get_json(silent=True) or {}
+    operation = (payload.get("operation") or "").strip().lower()
+    amount = int(payload.get("amount") or 0)
+    service = _wallet_service()
+
+    if amount <= 0:
+        return jsonify({"error": "amount must be > 0"}), 400
+
+    current = service.get_balance(discord_user_id)
+    if operation == "credit":
+        projected = current + amount
+        allowed = True
+        error = None
+    elif operation == "debit":
+        projected = current - amount
+        allowed = projected >= 0
+        error = None if allowed else "insufficient funds"
+    else:
+        return jsonify({"error": "operation must be credit or debit"}), 400
+
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "operation": operation,
+            "amount": amount,
+            "current_balance": current,
+            "projected_balance": projected,
+            "allowed": allowed,
+            "error": error,
+            "applied": False,
+            "mode": "dry-run",
+        }
+    )
+
+
+@app.post("/wallet/<discord_user_id>/adjust")
+def wallet_adjust_disabled(discord_user_id: str):
+    return (
+        jsonify(
+            {
+                "error": "wallet mutation endpoint is disabled in local-safe mode",
+                "discord_user_id": discord_user_id,
+                "applied": False,
+                "mode": "disabled",
+            }
+        ),
+        403,
+    )
 
 
 # ------------------------------------------------------------------

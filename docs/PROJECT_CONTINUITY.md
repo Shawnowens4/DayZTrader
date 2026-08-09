@@ -146,12 +146,12 @@ Repository discovery and baseline: ██████████ 100%
 Documentation consolidation:     ██████████ 100%
 Docker/runtime re-verification:  ███████░░░  70%
 Bot/Discord verification:       ███████░░░  64%
-Web/admin verification:         ██████░░░░  60%
+Web/admin verification:         ███████░░░  66%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          █████████░  91%
-Total verified project state:   ████████░░  83%
+Automated tests audit:          █████████░  92%
+Total verified project state:   ████████░░  84%
 ```
 
 ---
@@ -181,6 +181,7 @@ Total verified project state:   ████████░░  83%
 | Local ticket lifecycle foundation | Recovery implementation | `dxemb/db/migrations/004_ticket_foundation.sql`, `dxemb/shared/ticket_service.py` | `docker compose up -d db; python -m unittest tests.test_ticket_service -v` passed (3 tests) | Slice D profile/onboarding persistence + dry-run |
 | Profile/onboarding persistence + dry-run | Recovery implementation | `dxemb/db/migrations/005_profile_onboarding_foundation.sql`, `dxemb/shared/profile_onboarding_service.py` | `docker compose up -d db; python -m unittest tests.test_profile_onboarding_service -v` passed (4 tests) | Slice E reconciliation and final evidence summary |
 | Wallet bot read-only integration | Recovery implementation | `dxemb/bot/cogs/wallet_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_wallet_bot_adapter -v` passed (3 tests) | Slice B wallet web read-only routes |
+| Wallet web read-only integration | Recovery implementation | `dxemb/web/app.py` (`/wallet/*` read-only + preview + disabled adjust), `tests/test_wallet_web_routes.py` | `docker compose up -d db; python -m unittest tests.test_wallet_web_routes -v` passed (4 tests) | Slice C p2p bot local-safe workflows |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -378,6 +379,19 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Wallet+P2P Integration Slice B: Wallet Web Read-Only Surface
+- Added local-safe wallet routes in `dxemb/web/app.py`:
+  - `GET /wallet/<discord_user_id>` (balance)
+  - `GET /wallet/<discord_user_id>/ledger` (history)
+  - `POST /wallet/<discord_user_id>/preview` (dry-run only)
+  - `POST /wallet/<discord_user_id>/adjust` (explicitly disabled, 403)
+- Added isolated route tests in `tests/test_wallet_web_routes.py`.
+- Slice B required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_wallet_web_routes -v` (pass, 4 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -432,8 +446,7 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Wallet+P2P Integration Slice B: add wallet web read-only surface for balance and ledger history plus mutation preview-disabled response.
-- Keep all wallet web routes non-mutating.
+- Wallet+P2P Integration Slice C: local-safe P2P bot workflows (preview/list/details/status/pickup-preview) with strict no-spawn, no external action guarantees.
 
 ---
 End of authoritative continuity record.
