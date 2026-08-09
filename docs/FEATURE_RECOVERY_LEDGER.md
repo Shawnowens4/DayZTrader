@@ -94,8 +94,8 @@ Before any implementation work, the agent must:
 | AUTO-06 | Custom kits | Console-valid attachment/nesting builder | Not verified | Needs inventory | Needs inventory | Recover/adapt | Validate build-time |
 | AUTO-07 | Zombie hordes | Admin product and controlled spawn flow | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
 | AUTO-08 | Airdrops | Buyer location, randomized contents, warning/announcement | Not verified | Needs inventory | Needs inventory | Recover/adapt | Location player-chosen |
-| MARKET-01 | Player listings | P2P item/vehicle listings with lifecycle | Not present beyond starter escrow table | `C:\DXEMB\discord_bot\src\cogs\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py`; `C:\DXEMB\database\migrations\002_marketplace_tables.sql`; `C:\DXEMB\tests\test_marketplace_service.py` | Needs recovery | Design then build | Never server-spawn |
-| MARKET-02 | P2P escrow | Holds, release, cancel, refund, dispute, payout | Starter table only | `C:\DXEMB\discord_bot\src\cogs\escrow.py`; `C:\DXEMB\core\services\escrow_service.py`; `C:\DXEMB\database\migrations\003_escrow_schema.sql`; `C:\DXEMB\tests\test_escrow_service.py`; `C:\DXEMB\tests\test_dispute_service.py` | Needs recovery | Redesign/adapt | No Auto-Trader behavior |
+| MARKET-01 | Player listings | P2P item/vehicle listings with lifecycle | Additive foundation migration/service implemented: `dxemb/db/migrations/002_market_escrow_foundation.sql`, `dxemb/shared/market_escrow_service.py`, `tests/test_market_escrow_service.py` | `C:\DXEMB\discord_bot\src\cogs\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py`; `C:\DXEMB\database\migrations\002_marketplace_tables.sql`; `C:\DXEMB\tests\test_marketplace_service.py` | Active partial | Build then integrate | Never server-spawn; delivery mode constrained to `P2P_PHYSICAL` |
+| MARKET-02 | P2P escrow | Holds, release, cancel, refund, dispute, payout | Foundation lifecycle and audit events implemented in additive schema/service with tests for hold/release/dispute/refund | `C:\DXEMB\discord_bot\src\cogs\escrow.py`; `C:\DXEMB\core\services\escrow_service.py`; `C:\DXEMB\database\migrations\003_escrow_schema.sql`; `C:\DXEMB\tests\test_escrow_service.py`; `C:\DXEMB\tests\test_dispute_service.py` | Active partial | Build then integrate | No Auto-Trader behavior; no runtime spawn path added |
 | MARKET-03 | Marketplace moderation | Admin review and dispute actions | Not verified | Needs inventory | Needs inventory | Recover/adapt | Audit every action |
 | NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Not verified | `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/nitrado_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/ftp_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/xml_generator.py` | Needs inventory | Recover/adapt | Outbound only |
 | NIT-02 | Restart scheduler | Poll/cached restart windows | Not present in active audit | Needs inventory | Needs recovery | Design then build | Never force restart |
@@ -174,7 +174,10 @@ newest, and compatible source for every missing system.
 - Slice 3 completed: additive wallet+ledger foundation added via `dxemb/db/migrations/001_wallet_ledger_foundation.sql` and `dxemb/shared/wallet_ledger_service.py`.
 - Slice 3 completed: service tests added in `tests/test_wallet_ledger_service.py` covering credit, debit, insufficient funds, duplicate reference idempotency, and audit history.
 - Slice 3 validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_wallet_ledger_service -v`, `docker compose config`, `docker compose down`.
-- Next approved slice: player listing + escrow foundation with explicit no-spawn P2P constraints.
+- Slice 4 completed: additive P2P listing+escrow foundation added via `dxemb/db/migrations/002_market_escrow_foundation.sql` and `dxemb/shared/market_escrow_service.py`.
+- Slice 4 completed: service tests added in `tests/test_market_escrow_service.py` covering running-vehicle guard, hold, release-with-pickup, dispute, refund, and delivery-mode no-spawn enforcement.
+- Slice 4 validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v`, `docker compose config`, `docker compose down`.
+- Next approved slice: moderation/community recovery plan inventory and integration design only.
 
 ---
 End of permanent feature recovery ledger.

@@ -143,15 +143,15 @@
 ### Current Honest Status
 ```text
 Repository discovery and baseline: ██████████ 100%
-Documentation consolidation:     █████████░  86%
+Documentation consolidation:     █████████░  89%
 Docker/runtime re-verification:  ███████░░░  70%
 Bot/Discord verification:       █████░░░░░  50%
 Web/admin verification:         ██████░░░░  60%
-Database/Neon verification:     ██████░░░░  55%
+Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
-Player Market + Escrow audit:   ██░░░░░░░░  20%
-Automated tests audit:          ███████░░░  70%
-Total verified project state:   ███████░░░  65%
+Player Market + Escrow audit:   ██████░░░░  60%
+Automated tests audit:          ████████░░  80%
+Total verified project state:   ████████░░  72%
 ```
 
 ---
@@ -174,6 +174,7 @@ Total verified project state:   ███████░░░  65%
 | Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
 | Schema contract coverage (`player`, `item`, `escrow_transaction`) | Test foundation | `tests/test_schema_contracts.py` | `docker compose up -d db; python -m unittest tests.test_schema_contracts -v` passed (5 tests) against disposable DB | Start Slice 3 wallet/ledger additive migration + service tests |
 | Wallet + ledger additive foundation | Recovery implementation | `dxemb/db/migrations/001_wallet_ledger_foundation.sql`, `dxemb/shared/wallet_ledger_service.py` | `docker compose up -d db; python -m unittest tests.test_wallet_ledger_service -v` passed (5 tests) | Start Slice 4 P2P listing/escrow foundation |
+| P2P listing + escrow additive foundation | Recovery implementation | `dxemb/db/migrations/002_market_escrow_foundation.sql`, `dxemb/shared/market_escrow_service.py` | `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v` passed (5 tests) | Move to Slice 5 moderation/community recovery planning |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -263,6 +264,25 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice 4: Player Listing + Escrow Foundation
+- Added additive migration `dxemb/db/migrations/002_market_escrow_foundation.sql` for:
+  - `player_listing` with P2P lifecycle states
+  - `market_escrow` with hold/release/refund/dispute lifecycle and pickup confirmation gating
+  - `market_escrow_event` for escrow event auditing
+  - explicit no-spawn constraint via `delivery_mode = 'P2P_PHYSICAL'`
+- Added standalone service `dxemb/shared/market_escrow_service.py` implementing hold, pickup confirmation, release, dispute, and refund flows.
+- Added service tests `tests/test_market_escrow_service.py` for:
+  - non-running vehicle listing rejection
+  - hold + release flow with pickup confirmation
+  - release block without pickup confirmation
+  - dispute then refund
+  - P2P physical delivery mode enforcement (no server spawn mode)
+- Slice 4 required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v` (pass, 5 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -317,8 +337,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice 4: implement the smallest Player Listing + Escrow foundation (P2P only) with additive migration(s), audited lifecycle states, dispute/refund/release paths, and explicit no-spawn constraints.
-- Do not integrate with live external Discord/Nitrado operations in this slice.
+- Slice 5: design-only moderation + community recovery plan (inventory exact archive modules, duplicate generations, dependencies, tests, and safe integration approach for moderation, staff logs, roles/channels, onboarding, and tickets).
+- Do not alter Discord/server settings or restore moderation/ticket code in this slice.
 
 ---
 End of authoritative continuity record.
