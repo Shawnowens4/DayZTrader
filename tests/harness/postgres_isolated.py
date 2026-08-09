@@ -42,17 +42,21 @@ def database_url_for_name(base_admin_url: str, database_name: str) -> str:
 def create_disposable_database(db_name: str) -> None:
     import psycopg2
 
-    with psycopg2.connect(admin_database_url()) as conn:
-        conn.autocommit = True
+    conn = psycopg2.connect(admin_database_url())
+    conn.autocommit = True
+    try:
         with conn.cursor() as cur:
             cur.execute(f'CREATE DATABASE "{db_name}"')
+    finally:
+        conn.close()
 
 
 def drop_disposable_database(db_name: str) -> None:
     import psycopg2
 
-    with psycopg2.connect(admin_database_url()) as conn:
-        conn.autocommit = True
+    conn = psycopg2.connect(admin_database_url())
+    conn.autocommit = True
+    try:
         with conn.cursor() as cur:
             # Terminate active sessions before drop for repeatable local runs.
             cur.execute(
@@ -64,6 +68,8 @@ def drop_disposable_database(db_name: str) -> None:
                 (db_name,),
             )
             cur.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
+    finally:
+        conn.close()
 
 
 def apply_schema(db_url: str) -> None:

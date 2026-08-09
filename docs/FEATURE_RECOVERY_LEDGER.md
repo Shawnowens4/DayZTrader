@@ -67,9 +67,9 @@ Before any implementation work, the agent must:
 | ID | System / feature | Required behavior | Current PERM evidence | Archive/ZIP evidence | Status | Recovery decision | Notes |
 |---|---|---|---|---|---|---|---|
 | CORE-01 | Docker local stack | Bot, web, DB boot locally and stop cleanly | Verified at `503be4b` | Unknown | Active verified | Preserve | `/health` returns HTTP 200 with DB connected |
-| CORE-02 | PostgreSQL local DB | Clean initialization from `init.sql` | Verified at `503be4b` | Unknown | Active verified | Preserve | Local dev DB volume is disposable |
+| CORE-02 | PostgreSQL local DB | Clean initialization from `init.sql` | Verified at `503be4b`; schema contract tests pass on disposable DB (Slice 2) | Unknown | Active verified | Preserve | Local dev DB volume is disposable |
 | CORE-03 | Neon PostgreSQL | Hosted DB configuration and safe deployment path | Not verified | Unknown | Planned | Audit later | Never expose credentials |
-| CORE-04 | Test framework | Repeatable isolated automated tests | Added unittest harness with disposable PostgreSQL test-db utilities and passing smoke tests (`tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py`) | `C:\DXEMB\tests` (integration/service/cog tests including economy/escrow/marketplace) | Active partial | Expand with schema/service contracts | Use archive tests as recovery reference; adapt to current PERM architecture |
+| CORE-04 | Test framework | Repeatable isolated automated tests | Added unittest harness with disposable PostgreSQL test-db utilities and passing smoke tests (`tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py`); schema contracts pass in `tests/test_schema_contracts.py` | `C:\DXEMB\tests` (integration/service/cog tests including economy/escrow/marketplace) | Active partial | Expand with wallet/ledger and market/escrow service contracts | Use archive tests as recovery reference; adapt to current PERM architecture |
 | BOT-01 | Discord bot startup | Bot loads safely and reports state | Present; no-op safe mode verified | Unknown | Active partial | Preserve/audit | Live token/guild test pending |
 | BOT-02 | Health commands | Prefix + slash health diagnostics | Present | Unknown | Active partial | Preserve/audit | Live Discord sync pending |
 | BOT-03 | Trader browsing | Guided item catalog/trader navigation | Present | Unknown | Active partial | Audit | Not purchase/delivery pipeline |
@@ -169,7 +169,9 @@ newest, and compatible source for every missing system.
 - Slice 1 completed: added minimal isolated test harness utilities in `tests/harness/postgres_isolated.py`.
 - Slice 1 completed: harness smoke tests passed via `python -m unittest discover -s tests -p "test_*.py" -v`.
 - Slice 1 validation evidence recorded: `git diff --check`, `docker compose config`, `docker compose down`.
-- Next approved slice: schema contract tests for `player`, `item`, `escrow_transaction` plus catalog query compatibility.
+- Slice 2 completed: schema contract tests added in `tests/test_schema_contracts.py` for `player`, `item`, and `escrow_transaction` plus catalog query compatibility.
+- Slice 2 validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_schema_contracts -v`, `docker compose config`, `docker compose down`.
+- Next approved slice: additive wallet + immutable ledger foundation with service tests before bot/web integration.
 
 ---
 End of permanent feature recovery ledger.

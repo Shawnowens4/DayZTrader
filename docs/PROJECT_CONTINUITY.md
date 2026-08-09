@@ -147,11 +147,11 @@ Documentation consolidation:     ████████░░  80%
 Docker/runtime re-verification:  ███████░░░  70%
 Bot/Discord verification:       █████░░░░░  50%
 Web/admin verification:         ██████░░░░  60%
-Database/Neon verification:     ███░░░░░░░  30%
+Database/Neon verification:     ████░░░░░░  40%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██░░░░░░░░  20%
-Automated tests audit:          ████░░░░░░  40%
-Total verified project state:   ██████░░░░  52%
+Automated tests audit:          ██████░░░░  60%
+Total verified project state:   ██████░░░░  58%
 ```
 
 ---
@@ -172,6 +172,7 @@ Total verified project state:   ██████░░░░  52%
 | Player Market + Escrow | P2P system | To be verified | Not yet verified | Locate active code/schema or mark unimplemented |
 | Wallet/Ledger + Market/Escrow design | Recovery planning | `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Slice 1 design completed; boundaries, lifecycle, idempotency, migration order documented | Use as contract for additive migrations and service tests |
 | Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
+| Schema contract coverage (`player`, `item`, `escrow_transaction`) | Test foundation | `tests/test_schema_contracts.py` | `docker compose up -d db; python -m unittest tests.test_schema_contracts -v` passed (5 tests) against disposable DB | Start Slice 3 wallet/ledger additive migration + service tests |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -230,6 +231,18 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice 2: Schema Contract Tests
+- Added schema contract tests at `tests/test_schema_contracts.py` for:
+  - table presence and contract shape (`player`, `item`, `escrow_transaction`)
+  - key uniqueness and check-constraint validation
+  - catalog query compatibility for existing item-query projections
+- Disposable isolated DB flow validated via harness (`create_disposable_database`, `apply_schema`, `drop_disposable_database`).
+- Slice 2 required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_schema_contracts -v` (pass, 5 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -284,8 +297,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice 2: add schema contract tests for `player`, `item`, and `escrow_transaction`, plus catalog query compatibility, using only a disposable isolated test database.
-- Do not modify `dxemb/db/init.sql` or add product tables in this slice.
+- Slice 3: implement additive wallet + immutable ledger foundation with migration-backed schema and service tests (credit, debit, insufficient funds, duplicate reference/idempotency, audit history).
+- Do not integrate with bot/web commands/routes in this slice.
 
 ---
 End of authoritative continuity record.
