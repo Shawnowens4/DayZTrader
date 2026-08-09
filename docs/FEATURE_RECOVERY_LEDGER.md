@@ -69,7 +69,7 @@ Before any implementation work, the agent must:
 | CORE-01 | Docker local stack | Bot, web, DB boot locally and stop cleanly | Verified at `503be4b` | Unknown | Active verified | Preserve | `/health` returns HTTP 200 with DB connected |
 | CORE-02 | PostgreSQL local DB | Clean initialization from `init.sql` | Verified at `503be4b` | Unknown | Active verified | Preserve | Local dev DB volume is disposable |
 | CORE-03 | Neon PostgreSQL | Hosted DB configuration and safe deployment path | Not verified | Unknown | Planned | Audit later | Never expose credentials |
-| CORE-04 | Test framework | Repeatable isolated automated tests | No test suite verified | `C:\DXEMB\tests` (integration/service/cog tests including economy/escrow/marketplace) | Needs inventory | Build after recovery inventory | Use archive tests as recovery reference; adapt to current PERM architecture |
+| CORE-04 | Test framework | Repeatable isolated automated tests | Added unittest harness with disposable PostgreSQL test-db utilities and passing smoke tests (`tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py`) | `C:\DXEMB\tests` (integration/service/cog tests including economy/escrow/marketplace) | Active partial | Expand with schema/service contracts | Use archive tests as recovery reference; adapt to current PERM architecture |
 | BOT-01 | Discord bot startup | Bot loads safely and reports state | Present; no-op safe mode verified | Unknown | Active partial | Preserve/audit | Live token/guild test pending |
 | BOT-02 | Health commands | Prefix + slash health diagnostics | Present | Unknown | Active partial | Preserve/audit | Live Discord sync pending |
 | BOT-03 | Trader browsing | Guided item catalog/trader navigation | Present | Unknown | Active partial | Audit | Not purchase/delivery pipeline |
@@ -163,6 +163,13 @@ newest, and compatible source for every missing system.
 - Preferred recovery candidates are structured modules under `C:\DXEMB\core`, `C:\DXEMB\discord_bot\src`, and `C:\DXEMB\database\migrations`, not `BACKUP_PHASE*` monolith snapshots.
 - `C:\DXEMB\discord_bot\src\cogs\moderation.py` contains duplicate generations and requires controlled adaptation by slice.
 - ZIP evidence is useful reference but overlaps with `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot`; do not assume ZIP is newest.
+
+### Recovery Sprint Updates (2026-08-08)
+- Slice 1 completed: added design-only domain/model plan at `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md`.
+- Slice 1 completed: added minimal isolated test harness utilities in `tests/harness/postgres_isolated.py`.
+- Slice 1 completed: harness smoke tests passed via `python -m unittest discover -s tests -p "test_*.py" -v`.
+- Slice 1 validation evidence recorded: `git diff --check`, `docker compose config`, `docker compose down`.
+- Next approved slice: schema contract tests for `player`, `item`, `escrow_transaction` plus catalog query compatibility.
 
 ---
 End of permanent feature recovery ledger.

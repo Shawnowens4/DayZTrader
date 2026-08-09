@@ -143,15 +143,15 @@
 ### Current Honest Status
 ```text
 Repository discovery and baseline: ██████████ 100%
-Documentation consolidation:     ███████░░░  70%
+Documentation consolidation:     ████████░░  80%
 Docker/runtime re-verification:  ███████░░░  70%
 Bot/Discord verification:       █████░░░░░  50%
 Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███░░░░░░░  30%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██░░░░░░░░  20%
-Automated tests audit:          ██░░░░░░░░  20%
-Total verified project state:   █████░░░░░  46%
+Automated tests audit:          ████░░░░░░  40%
+Total verified project state:   ██████░░░░  52%
 ```
 
 ---
@@ -170,6 +170,8 @@ Total verified project state:   █████░░░░░  46%
 | Admin vehicle UI | Auto-Trader admin surface | `web/vehicle_admin.py` | Source present | Inspect routes and persistence |
 | Auto-Trader orders/spawn queue | Server store | To be verified | Not yet verified | Audit models, states, queue, and Nitrado boundary |
 | Player Market + Escrow | P2P system | To be verified | Not yet verified | Locate active code/schema or mark unimplemented |
+| Wallet/Ledger + Market/Escrow design | Recovery planning | `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Slice 1 design completed; boundaries, lifecycle, idempotency, migration order documented | Use as contract for additive migrations and service tests |
+| Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -217,6 +219,16 @@ git log -1 --oneline
 - Confirmed `C:\DXEMB\discord_bot\src\cogs\moderation.py` contains duplicate generations and must be adapted slice-by-slice, not copied directly.
 - Confirmed `dayz-console-trader-bot.zip` overlaps `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot` and is not automatically the newest source.
 - Recovery rule reinforced: future recovery must be source-by-source, test-backed, and never bulk-copied from archive or ZIP.
+
+### 2026-08-08 — Slice 1: Design + Test Harness
+- Added design-only foundation at `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` covering wallet source of truth, immutable ledger model, idempotency/reference rules, admin adjustment auditing, listing/escrow lifecycle, dispute/refund/release flow, physical pickup confirmation, and migration/rollback considerations.
+- Added minimal isolated PostgreSQL harness at `tests/harness/postgres_isolated.py` for disposable test database creation, schema apply, and teardown.
+- Added harness smoke tests at `tests/test_harness_smoke.py`.
+- Slice 1 required validation completed:
+  - `git diff --check` (pass)
+  - `python -m unittest discover -s tests -p "test_*.py" -v` (pass, 4 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
 
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
@@ -272,8 +284,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Design only: controlled recovery plan for wallet/ledger plus Player Market + Escrow foundation, with explicit Auto-Trader vs P2P separation and test requirements.
-- Do not implement recovery code in this step.
+- Slice 2: add schema contract tests for `player`, `item`, and `escrow_transaction`, plus catalog query compatibility, using only a disposable isolated test database.
+- Do not modify `dxemb/db/init.sql` or add product tables in this slice.
 
 ---
 End of authoritative continuity record.
