@@ -4,12 +4,19 @@ import json
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
+from urllib.parse import urlsplit
 
 from flask import Flask
 from flask import url_for
 
 _MANIFEST_PATH = Path(__file__).resolve().parent / "static" / "ui" / "asset_manifest.json"
 _FALLBACK_IMAGE = "ui/thumbnail-fallback.svg"
+_STATIC_ROOT = Path(__file__).resolve().parent / "static"
+_LOCAL_CATALOG_DIRS = [
+    _STATIC_ROOT / "catalog_items",
+    _STATIC_ROOT / "items",
+]
 
 
 @lru_cache(maxsize=1)
@@ -41,6 +48,58 @@ def ui_image(src: str | None) -> str:
     return ui_asset("images.thumbnail_fallback")
 
 
+@lru_cache(maxsize=8)
+def _dir_index(directory: str) -> dict[str, str]:
+    root = Path(directory)
+    if not root.exists() or not root.is_dir():
+        return {}
+    return {entry.name.lower(): entry.name for entry in root.iterdir() if entry.is_file()}
+
+
+def _catalog_candidates(classname: str | None, source_url: str | None) -> list[str]:
+    out: list[str] = []
+    if source_url:
+        base = Path(unquote(urlsplit(source_url).path)).name.strip()
+        if base:
+            out.append(base)
+
+    if classname:
+        normalized = classname.strip().lower()
+        variants = {
+            normalized,
+            normalized.replace("-", "_"),
+            normalized.replace(" ", "_"),
+        }
+        for value in variants:
+            out.append(f"{value}.webp")
+            out.append(f"{value}.png")
+            out.append(f"{value}.jpg")
+            out.append(f"{value}.jpeg")
+
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for name in out:
+        lowered = name.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        deduped.append(name)
+    return deduped
+
+
+def catalog_thumbnail_src(classname: str | None, source_url: str | None) -> str:
+    candidates = _catalog_candidates(classname=classname, source_url=source_url)
+    for directory in _LOCAL_CATALOG_DIRS:
+        index = _dir_index(str(directory))
+        for candidate in candidates:
+            found = index.get(candidate.lower())
+            if found:
+                rel = directory.relative_to(_STATIC_ROOT).as_posix()
+                return url_for("static", filename=f"{rel}/{found}")
+
+    return ui_image(source_url)
+
+
 def ui_nav_links() -> list[dict[str, str]]:
     return [
         {"href": "/", "label": "Status"},
@@ -52,4 +111,5 @@ def ui_nav_links() -> list[dict[str, str]]:
 def register_ui_helpers(app: Flask) -> None:
     app.jinja_env.globals["ui_asset"] = ui_asset
     app.jinja_env.globals["ui_image"] = ui_image
+    app.jinja_env.globals["catalog_thumbnail_src"] = catalog_thumbnail_src
     app.jinja_env.globals["ui_nav_links"] = ui_nav_links

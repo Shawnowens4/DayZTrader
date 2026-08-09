@@ -39,6 +39,13 @@
       {% for item in items %}
       <tr>
         <td>
+          <img
+            class="item-thumb js-fallback-img"
+            src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
+            data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+            alt="{{ item.display_name or item.classname }} thumbnail"
+            loading="lazy"
+          >
           <a href="/catalog/{{ item.classname }}">{{ item.display_name or item.classname }}</a><br>
           <span class="muted">{{ item.classname }}</span>
         </td>

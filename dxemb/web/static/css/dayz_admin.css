@@ -194,6 +194,16 @@ button:hover {
   padding: 0.6rem 0.75rem;
 }
 
+.item-thumb {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: block;
+  height: 72px;
+  margin-bottom: 0.45rem;
+  object-fit: cover;
+  width: 128px;
+}
+
 .status-pill {
   border-radius: 999px;
   display: inline-block;

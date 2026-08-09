@@ -7,7 +7,7 @@
     <div>
       <img
         class="thumb js-fallback-img"
-        src="{{ ui_image(item.resolved_thumbnail_url) }}"
+        src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
         data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
         alt="{{ item.classname }}"
       >
