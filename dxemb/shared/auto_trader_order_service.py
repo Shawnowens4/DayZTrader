@@ -420,6 +420,95 @@ class AutoTraderOrderService:
             )
         return out
 
+    def preview_order(self, *, product_id: int, quantity: int) -> dict[str, Any]:
+        if quantity <= 0:
+            return {
+                "valid": False,
+                "errors": ["quantity must be > 0"],
+                "mode": "dry-run",
+                "applied": False,
+            }
+
+        errors: list[str] = []
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                try:
+                    product = self._fetch_allowed_product(cur, product_id=product_id)
+                except ProductNotAllowedError as exc:
+                    errors.append(str(exc))
+                    product = None
+
+        if not product:
+            return {
+                "valid": False,
+                "errors": errors,
+                "mode": "dry-run",
+                "applied": False,
+            }
+
+        total_price = int(product["price"]) * quantity
+        return {
+            "valid": True,
+            "errors": [],
+            "product_id": product_id,
+            "quantity": quantity,
+            "unit_price": int(product["price"]),
+            "total_price": total_price,
+            "state": "pending_payment",
+            "mode": "dry-run",
+            "applied": False,
+        }
+
+    def list_orders(self, *, buyer_discord_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 500))
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                if buyer_discord_id:
+                    cur.execute(
+                        """
+                        SELECT id, order_reference, buyer_discord_id, product_id,
+                               quantity, unit_price, total_price, state, created_at,
+                               updated_at, closed_at
+                        FROM trader_order
+                        WHERE buyer_discord_id = %s
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT %s
+                        """,
+                        (buyer_discord_id, safe_limit),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT id, order_reference, buyer_discord_id, product_id,
+                               quantity, unit_price, total_price, state, created_at,
+                               updated_at, closed_at
+                        FROM trader_order
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT %s
+                        """,
+                        (safe_limit,),
+                    )
+                rows = cur.fetchall()
+
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "id": int(row[0]),
+                    "order_reference": row[1],
+                    "buyer_discord_id": row[2],
+                    "product_id": int(row[3]),
+                    "quantity": int(row[4]),
+                    "unit_price": int(row[5]),
+                    "total_price": int(row[6]),
+                    "state": row[7],
+                    "created_at": row[8],
+                    "updated_at": row[9],
+                    "closed_at": row[10],
+                }
+            )
+        return out
+
     def _fetch_allowed_product(self, cur, *, product_id: int) -> dict[str, Any]:
         cur.execute(
             """

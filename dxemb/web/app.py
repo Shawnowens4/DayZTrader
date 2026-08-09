@@ -16,6 +16,7 @@ if str(ROOT_DIR) not in sys.path:
   sys.path.insert(0, str(ROOT_DIR))
 
 from shared.db import get_sync_health
+from shared.auto_trader_order_service import AutoTraderOrderService
 from shared.market_escrow_service import MarketEscrowService
 from shared.wallet_ledger_service import WalletLedgerService
 
@@ -42,6 +43,10 @@ def _wallet_service() -> WalletLedgerService:
 
 def _market_service() -> MarketEscrowService:
   return MarketEscrowService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _autotrader_service() -> AutoTraderOrderService:
+    return AutoTraderOrderService(database_url=os.getenv("DATABASE_URL"))
 
 
 # ------------------------------------------------------------------
@@ -369,6 +374,83 @@ def market_escrow_timeline(escrow_id: int):
             "count": len(events),
             "rows": events,
             "mode": "read-only",
+        }
+    )
+
+
+@app.get("/autotrader/products")
+def autotrader_products():
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _autotrader_service()
+    rows = service.list_products(enabled_only=True, limit=limit)
+
+    return jsonify(
+        {
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "autotrader",
+        }
+    )
+
+
+@app.post("/autotrader/orders/preview")
+def autotrader_order_preview():
+    payload = request.get_json(silent=True) or {}
+    product_id = int(payload.get("product_id") or 0)
+    quantity = int(payload.get("quantity") or 0)
+
+    service = _autotrader_service()
+    out = service.preview_order(product_id=product_id, quantity=quantity)
+    out["domain"] = "autotrader"
+    return jsonify(out)
+
+
+@app.get("/autotrader/orders")
+def autotrader_orders():
+    buyer_discord_id = request.args.get("buyer_discord_id")
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _autotrader_service()
+    rows = service.list_orders(buyer_discord_id=buyer_discord_id, limit=limit)
+
+    return jsonify(
+        {
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "autotrader",
+        }
+    )
+
+
+@app.get("/autotrader/orders/<int:order_id>")
+def autotrader_order_detail(order_id: int):
+    service = _autotrader_service()
+    try:
+        order = service.get_order(order_id)
+    except Exception:
+        return jsonify({"error": "order not found"}), 404
+
+    return jsonify(
+        {
+            "order": order,
+            "mode": "read-only",
+            "domain": "autotrader",
+        }
+    )
+
+
+@app.get("/autotrader/orders/<int:order_id>/history")
+def autotrader_order_history(order_id: int):
+    service = _autotrader_service()
+    events = service.list_order_events(order_id)
+    return jsonify(
+        {
+            "order_id": order_id,
+            "count": len(events),
+            "rows": events,
+            "mode": "read-only",
+            "domain": "autotrader",
         }
     )
 

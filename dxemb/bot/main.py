@@ -45,6 +45,7 @@ INITIAL_COGS = [
     "cogs.moderation_local",
     "cogs.wallet_local",
     "cogs.market_local",
+    "cogs.autotrader_local",
 ]
 
 
