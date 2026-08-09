@@ -1,0 +1,11 @@
+{
+  "styles": {
+    "admin": "css/dayz_admin.css"
+  },
+  "scripts": {
+    "shell": "js/ui_shell.js"
+  },
+  "images": {
+    "thumbnail_fallback": "ui/thumbnail-fallback.svg"
+  }
+}

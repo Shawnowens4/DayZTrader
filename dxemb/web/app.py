@@ -9,7 +9,7 @@ import sys
 import os
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, render_template, request
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -21,7 +21,7 @@ from shared.game_economy_service import DeterministicCoinFlipEngine
 from shared.game_economy_service import GameEconomyService
 from shared.market_escrow_service import MarketEscrowService
 from shared.mission_bounty_service import MissionBountyService
-from shared.nitrado_delivery_scheduler_service import NitradoDeliverySchedulerService
+from shared.delivery_scheduler_service import NitradoDeliverySchedulerService
 from shared.task_achievement_service import TaskAchievementService
 from shared.wallet_ledger_service import WalletLedgerService
 
@@ -35,7 +35,13 @@ try:
 except ModuleNotFoundError:
     from vehicle_admin import vehicle_bp
 
+try:
+    from web.ui import register_ui_helpers
+except ModuleNotFoundError:
+    from ui import register_ui_helpers
+
 app = Flask(__name__)
+register_ui_helpers(app)
 app.register_blueprint(catalog_bp)
 app.register_blueprint(vehicle_bp)
 
@@ -667,110 +673,10 @@ def mission_progress(discord_user_id: str):
     )
 
 
-# ------------------------------------------------------------------
-# GET /  — HTML status dashboard
-# ------------------------------------------------------------------
-_DASHBOARD_TMPL = """
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DXEMB Admin — Status</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f0f; color: #d4d4d4; min-height: 100dvh;
-      padding: 2rem 1.5rem;
-    }
-    h1  { font-size: 1.4rem; font-weight: 700; color: #f0f0f0; margin-bottom: 0.25rem; }
-    .sub { font-size: 0.8rem; color: #666; margin-bottom: 2rem; }
-    .card {
-      background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 0.5rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
-      max-width: 560px;
-    }
-    .card h2 { font-size: 0.75rem; text-transform: uppercase;
-               letter-spacing: 0.08em; color: #666; margin-bottom: 0.75rem; }
-    .row { display: flex; justify-content: space-between;
-           align-items: center; padding: 0.3rem 0;
-           border-bottom: 1px solid #222; font-size: 0.875rem; }
-    .row:last-child { border-bottom: none; }
-    .label { color: #999; }
-    .val   { color: #f0f0f0; font-variant-numeric: tabular-nums; }
-    .badge {
-      display: inline-block; padding: 0.15rem 0.5rem;
-      border-radius: 9999px; font-size: 0.7rem; font-weight: 600;
-      letter-spacing: 0.04em; text-transform: uppercase;
-    }
-    .ok  { background: #14532d; color: #4ade80; }
-    .err { background: #450a0a; color: #f87171; }
-  </style>
-</head>
-<body>
-  <h1>&#x1F6E1;&#xFE0F; DXEMB Admin Panel</h1>
-  <p class="sub">DayZ Xbox Trader — status dashboard</p>
-
-  <div class="card">
-    <h2>System</h2>
-    <div class="row">
-      <span class="label">Web service</span>
-      <span class="badge ok">online</span>
-    </div>
-    <div class="row">
-      <span class="label">Database</span>
-      <span class="badge {{ 'ok' if db.ok else 'err' }}">
-        {{ 'connected' if db.ok else 'error' }}
-      </span>
-    </div>
-    {% if db.ok %}
-    <div class="row">
-      <span class="label">DB latency</span>
-      <span class="val">{{ db.latency_ms }} ms</span>
-    </div>
-    {% endif %}
-    {% if db.error %}
-    <div class="row">
-      <span class="label">Error</span>
-      <span class="val" style="color:#f87171;font-size:0.8rem">{{ db.error }}</span>
-    </div>
-    {% endif %}
-  </div>
-
-  {% if db.ok %}
-  <div class="card">
-    <h2>Table Row Counts</h2>
-    {% for table, count in db.tables.items() %}
-    <div class="row">
-      <span class="label">{{ table }}</span>
-      <span class="val">{{ count }}</span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <div class="card">
-    <h2>Admin</h2>
-    <div class="row">
-      <span class="label">Catalog management</span>
-      <a class="val" href="/catalog">Open /catalog</a>
-    </div>
-    <div class="row">
-      <span class="label">Vehicle builder</span>
-      <a class="val" href="/vehicles">Open /vehicles</a>
-    </div>
-  </div>
-
-</body>
-</html>
-"""
-
-
 @app.route("/")
 def dashboard():
     db = _db_check()
-    return render_template_string(_DASHBOARD_TMPL, db=db)
+    return render_template("dashboard.html", db=db)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ item.display_name or item.classname }} - DXEMB Catalog{% endblock %}
+{% block content %}
+<section class="panel">
+  <p><a href="/catalog">&larr; Back to catalog</a></p>
+  <div class="grid-2">
+    <div>
+      <img
+        class="thumb js-fallback-img"
+        src="{{ ui_image(item.resolved_thumbnail_url) }}"
+        data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+        alt="{{ item.classname }}"
+      >
+      <p class="muted">{{ item.thumbnail_status }} / {{ item.thumbnail_source }}</p>
+    </div>
+    <div>
+      <h1 class="page-title">{{ item.display_name or item.classname }}</h1>
+      <p class="muted"><code>{{ item.classname }}</code></p>
+      <div class="row">Category: {{ item.category or '-' }}</div>
+      <div class="row">Subcategory: {{ item.subcategory or '-' }}</div>
+      <div class="row">Buy price: {{ item.buy_price if item.buy_price is not none else 'unset' }}</div>
+      <div class="row">Sell price: {{ item.sell_price if item.sell_price is not none else 'unset' }}</div>
+      <div class="row">Enabled: {{ 'yes' if item.is_enabled else 'no' }}</div>
+      <div class="row">Raw thumbnail URL: {{ item.thumbnail_url or 'none' }}</div>
+      <div class="row">Metadata notes: <code>{{ item.notes or '{}' }}</code></div>
+
+      <form method="post" action="/catalog/{{ item.classname }}/enabled">
+        <input type="hidden" name="enabled" value="{{ '0' if item.is_enabled else '1' }}">
+        <button type="submit">{{ 'Disable item' if item.is_enabled else 'Enable item' }}</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

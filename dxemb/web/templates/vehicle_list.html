@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}DXEMB - Vehicle Builder{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="inline-nav">
+    <a href="/">&larr; Admin Home</a>
+    <a href="/catalog">Catalog</a>
+  </div>
+  <h1 class="page-title">Vehicle Builder</h1>
+  <p class="page-subtitle">Select a vehicle family to inspect color variants and part slots.</p>
+</section>
+
+{% if families %}
+<section class="card-grid" aria-label="Vehicle family cards">
+  {% for v in families %}
+  <a href="/vehicles/{{ v.classname }}" class="card" aria-label="Open vehicle {{ v.display_name }}">
+    <img
+      src="{{ ui_image(v.body_thumbnail_url) }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt="{{ v.display_name }}"
+      loading="lazy"
+      class="js-fallback-img"
+    >
+    <div class="card-body">
+      <div><strong>{{ v.display_name }}</strong></div>
+      <div class="muted">
+        {{ v.color_count }} color{{ 's' if v.color_count != 1 else '' }}
+        &middot;
+        {{ v.slot_count }} part{{ 's' if v.slot_count != 1 else '' }}
+      </div>
+      <div style="margin-top:0.35rem">
+        <span class="status-pill {{ 'status-ok' if v.thumbnail_status == 'mapped' else 'status-warn' }}">{{ v.thumbnail_status }}</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</section>
+{% else %}
+<section class="panel">
+  <p class="muted">No vehicle families found in resolver. Add entries to vehicle_thumbnail_resolver.final.json.</p>
+</section>
+{% endif %}
+{% endblock %}

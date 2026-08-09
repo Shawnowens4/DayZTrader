@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ vehicle.display_name }} - DXEMB Vehicle Builder{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="inline-nav">
+    <a href="/vehicles">&larr; Vehicle list</a>
+  </div>
+  <div class="hero">
+    <img
+      src="{{ ui_image(vehicle.body_thumbnail_url) }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt="{{ vehicle.display_name }}"
+      class="js-fallback-img"
+    >
+    <div>
+      <h1 class="page-title">{{ vehicle.display_name }}</h1>
+      <p class="page-subtitle">
+        {{ vehicle.category }} &middot;
+        {{ vehicle.colors|length }} color{{ 's' if vehicle.colors|length != 1 else '' }} &middot;
+        {{ vehicle.slots|length }} part slot{{ 's' if vehicle.slots|length != 1 else '' }}
+      </p>
+      <code>{{ vehicle.classname }}</code>
+    </div>
+  </div>
+</section>
+
+{% if vehicle.colors %}
+<section class="panel">
+  <h2>Color Variants</h2>
+  <div class="card-grid">
+    {% for c in vehicle.colors %}
+    <div class="card" data-color="{{ c.color }}">
+      <img
+        src="{{ ui_image(c.thumbnail_url) }}"
+        data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+        alt="{{ c.display_name }}"
+        loading="lazy"
+        class="js-fallback-img"
+      >
+      <div class="card-body">
+        <div><strong>{{ c.display_name }}</strong></div>
+        <div class="muted">{{ c.classname or '-' }}</div>
+        <span class="status-pill status-warn">{{ c.thumbnail_status }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if vehicle.slots %}
+<section class="panel">
+  <h2>Part Slots</h2>
+  <div class="card-grid">
+    {% for s in vehicle.slots %}
+    <div class="card" data-slot="{{ s.slot_name }}">
+      <img
+        src="{{ ui_image(s.thumbnail_url) }}"
+        data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+        alt="{{ s.display_name }}"
+        loading="lazy"
+        class="js-fallback-img"
+      >
+      <div class="card-body">
+        <div><strong>{{ s.display_name }}</strong></div>
+        <div class="muted">{{ s.classname or '-' }}</div>
+        {% if s.required %}<div class="muted">required</div>{% endif %}
+        <span class="status-pill status-warn">{{ s.thumbnail_status }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="panel">
+  <p class="muted">JSON API: <a href="/api/vehicles/builder/{{ vehicle.classname }}">/api/vehicles/builder/{{ vehicle.classname }}</a></p>
+</section>
+{% endblock %}

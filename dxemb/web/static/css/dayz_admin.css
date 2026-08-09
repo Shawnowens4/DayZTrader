@@ -1,0 +1,263 @@
+:root {
+  --primary: #00d4ff;
+  --primary-dark: #00a8cc;
+  --bg-main: #0d1524;
+  --bg-panel: #152035;
+  --bg-panel-alt: #0f1a2d;
+  --text: #f7fbff;
+  --text-muted: #9eb1c8;
+  --ok: #44ff44;
+  --warn: #ffaa00;
+  --error: #ff6b6b;
+  --border: #2e425f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 18% 22%, #213454 0%, transparent 48%),
+    radial-gradient(circle at 82% 0%, #15263f 0%, transparent 42%),
+    linear-gradient(140deg, #0a1322 0%, #10203a 62%, #0c182b 100%);
+  min-height: 100vh;
+}
+
+a {
+  color: #8fd3ff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #c5ebff;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  left: -9999px;
+  position: absolute;
+  top: auto;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 1000;
+  background: #06101c;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.4rem 0.65rem;
+}
+
+.shell-header {
+  backdrop-filter: blur(6px);
+  background: color-mix(in srgb, #0a1322 75%, transparent);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.4rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.brand-sub {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.shell-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.shell-nav a {
+  background: #111e34;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.7rem;
+}
+
+.shell-nav a:hover {
+  border-color: var(--primary);
+}
+
+.wrap {
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 1.2rem;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.panel h1,
+.panel h2,
+.page-title {
+  margin-top: 0;
+}
+
+.page-title {
+  font-size: 1.45rem;
+  margin-bottom: 0.2rem;
+}
+
+.page-subtitle,
+.muted {
+  color: var(--text-muted);
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  border-bottom: 1px solid #253754;
+  font-size: 0.9rem;
+  padding: 0.55rem;
+  text-align: left;
+}
+
+.data-table th {
+  color: #d7ecff;
+}
+
+input,
+select,
+button {
+  background: var(--bg-panel-alt);
+  border: 1px solid #385071;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+}
+
+button {
+  background: #1b4f7a;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #246190;
+}
+
+.card-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.card {
+  background: #121f36;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card img,
+.thumb {
+  background: #0d1628;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.card-body {
+  padding: 0.6rem 0.75rem;
+}
+
+.status-pill {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.48rem;
+}
+
+.status-ok {
+  background: rgba(68, 255, 68, 0.18);
+  color: var(--ok);
+}
+
+.status-error {
+  background: rgba(255, 107, 107, 0.2);
+  color: var(--error);
+}
+
+.status-warn {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--warn);
+}
+
+.filters {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+}
+
+.inline-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.4rem 0 1rem;
+}
+
+.grid-2 {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 280px 1fr;
+}
+
+.hero {
+  align-items: flex-start;
+  display: flex;
+  gap: 1.1rem;
+}
+
+.hero img {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 220px;
+}
+
+@media (max-width: 900px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-2,
+  .hero {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .hero img {
+    max-width: 100%;
+  }
+}

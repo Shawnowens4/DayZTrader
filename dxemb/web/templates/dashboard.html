@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Admin - Status{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="page-title">DXEMB Admin Panel</h1>
+  <p class="page-subtitle">DayZ Xbox Trader status dashboard</p>
+</section>
+
+<section class="panel">
+  <h2>System</h2>
+  <div class="data-row row">
+    <span class="label">Web service</span>
+    <span class="status-pill status-ok">online</span>
+  </div>
+  <div class="data-row row">
+    <span class="label">Database</span>
+    <span class="status-pill {{ 'status-ok' if db.ok else 'status-error' }}">
+      {{ 'connected' if db.ok else 'error' }}
+    </span>
+  </div>
+  {% if db.ok %}
+  <div class="data-row row">
+    <span class="label">DB latency</span>
+    <span class="val">{{ db.latency_ms }} ms</span>
+  </div>
+  {% endif %}
+  {% if db.error %}
+  <div class="data-row row">
+    <span class="label">Error</span>
+    <span class="val" style="color:#ff8f8f">{{ db.error }}</span>
+  </div>
+  {% endif %}
+</section>
+
+{% if db.ok %}
+<section class="panel">
+  <h2>Table Row Counts</h2>
+  {% for table, count in db.tables.items() %}
+  <div class="data-row row">
+    <span class="label">{{ table }}</span>
+    <span class="val">{{ count }}</span>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Admin</h2>
+  <div class="data-row row">
+    <span class="label">Catalog management</span>
+    <a class="val" href="/catalog" aria-label="Open catalog management">Open /catalog</a>
+  </div>
+  <div class="data-row row">
+    <span class="label">Vehicle builder</span>
+    <a class="val" href="/vehicles" aria-label="Open vehicle builder">Open /vehicles</a>
+  </div>
+</section>
+{% endblock %}

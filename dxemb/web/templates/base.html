@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}DXEMB Admin{% endblock %}</title>
+  <link rel="stylesheet" href="{{ ui_asset('styles.admin') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="shell-header" role="banner">
+    <div class="brand">DXEMB Local Admin</div>
+    <div class="brand-sub">DayZ trader tools - local recovery foundation</div>
+    <nav class="shell-nav" aria-label="Primary">
+      {% for link in ui_nav_links() %}
+      <a href="{{ link.href }}">{{ link.label }}</a>
+      {% endfor %}
+    </nav>
+  </header>
+
+  <main id="main-content" class="wrap" role="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script defer src="{{ ui_asset('scripts.shell') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

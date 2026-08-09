@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Catalog Admin{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="page-title">DXEMB Catalog Management</h1>
+  <p class="page-subtitle">Browse, search, filter, inspect thumbnail mapping, and toggle enabled state.</p>
+</section>
+
+<section class="panel">
+  <form method="get" action="/catalog" class="filters" aria-label="Catalog filters">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search classname or display name" aria-label="Catalog search">
+    <select name="category" aria-label="Filter by category">
+      <option value="">All categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {{ 'selected' if selected_category == cat else '' }}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <select name="state" aria-label="Filter by enabled state">
+      <option value="all" {{ 'selected' if state == 'all' else '' }}>All states</option>
+      <option value="enabled" {{ 'selected' if state == 'enabled' else '' }}>Enabled only</option>
+      <option value="disabled" {{ 'selected' if state == 'disabled' else '' }}>Disabled only</option>
+    </select>
+    <button type="submit">Apply</button>
+  </form>
+</section>
+
+<section class="panel">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Thumbnail</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>
+          <a href="/catalog/{{ item.classname }}">{{ item.display_name or item.classname }}</a><br>
+          <span class="muted">{{ item.classname }}</span>
+        </td>
+        <td>{{ item.category or '-' }} / {{ item.subcategory or '-' }}</td>
+        <td>
+          <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-error' }}">
+            {{ 'enabled' if item.is_enabled else 'disabled' }}
+          </span>
+        </td>
+        <td>
+          <span class="{{ item.thumbnail_status }}">{{ item.thumbnail_status }}</span>
+          <div class="muted">{{ item.thumbnail_source }}</div>
+        </td>
+        <td>
+          <form method="post" action="/catalog/{{ item.classname }}/enabled">
+            <input type="hidden" name="enabled" value="{{ '0' if item.is_enabled else '1' }}">
+            <input type="hidden" name="return_to" value="{{ request.full_path }}">
+            <button type="submit">{{ 'Disable' if item.is_enabled else 'Enable' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="inline-nav" aria-label="Pagination">
+    {% if page > 1 %}
+      <a href="?q={{ query }}&category={{ selected_category }}&state={{ state }}&page={{ page - 1 }}">Prev</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?q={{ query }}&category={{ selected_category }}&state={{ state }}&page={{ page + 1 }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
