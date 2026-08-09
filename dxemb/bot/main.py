@@ -44,6 +44,7 @@ INITIAL_COGS = [
     "cogs.health_slash",
     "cogs.moderation_local",
     "cogs.wallet_local",
+    "cogs.market_local",
 ]
 
 
