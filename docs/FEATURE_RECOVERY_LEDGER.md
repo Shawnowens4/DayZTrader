@@ -204,6 +204,8 @@ newest, and compatible source for every missing system.
 - Wallet+P2P Slice C validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_market_bot_adapter -v`, `docker compose config`, `docker compose down`.
 - Wallet+P2P integration Slice D completed: local-safe market web routes for browse/detail/preview plus escrow status/timeline.
 - Wallet+P2P Slice D validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_market_web_routes -v`, `docker compose config`, `docker compose down`.
+- Wallet+P2P integration Slice E completed: final reconciliation and consolidated A-D regression run passed (`14` tests).
+- Wallet+P2P Slice E evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_wallet_bot_adapter tests.test_wallet_web_routes tests.test_market_bot_adapter tests.test_market_web_routes -v`, `docker compose config`, `docker compose down`.
 
 ---
 End of permanent feature recovery ledger.
