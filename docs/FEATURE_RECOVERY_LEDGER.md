@@ -21,6 +21,356 @@
 
 ---
 
+## 2026-08-09 Full Product + Design Audit Build Plan
+
+This section is the current repository-wide audit and build-plan checkpoint before the next implementation run.
+
+Scope rules for this audit:
+- read-only inventory first
+- no behavior change implied by this plan
+- no live-service enablement implied by this plan
+- no vehicle compatibility approval implied by this plan
+
+### A. Design-source inventory
+
+#### Exact in-repo screenshot/reference image paths
+
+Confirmed in-repo image assets:
+- `dxemb/web/static/catalog_items/chernarussportshirt.webp`
+- `dxemb/web/static/catalog_items/tourist_map.webp`
+- `dxemb/web/static/catalog_items/vehicles.webp`
+- `dxemb/web/static/ui/thumbnail-fallback.svg`
+
+Confirmed in-repo design/theme sources:
+- `dxemb/web/static/css/dayz_admin.css`
+- `dxemb/web/static/js/ui_shell.js`
+- `dxemb/web/static/ui/asset_manifest.json`
+- `dxemb/web/templates/base.html`
+- `dxemb/web/templates/dashboard.html`
+- `dxemb/web/templates/catalog_list.html`
+- `dxemb/web/templates/catalog_detail.html`
+- `dxemb/web/templates/vehicle_list.html`
+- `dxemb/web/templates/vehicle_builder.html`
+- `docs/LOCAL_FINISH_RECOVERY_PLAN.md`
+
+Confirmed archive-only design references documented in repo but not stored in repo:
+- `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\web\static\css\admin.css`
+- `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\web\static\js\map.js`
+- `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\web\static\js\vehicle_card_builder.js`
+- `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\web\static\js\trunk_card_builder.js`
+
+Fonts/icons/theme variables confirmed in repo:
+- font stack in `dxemb/web/static/css/dayz_admin.css`: `Segoe UI`, `Tahoma`, `Geneva`, `Verdana`, sans-serif
+- color variables in `dxemb/web/static/css/dayz_admin.css`:
+  - `--primary: #00d4ff`
+  - `--primary-dark: #00a8cc`
+  - `--bg-main: #0d1524`
+  - `--bg-panel: #152035`
+  - `--bg-panel-alt: #0f1a2d`
+  - `--text: #f7fbff`
+  - `--text-muted: #9eb1c8`
+  - `--ok: #44ff44`
+  - `--warn: #ffaa00`
+  - `--error: #ff6b6b`
+
+What is confirmed about the desired green/dark style:
+- owner direction in current planning session: cohesive black/charcoal base with toxic/electric-green emphasis
+- current repo already supports dark backgrounds and strong status colors
+- current repo does not yet implement a green-first visual system or screenshot-matched shell
+
+What is missing or needs owner confirmation:
+- no approved screenshot/reference image is stored in this repository
+- no in-repo font, icon set, spacing system, or component spec establishes the target green/dark direction
+- no confirmed mobile layout reference image is stored in repo
+- no explicit owner-approved nav hierarchy mockup is stored in repo
+
+UI comparison: current vs intended direction
+
+Current repo UI evidence:
+- dark navy / cyan shell from `dxemb/web/static/css/dayz_admin.css`
+- utilitarian admin framing from `dxemb/web/templates/base.html`
+- dashboard/catalog/vehicle pages are functional and readable but still admin-foundation oriented
+- visual language is closer to blue/cyan control panel than black/charcoal toxic-green product shell
+
+Target direction from owner prompt:
+- black/charcoal primary surfaces
+- toxic/electric-green highlight color
+- strong readable cards and navigation
+- mobile-friendly presentation
+- fewer generic placeholder/admin-foundation cues
+
+Gap summary:
+- current UI is usable and locally tested
+- current UI is not yet aligned to the requested screenshot-inspired green/dark product direction
+- design implementation should begin with a shell/theme foundation rather than scattered page-level restyling
+
+### B. Feature matrix
+
+| Area | Existing code/data/docs paths | Actual current implementation status | User-visible status | Backend/data status | Test coverage | Missing dependencies or blockers | Lowest-risk next implementation slice |
+|---|---|---|---|---|---|---|---|
+| Web shell | `dxemb/web/app.py`, `dxemb/web/templates/base.html`, `dxemb/web/templates/dashboard.html`, `dxemb/web/static/css/dayz_admin.css`, `tests/test_web_visual_foundation_slice_a.py` | Implemented and tested | `/`, `/catalog`, `/vehicles` load locally; shell is functional but visually off-target | Flask shell and blueprint wiring are active | Slice A route tests pass | visual direction mismatch with owner target; no screenshot in repo | green UI design-system foundation and shell restyle without route changes |
+| Auth / identity / account linking | `dxemb/shared/profile_onboarding_service.py`, `dxemb/db/migrations/005_profile_onboarding_foundation.sql`, `.env.example`, `docs/MASTER_HANDOFF.md` | Partial / placeholder | no login, no account page, no Discord web sign-in | onboarding/profile persistence exists; no OAuth callback or session auth | `tests/test_profile_onboarding_service.py` passes | missing Discord OAuth flow, session binding, role model, protected web routes | identity/roles/account foundation using existing onboarding schema |
+| Discord integration | `dxemb/bot/main.py`, `dxemb/bot/cogs/*.py`, `docs/PROJECT_CONTINUITY.md` | Implemented but unverified / partial | local-safe/admin-oriented commands exist; not owner-verified in live guild | cog loading, slash sync options, admin permission decorators present | bot adapter tests pass across wallet, market, autotrader, games, moderation | no linked web identity, no broad end-user command pass, no confirmed live guild validation | Discord command foundation synchronized to identity and wallet state |
+| Wallet / bank / ledger | `dxemb/shared/wallet_ledger_service.py`, `dxemb/db/migrations/001_wallet_ledger_foundation.sql`, `dxemb/web/app.py`, `dxemb/bot/cogs/wallet_local.py`, `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Implemented and tested for wallet ledger core; bank absent | read-only wallet/balance/ledger visibility only; mutation disabled | immutable ledger path and balance safety exist; no bank model seen | `tests/test_wallet_ledger_service.py`, `tests/test_wallet_bot_adapter.py`, `tests/test_wallet_web_routes.py` pass | no bank account subsystem, no authenticated user self-service mutation flows, admin UI absent | wallet/bank/ledger core completion with explicit bank design or documented omission |
+| Games | `dxemb/shared/game_economy_service.py`, `dxemb/db/migrations/008_game_economy_foundation.sql`, `dxemb/bot/cogs/games_local.py`, `dxemb/web/app.py` | Implemented but unverified / partial | preview/history surfaces exist; no owner-verified end-user gameplay release | deterministic coin-flip and audited sessions exist; settlement is feature-guarded | `tests/test_game_economy_service.py`, `tests/test_games_tasks_missions_web_routes.py`, `tests/test_games_tasks_missions_bot_adapter.py` pass | no authenticated player-facing flow, no UI productization, settlement still safety-gated | game entry and reward flow using current ledger with safe user-visible history |
+| Achievements / progression | `dxemb/shared/task_achievement_service.py`, `dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql`, `docs/MASTER_HANDOFF.md` | Implemented but unverified / partial | limited read-only progress endpoints; no polished progression surface | daily tasks and achievement rewards modeled; no XP/levels model found | `tests/test_task_achievement_service.py`, `tests/test_games_tasks_missions_web_routes.py` pass | no player-facing progression shell, no explicit XP/level subsystem, no Discord user journey | achievements/progression presentation tied to existing task and reward models |
+| Clans | none found in repo code, migrations, tests, or docs | Absent | no user-visible clan features | no schema or service layer | none | feature is not present in repository evidence and needs fresh design | clan foundation design and schema proposal only after identity and wallet controls are stable |
+| Catalog | `dxemb/shared/catalog/service.py`, `dxemb/web/catalog_admin.py`, `dxemb/web/templates/catalog_*.html`, `dxemb/shared/catalog/data/*`, `docs/DAYZ_IMAGE_AND_VEHICLE_VARIANT_AUDIT.md` | Implemented and tested | browse/detail/filter works locally | catalog item model and resolver-backed thumbnail flow are active | `tests/test_catalog_thumbnail_workflow_slice_b.py` passes | visual polish incomplete; image coverage incomplete; no auth guard | visual/data completion after shell redesign |
+| Vehicles | `dxemb/shared/catalog/vehicle_builder_service.py`, `dxemb/shared/catalog/data/vehicle_*`, `dxemb/web/vehicle_admin.py`, `docs/CONSOLE_VEHICLE_*.md` | Implemented and tested for builder shell; blocked for compatibility release | vehicle list/builder render locally with fallback visuals | fail-closed compatibility review process exists; approvals remain blocked | `tests/test_console_vehicle_audit_artifacts.py`, Slice A route tests cover pages indirectly | owner evidence still required for compatibility promotion | continue fail-closed review data process and visual completion only |
+| Admin / moderation / audit | `dxemb/shared/moderation_audit_service.py`, `dxemb/shared/ticket_service.py`, `dxemb/web/app.py`, `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` | Implemented but unverified / partial | admin-safe read-only or dry-run surfaces exist; no cohesive admin workspace | immutable moderation/ticket foundations exist; action scope remains narrow | `tests/test_moderation_audit_service.py`, `tests/test_moderation_command_adapter.py`, `tests/test_ticket_service.py` pass | no protected admin workspace, no comprehensive review console, limited moderation actions | admin/audit workspace completion after identity/role protection |
+| Tests / local quality | `tests/`, `tests/harness/postgres_isolated.py`, `docs/PROJECT_PROGRESS.md`, `docs/TODO_ROADMAP.md` | Implemented and tested / partial | no public-facing test UI; local confidence is real but fragmented | isolated PostgreSQL harness and many targeted suites exist | broad service/route coverage present; no single release acceptance script | no unified acceptance checklist, some live behaviors intentionally deferred | full local acceptance checklist and grouped validation command set |
+
+### C. Data and security audit
+
+#### Existing user/account/role models
+
+Confirmed models/tables:
+- `player` in `dxemb/db/init.sql`
+- `player_profile`, `onboarding_session`, `onboarding_event` in `dxemb/db/migrations/005_profile_onboarding_foundation.sql`
+
+Confirmed user/account state:
+- `player.discord_id` is the authoritative user identifier
+- `ProfileOnboardingService` manages profile persistence and onboarding states
+- no explicit role table, permission table, clan membership table, or web session identity table found
+
+#### Existing wallet/transaction/balance models and safety
+
+Confirmed wallet/ledger foundations:
+- `dxemb/db/migrations/001_wallet_ledger_foundation.sql`
+- `dxemb/shared/wallet_ledger_service.py`
+
+Safety characteristics confirmed by code/tests:
+- explicit credit/debit/admin_adjust service methods
+- idempotent reference handling
+- immutable ledger intent
+- insufficient funds guard
+- disabled mutation endpoint on web path
+
+Current limitation:
+- wallet foundation is safe for ledger-like use
+- bank balance subsystem is not confirmed in repository evidence
+- no evidence of full double-entry accounting model; current pattern is mutable balance + immutable ledger audit
+
+#### Existing Discord token/config handling and command architecture
+
+Confirmed token/config paths:
+- `.env.example`
+- `docker-compose.yml`
+- `dxemb/bot/main.py`
+
+Confirmed architecture:
+- prefix and slash bot in `dxemb/bot/main.py`
+- cogs loaded from `dxemb/bot/cogs/`
+- slash sync mode controlled by `SLASH_SYNC`
+- guild targeting controlled by `GUILD_IDS`
+- no-op mode when token is blank
+
+#### Existing authorization/permission checks
+
+Confirmed checks:
+- slash commands use `@app_commands.default_permissions(administrator=True)` in several cogs
+- prefix health command uses `@commands.has_permissions(administrator=True)`
+- `MissionBountyService` contains admin actor checks
+
+Missing/weak areas:
+- no web auth gate on `/`, `/catalog`, `/vehicles`, or other admin/read-only routes
+- no OAuth login/callback route
+- no durable role/permission model shared between web and Discord layers
+
+#### Existing migrations and test fixtures
+
+Core migrations found:
+- `dxemb/db/init.sql`
+- `dxemb/db/migrations/001_wallet_ledger_foundation.sql`
+- `dxemb/db/migrations/002_market_escrow_foundation.sql`
+- `dxemb/db/migrations/003_moderation_audit_foundation.sql`
+- `dxemb/db/migrations/004_ticket_foundation.sql`
+- `dxemb/db/migrations/005_profile_onboarding_foundation.sql`
+- `dxemb/db/migrations/006_auto_trader_order_foundation.sql`
+- `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql`
+- `dxemb/db/migrations/008_game_economy_foundation.sql`
+- `dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql`
+- `dxemb/db/migrations/010_mission_bounty_foundation.sql`
+
+Test harness/fixtures:
+- `tests/harness/postgres_isolated.py`
+- route and service suites across wallet, market, autotrader, games, moderation, tickets, profile, scheduler, catalog, vehicles
+
+#### Risks before enabling wallet, games, transfers, clans, or admin actions
+
+- web routes are currently unguarded; identity/role protection must precede real admin enablement
+- no bank subsystem is evidenced, so bank-related product claims should stay blocked or documented as absent
+- wallet mutation is intentionally disabled in web routes; re-enabling without auth and audit UX would be unsafe
+- game settlement exists in service logic but remains safety-gated and is not yet a fully verified user journey
+- clan functionality is absent and should not be implied by current docs or UI
+- moderation/ticket foundations exist, but admin actions are not yet exposed through a coherent protected workspace
+- fail-closed vehicle compatibility must remain blocked until explicit evidence and owner approval promote rows
+
+### D. Major-commit plan
+
+| Order | Name | Goal | Exact likely files/systems | User-visible outcome | Safety boundaries | Required tests/validation | Exit criteria | Dependencies | Estimated completeness contribution |
+|---|---|---|---|---|---|---|---|---|---:|
+| 1 | Green UI shell foundation | Move from cyan/navy admin-foundation shell toward the approved black/charcoal + toxic-green product shell | `dxemb/web/templates/base.html`, `dxemb/web/templates/dashboard.html`, `dxemb/web/static/css/dayz_admin.css`, `dxemb/web/static/js/ui_shell.js`, `dxemb/web/ui.py`, UI tests/docs | immediately visible brand/theme improvement across primary pages | no route changes, no schema changes, no behavior changes | route tests, manual mobile page check, `git diff --check` | shell, nav, cards, status colors, spacing, and mobile baseline aligned to target direction | none | 8% |
+| 2 | Identity and role foundation | Add safe local authentication, account/profile surface, and Discord-link groundwork | `dxemb/web/app.py`, auth/session helper module(s), `dxemb/shared/profile_onboarding_service.py`, related templates/docs/tests | users/admins can identify who they are and protected pages stop being anonymous | preserve existing routes where possible; additive auth only; no live OAuth secrets committed | auth route tests, profile tests, guarded route tests, `git diff --check` | local sign-in/session guard and protected admin surfaces work safely | 1 | 10% |
+| 3 | Wallet/bank/ledger completion | Finish safe transaction controls and decide/document bank support | wallet service/routes/templates, possible additive migration only if bank is truly required by repo evidence, docs/tests | authenticated users can view wallet and safe transaction history with admin-safe controls | no real-money behavior, preserve ledger immutability, additive-only data changes | wallet service/web tests, schema validation, route tests | wallet core is safe, user-visible, and auditable; bank is either implemented safely or explicitly marked absent/deferred | 2 | 10% |
+| 4 | Discord identity + wallet foundation | Synchronize Discord command surfaces with the same identity and wallet state used by web | `dxemb/bot/main.py`, `dxemb/bot/cogs/wallet_local.py`, onboarding/profile hooks, command tests/docs | basic Discord identity-aware wallet/account commands become coherent with web state | no live service broadening beyond current bot boundaries | bot adapter tests, identity consistency tests, `git diff --check` | Discord and web identity/wallet paths are consistent and safe | 2, 3 | 8% |
+| 5 | Games and rewards integration | Promote one safe game flow into a verified end-user journey tied to ledger records | `dxemb/shared/game_economy_service.py`, `dxemb/bot/cogs/games_local.py`, related web routes/templates/tests | a user can use at least one game flow and see recorded outcome/history | settlement remains feature-controlled; no opportunistic game expansion | game service tests, bot/web route tests, ledger linkage checks | one full game loop is safe, visible, and auditable | 3, 4 | 8% |
+| 6 | Achievements and progression integration | Expose tasks/achievements/progression as a real user-facing journey | `dxemb/shared/task_achievement_service.py`, progression templates/routes, bot adapters, docs/tests | user can see progress and achievement rewards tied to existing systems | do not invent XP/levels if not modeled; use existing data first | service tests, route tests, bot tests, manual walkthrough | achievements/progression visible and coherent using current models | 3, 5 | 7% |
+| 7 | Clan foundation | Add minimal clan membership/rank system only if it can be safely introduced additively | new additive clan schema/service/routes/bot adapters/docs/tests | user can create/join/leave and view clan membership/rank state | additive migrations only, no shared economy until separately justified | schema tests, service tests, route/bot tests, `git diff --check` | clan membership/rank state exists safely without destabilizing other systems | 2, 3 | 9% |
+| 8 | Catalog and vehicle visual/data completion | Finish the main DayZ browsing experience while preserving fail-closed compatibility | catalog/vehicle templates, CSS, image audit docs, compatibility review JSON/docs, resolver/override docs/tests | catalog and vehicle surfaces feel complete and consistent | no guessed compatibility approvals, no hidden missing-image states | catalog/vehicle tests, audit tests, JSON validation, manual visual review | honest, polished catalog/vehicle UX with compatibility still fail-closed where needed | 1, 4 | 9% |
+| 9 | Admin/audit/review workspace | Consolidate admin visibility for moderation, transactions, review queues, and safe controls | `dxemb/web/app.py`, admin templates, moderation/ticket/audit services, docs/tests | admin can review transactions/actions and blocked queues from one protected workspace | preserve read-only/dry-run defaults until explicitly verified | moderation/ticket/wallet/market/admin route tests, `git diff --check` | protected admin workspace is usable and auditable | 2, 3, 4, 8 | 10% |
+| 10 | Local acceptance and release candidate | Create the polished, reproducible local release candidate | docs, tests, acceptance checklist, startup/rollback/changelog surfaces | owner can run and review a cohesive local release candidate | no live deployment actions without explicit owner approval | full targeted suite, startup checks, acceptance checklist, `git diff --check` | reproducible local candidate with clearly disabled incomplete systems | 1-9 | 6% |
+
+### E. 75-percent readiness definition
+
+The product is "about 75% complete" only when these user journeys are true in the local application and tested at the appropriate layer:
+
+- a user can sign in or link Discord through a real local identity flow
+- a user can view wallet and bank state, or bank is explicitly documented as out-of-scope while wallet + ledger are fully usable and auditable
+- a user can review safe transaction history with immutable audit visibility
+- a user can use at least the basic intended Discord commands tied to real application state
+- a user can complete at least one integrated game/reward flow and see the recorded result
+- a user can view achievements/progression from real stored data
+- a user can create or join a clan and see membership/rank state, or clans are explicitly marked not part of the 75% target if owner scope changes
+- a user can browse the catalog and vehicle builder with honest data and fallback states
+- an admin can safely review transactions, moderation/ticket actions, and blocked review queues
+- the app starts locally through a documented command set and key paths are tested
+- known incomplete systems are clearly disabled or blocked, not fake, silently approved, or broken
+
+If these journeys are not true, the product is not yet at 75% readiness regardless of line count or number of migrations.
+
+### F. Immediate recommendation
+
+Recommended next major implementation run:
+
+**Green UI design-system foundation and app shell**
+
+Why this is the best next step:
+- highest visible product value with the lowest runtime risk
+- no need to alter schemas, routes, or compatibility approvals
+- directly addresses the confirmed mismatch between the current cyan/navy admin shell and the requested green/dark product direction
+- improves the shell that every later identity, wallet, games, clan, catalog, vehicle, and admin surface will reuse
+
+Visual acceptance gate:
+- do not broaden past the shell/theme and vehicle-builder component language until `/`, `/catalog`, `/vehicles`, and the modal/card states match the approved reference direction
+- screenshots may guide surface styling, but they do not unlock backend claims, compatibility approvals, or export behavior
+
+---
+
+## Local Screenshot Reference Intake — Not Production Evidence
+
+This folder is local-only design reference material. It is not source code, not proof of functionality, and not a basis for backend claims.
+
+### A. Inventory
+
+All screenshots in `local_console_reference/ScreeniestoUSE` are `.png` files at approximately `4096×2160`.
+
+| File | Ext | Approx. dims | Neutral description | Privacy / secrets flag |
+|---|---|---|---|---|
+| `Screenshot (75).png` | `.png` | `4096×2160` | Dark vehicle-builder cargo picker with an allowed-item grid and compact card stack. | No secret material observed. |
+| `Screenshot (77).png` | `.png` | `4096×2160` | Vehicle part color override matrix for hood and trunk variants. | No secret material observed. |
+| `Screenshot (78).png` | `.png` | `4096×2160` | Truck part overrides plus cargo preset controls and item cards. | No secret material observed. |
+| `Screenshot (79).png` | `.png` | `4096×2160` | Dense cargo-search and allowed-item view with part selection and search results. | No secret material observed. |
+| `Screenshot (81).png` | `.png` | `4096×2160` | Cargo-item search/results view with vehicle-builder controls and preset buttons. | No secret material observed. |
+| `Screenshot (83).png` | `.png` | `4096×2160` | Builder export page with top navigation tabs and a blocked generate/export action. | No secret material observed. |
+| `Screenshot (84).png` | `.png` | `4096×2160` | Truck part-color override and cargo preset page with selected orange variant. | No secret material observed. |
+| `Screenshot (88).png` | `.png` | `4096×2160` | Vehicle selection modal for M3S Covered with color variants and a loot-configuration CTA. | No secret material observed. |
+| `Screenshot (91).png` | `.png` | `4096×2160` | Scrollbox-resize preview showing parts list, cargo picker, and allowed-item grid behavior. | No secret material observed. |
+| `Screenshot (105).png` | `.png` | `4096×2160` | Near-duplicate of the scrollbox-resize preview; same dense cargo-picker experiment framing. | No secret material observed. |
+
+No screenshot in this folder showed confirmed secrets, tokens, Discord IDs, IPs, live server credentials, private messages, or real account/balance data.
+
+### B. Screenshot grouping
+
+Strong visual-direction references:
+- `Screenshot (83).png`
+- `Screenshot (84).png`
+- `Screenshot (88).png`
+- `Screenshot (91).png`
+- `Screenshot (105).png`
+
+Useful layout/component references:
+- `Screenshot (75).png`
+- `Screenshot (77).png`
+- `Screenshot (78).png`
+- `Screenshot (79).png`
+- `Screenshot (81).png`
+
+Feature-intent references that need backend confirmation:
+- `Screenshot (79).png`
+- `Screenshot (81).png`
+- `Screenshot (83).png`
+- `Screenshot (84).png`
+- `Screenshot (88).png`
+- `Screenshot (91).png`
+- `Screenshot (105).png`
+
+Obsolete, unclear, or conflicting references:
+- `Screenshot (105).png` is a near-duplicate of `Screenshot (91).png` and should not be treated as a separate product direction.
+- `Screenshot (75).png` through `Screenshot (81).png` are iterative builder experiments; they are useful for component patterns, but not all of their control labels or density choices should be carried forward unchanged.
+
+Unsafe or private references that must stay local-only:
+- none confirmed as secrets or credentials
+- the screenshots do show local file paths, browser chrome, and experimental filenames, so they must remain local reference only and must not be republished verbatim
+
+### C. Design extraction
+
+Implementation-ready visual specification from the recurring patterns:
+
+- Palette: near-black and charcoal surfaces first, with a single toxic/electric-green primary accent.
+- Secondary accents: orange/amber for alternate variants and warning states; blue only for informational or alternate selection hints when needed; red reserved for destructive or blocked states.
+- Cards and panels: dark surfaces, 1px muted borders, 10-12px radius, compact internal padding, and a bright green outline/glow only for selected or active states.
+- Buttons: solid green primary actions, dark secondary actions, and clearly labeled blocked/disabled actions in gray with no ambiguity about whether they work.
+- Navigation: sticky top shell with compact pill-style navigation and inline back links on detail pages; keep the nav lightweight rather than turning it into a heavy left sidebar.
+- Typography: bold but compact headings, muted helper text, monospace only for classnames/IDs/technical values, and no oversized marketing treatment.
+- Spacing: use a tight 8px-based rhythm with 12-16px card gutters and 16-24px section spacing; avoid dead whitespace that makes dense admin tools feel empty.
+- Borders/shadows/glow: subtle borders by default, stronger green glow only on selected tiles, and no ambient neon haze across entire pages.
+- Desktop/mobile behavior: multi-column card grids on desktop, single-column or stacked cards on mobile, with tables and picker lists collapsing gracefully rather than overflowing unpredictably.
+- Empty/loading/error/blocked states: empty states should be honest and calm, loading should be muted and lightweight, errors should be red and explicit, and blocked states should look intentionally disabled rather than broken.
+- Accessibility: strong contrast, visible focus rings, status text that does not rely on color alone, and touch targets large enough for mobile use.
+
+### D. Product-intent extraction
+
+| Concept | Screenshot evidence | Actual repository evidence | Current status | Safe next step | Dependencies and risk |
+|---|---|---|---|---|---|
+| Dashboard and navigation | Sticky top shell, tab-like nav, and card sections in `Screenshot (83).png`, `Screenshot (84).png`, `Screenshot (88).png`, `Screenshot (91).png`, `Screenshot (105).png` | `dxemb/web/templates/base.html`, `dxemb/web/templates/dashboard.html`, `dxemb/web/static/css/dayz_admin.css`, `dxemb/web/app.py` | `implemented_and_tested` | Refresh the shell tokens and shared nav styling first. | Low risk; the shell already exists and is locally tested. |
+| User profiles / authentication | No dedicated auth screen observed | `dxemb/shared/profile_onboarding_service.py`, `dxemb/db/migrations/005_profile_onboarding_foundation.sql` | `partial_or_placeholder` | Define the intended local auth/session surface before implementation. | Medium-high risk; identity is not yet surfaced as a real user journey. |
+| Discord linking and commands | No direct Discord-linking screen observed | `dxemb/bot/main.py`, `dxemb/bot/cogs/*.py`, slash sync helpers and tests | `implemented_unverified` | Verify command flows against the same identity model as the web app. | Medium risk; bot paths exist, but broad live-user validation is still missing. |
+| Wallet / banking / transfers / transactions | No wallet/bank screen in the screenshot set | `dxemb/shared/wallet_ledger_service.py`, `dxemb/web/app.py` read-only wallet routes, wallet tests | `partial_or_placeholder` | Keep the local-safe read-only ledger surface and document bank scope explicitly. | High risk if expanded without auth and audit UX. |
+| Games and rewards | No game screen observed | `dxemb/shared/game_economy_service.py`, `dxemb/db/migrations/008_game_economy_foundation.sql`, tests and bot adapters | `implemented_unverified` | Expose one safe history/result flow before adding more game UI. | Medium risk; settlement and reward paths are safety-gated. |
+| Achievements / progression / tasks | No progression screen observed | `dxemb/shared/task_achievement_service.py`, `dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql`, tests | `implemented_unverified` | Surface existing task/progression data before inventing new ranks or XP. | Medium risk; progress semantics are not yet fully productized. |
+| Clans / memberships / ranks | No clan UI or concepts observed | No clan schema or service evidence found | `absent` | Leave this out of the first visual commit and design it only after identity is settled. | High risk; there is no repository proof yet. |
+| Catalog browsing | Catalog/list/detail browsing is reflected indirectly by the shared local admin shell, but not emphasized in these screenshots | `dxemb/web/catalog_admin.py`, `dxemb/web/templates/catalog_*.html`, catalog service/tests | `implemented_and_tested` | Keep catalog styling aligned with the new shell while preserving route behavior. | Low-medium risk; already present and tested, but still visually under the old theme. |
+| Vehicle builder and export/configuration | The dominant screenshot theme: color matrices, cargo pickers, scrollboxes, modal selection, and blocked export screens | `dxemb/web/vehicle_admin.py`, `dxemb/web/templates/vehicle_*.html`, `dxemb/shared/catalog/vehicle_builder_service.py`, route tests | `partial_or_placeholder` | Rebuild the visual shell and component language first; keep export and backend claims blocked until proven. | High risk; screenshots show richer UI than the current repository behavior. |
+| DayZ server / admin / map / evidence tools | No map or evidence workflow screen observed in this intake folder | `docs/LOCAL_FINISH_RECOVERY_PLAN.md` says the map slice is paused; no active map route evidence in current web module | `blocked` | Do not advance the paused map/evidence slice from screenshots alone. | High risk; no active implementation evidence. |
+| Moderation / admin / audit tools | No dedicated moderation dashboard observed | Moderation/audit services, ticket foundations, and docs exist in repo | `documented_only` | Keep admin/audit work in the docs until a protected workspace is intentionally designed. | Medium risk; existing foundations are not yet unified into a visible console. |
+
+### E. Conflict decisions
+
+- Preserve as visual ideas: dark charcoal surfaces, the toxic-green active state, compact card grids, pill navigation, modal selectors, explicit blocked/export states, and dense but readable utility panels.
+- Treat as obsolete or lower priority: the cyan/navy admin tone in the current shell, any blue-first primary treatment, and any over-decorated browser-like experiment framing that is not actually part of the product UI.
+- Require owner choice before implementation: whether export/code-generation controls stay read-only and blocked, whether the vehicle-builder modal flow should become a first-class web path, and whether the cargo/preset density should be reduced for clarity on small screens.
+- Do not reconstruct from screenshots alone: backend export behavior, compatibility approvals, hidden data values, exact classnames that appear only in screenshots, or any live account/transaction state.
+
+### F. Design-system brief
+
+Approved-for-first-implementation direction:
+
+- Token proposal: charcoal base, dark panel layers, electric-green primary, muted green secondary, amber warning, red error, and gray disabled tokens.
+- Semantic color meanings: green = active/selected/success; amber = warning/alternate variant; red = blocked/error/destructive; gray = disabled/unavailable; blue = informational only.
+- Convert first: shell, header/nav, shared panel/card styles, status pills, primary/secondary buttons, modal chrome, and scrollbox styling.
+- Screens/routes to convert first: `/`, `/catalog`, `/vehicles`, and the vehicle detail/builder cards that share those surfaces.
+- Non-goals for the first visual commit: no backend changes, no route additions, no database migrations, no export execution, no auth rollout, no wallet changes, and no map slice activation.
+- Validation plan: run `git diff --check`, load the local shell plus `/`, `/catalog`, and `/vehicles`, confirm mobile wrapping and focus visibility, and compare the result against the recurring screenshot patterns.
+
+### G. Major-commit sequencing update
+
+- Keep the first implementation slice focused on a reusable green design system and the existing app shell; the screenshots only strengthen that order, they do not move any backend feature ahead of it.
+- Add a visual acceptance gate before any broad dashboard or feature UI rebuild: approve the shell, nav, cards, modal states, and mobile behavior first, then expand outward.
+- Preserve the current 10-commit plan order unless later evidence proves a backend or data dependency has changed; no screenshot in this intake justifies promoting a blocked backend slice.
+
+---
+
 ## Required Session Gate
 
 Before any implementation work, the agent must:
