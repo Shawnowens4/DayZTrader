@@ -150,8 +150,8 @@ Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          ████████░░  80%
-Total verified project state:   ████████░░  74%
+Automated tests audit:          ████████░░  82%
+Total verified project state:   ████████░░  75%
 ```
 
 ---
@@ -176,6 +176,7 @@ Total verified project state:   ████████░░  74%
 | Wallet + ledger additive foundation | Recovery implementation | `dxemb/db/migrations/001_wallet_ledger_foundation.sql`, `dxemb/shared/wallet_ledger_service.py` | `docker compose up -d db; python -m unittest tests.test_wallet_ledger_service -v` passed (5 tests) | Start Slice 4 P2P listing/escrow foundation |
 | P2P listing + escrow additive foundation | Recovery implementation | `dxemb/db/migrations/002_market_escrow_foundation.sql`, `dxemb/shared/market_escrow_service.py` | `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v` passed (5 tests) | Move to Slice 5 moderation/community recovery planning |
 | Moderation/community recovery plan | Design-only planning | `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` | Slice 5 read-only inventory completed (archive modules, duplicate-generation evidence, test/dependency scan, integration sequencing) | Next sprint: moderation/tickets implementation slices |
+| Moderation immutable audit foundation | Recovery implementation | `dxemb/db/migrations/003_moderation_audit_foundation.sql`, `dxemb/shared/moderation_audit_service.py` | `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v` passed (5 tests) | Slice B command adapters (warn/status/preview only) |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -294,6 +295,16 @@ git log -1 --oneline
 - Gap identified: no explicit archive ticket-automation module/test set was identified by filename/content scan.
 - Slice 5 remained design-only; no moderation/community runtime code was restored and no Discord/server settings were changed.
 
+### 2026-08-08 — Slice A: Moderation Data Contract + Immutable Action Audit
+- Added additive migration `dxemb/db/migrations/003_moderation_audit_foundation.sql` for immutable moderation action audit rows with idempotent reference constraints.
+- Added local service `dxemb/shared/moderation_audit_service.py` for warn recording, local status-query logging, non-mutating dry-run previews, and target status lookups.
+- Added tests `tests/test_moderation_audit_service.py` for warn recording, idempotency, target status aggregation, dry-run non-mutation, and immutability enforcement.
+- Slice A required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v` (pass, 5 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -348,8 +359,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Next autonomous sprint recommendation: moderation/tickets implementation (test-first, feature-flagged, no live guild mutations by default).
-- Keep Auto-Trader and P2P market boundaries unchanged while moderation/ticket slices are introduced.
+- Slice B: add moderation command adapters limited to warn, local moderation-action query/status, and dry-run moderation preview.
+- Do not implement kick, ban, timeout, role changes, channel changes, webhook activity, message deletion, or any Discord mutation.
 
 ---
 End of authoritative continuity record.
