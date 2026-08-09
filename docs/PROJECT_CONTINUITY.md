@@ -150,8 +150,8 @@ Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          ████████░░  84%
-Total verified project state:   ████████░░  77%
+Automated tests audit:          █████████░  86%
+Total verified project state:   ████████░░  79%
 ```
 
 ---
@@ -178,6 +178,7 @@ Total verified project state:   ████████░░  77%
 | Moderation/community recovery plan | Design-only planning | `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` | Slice 5 read-only inventory completed (archive modules, duplicate-generation evidence, test/dependency scan, integration sequencing) | Next sprint: moderation/tickets implementation slices |
 | Moderation immutable audit foundation | Recovery implementation | `dxemb/db/migrations/003_moderation_audit_foundation.sql`, `dxemb/shared/moderation_audit_service.py` | `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v` passed (5 tests) | Slice B command adapters (warn/status/preview only) |
 | Local moderation command adapter | Recovery implementation | `dxemb/bot/cogs/moderation_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v` passed (3 tests) | Slice C ticket foundation |
+| Local ticket lifecycle foundation | Recovery implementation | `dxemb/db/migrations/004_ticket_foundation.sql`, `dxemb/shared/ticket_service.py` | `docker compose up -d db; python -m unittest tests.test_ticket_service -v` passed (3 tests) | Slice D profile/onboarding persistence + dry-run |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -320,6 +321,18 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice C: Ticket Foundation (Local-Only)
+- Added additive migration `dxemb/db/migrations/004_ticket_foundation.sql` for:
+  - `support_ticket` lifecycle state model (`OPEN`, `ASSIGNED`, `CLOSED`)
+  - `support_ticket_event` immutable audit history (`OPENED`, `ASSIGNED`, `CLOSED`, `REOPENED`)
+- Added local-only service `dxemb/shared/ticket_service.py` with open/assign/close/reopen transitions.
+- Added tests `tests/test_ticket_service.py` validating lifecycle transitions, invalid transition guardrails, and immutable ticket-event history.
+- Slice C required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_ticket_service -v` (pass, 3 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -374,8 +387,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice C: implement local-only ticket foundation (additive migration, service transitions, and tests), with no guild/channel/thread writes.
-- Keep moderation commands local and non-mutating.
+- Slice D: implement minimal profile/onboarding persistence plus dry-run evaluator outputs only.
+- Do not create/assign roles, send welcome messages, create channels/threads, alter permissions, or perform any real Discord action.
 
 ---
 End of authoritative continuity record.
