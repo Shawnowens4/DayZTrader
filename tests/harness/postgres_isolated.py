@@ -23,6 +23,10 @@ def init_sql_path() -> Path:
     return project_root() / "dxemb" / "db" / "init.sql"
 
 
+def migration_sql_path(name: str) -> Path:
+    return project_root() / "dxemb" / "db" / "migrations" / name
+
+
 def admin_database_url() -> str:
     """Return admin URL used to create/drop disposable test databases."""
     return os.getenv("TEST_DATABASE_ADMIN_URL", DEFAULT_ADMIN_URL)
@@ -73,12 +77,16 @@ def drop_disposable_database(db_name: str) -> None:
 
 
 def apply_schema(db_url: str) -> None:
+    apply_sql_file(db_url, init_sql_path())
+
+
+def apply_sql_file(db_url: str, sql_path: Path) -> None:
     import psycopg2
 
-    schema_sql = init_sql_path().read_text(encoding="utf-8")
+    sql_text = sql_path.read_text(encoding="utf-8")
     with psycopg2.connect(db_url) as conn:
         with conn.cursor() as cur:
-            cur.execute(schema_sql)
+            cur.execute(sql_text)
 
 
 def ensure_psycopg2_available() -> bool:

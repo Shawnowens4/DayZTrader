@@ -77,8 +77,8 @@ Before any implementation work, the agent must:
 | BOT-05 | Channel automation | Welcome, announcements, staff logs, private threads, configured IDs | Not verified | Needs inventory | Needs inventory | Recover if present | Do not hardcode IDs |
 | BOT-06 | Onboarding/profile/stats | User creation, starter info, profile, reputation, stats | Not verified | Needs inventory | Needs inventory | Recover/adapt | Needs wallet boundary |
 | BOT-07 | Support tickets | Private ticket/thread, category, assignment, close/resolve | Not verified | Needs inventory | Needs inventory | Recover/adapt | Admin web management later |
-| ECON-01 | Wallet | User balances and safe credit/debit services | Not present in schema | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\discord_bot\src\cogs\wallet.py`; `C:\DXEMB\core\services\economy_service.py`; `C:\DXEMB\database\migrations\004_economy_tables.sql` | Needs recovery | Design then build | Structured modules are preferred source over `BACKUP_PHASE*` monolith snapshots |
-| ECON-02 | Ledger | Immutable audit for every wallet change | Not present in schema | `C:\DXEMB\database\migrations\004_economy_tables.sql`; `C:\DXEMB\database\migrations\001_initial_schema.sql`; `C:\DXEMB\tests\test_economy_service.py` | Needs recovery | Design then build | Build ledger as authoritative audit layer before game/reward payouts |
+| ECON-01 | Wallet | User balances and safe credit/debit services | Additive foundation migration and service implemented: `dxemb/db/migrations/001_wallet_ledger_foundation.sql`, `dxemb/shared/wallet_ledger_service.py`, `tests/test_wallet_ledger_service.py` | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\discord_bot\src\cogs\wallet.py`; `C:\DXEMB\core\services\economy_service.py`; `C:\DXEMB\database\migrations\004_economy_tables.sql` | Active partial | Build then integrate | Structured modules are preferred source over `BACKUP_PHASE*` monolith snapshots |
+| ECON-02 | Ledger | Immutable audit for every wallet change | Immutable ledger table + no-update/no-delete triggers in additive migration; service tests pass for audit/idempotency flows | `C:\DXEMB\database\migrations\004_economy_tables.sql`; `C:\DXEMB\database\migrations\001_initial_schema.sql`; `C:\DXEMB\tests\test_economy_service.py` | Active partial | Build then integrate | Build ledger as authoritative audit layer before game/reward payouts |
 | ECON-03 | Admin economy tools | Adjust balances with reason/audit trail | Not verified | Needs inventory | Needs inventory | Recover/adapt | Must use ledger |
 | GAME-01 | Casino/games | Server-side deterministic RNG, wager/payout records | Not present in active audit | `C:\DXEMB\discord_bot\src\cogs\games.py`; `C:\DXEMB\core\services\game_service.py`; `C:\DXEMB\tests\test_end_to_end.py` | Needs inventory | Recover/adapt | Feature-toggle gated |
 | GAME-02 | Game sessions | Wager, outcome, payout, seed, timestamp audit | Not present in schema | Needs inventory | Needs recovery | Design then build | Wallet ledger integration |
@@ -171,7 +171,10 @@ newest, and compatible source for every missing system.
 - Slice 1 validation evidence recorded: `git diff --check`, `docker compose config`, `docker compose down`.
 - Slice 2 completed: schema contract tests added in `tests/test_schema_contracts.py` for `player`, `item`, and `escrow_transaction` plus catalog query compatibility.
 - Slice 2 validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_schema_contracts -v`, `docker compose config`, `docker compose down`.
-- Next approved slice: additive wallet + immutable ledger foundation with service tests before bot/web integration.
+- Slice 3 completed: additive wallet+ledger foundation added via `dxemb/db/migrations/001_wallet_ledger_foundation.sql` and `dxemb/shared/wallet_ledger_service.py`.
+- Slice 3 completed: service tests added in `tests/test_wallet_ledger_service.py` covering credit, debit, insufficient funds, duplicate reference idempotency, and audit history.
+- Slice 3 validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_wallet_ledger_service -v`, `docker compose config`, `docker compose down`.
+- Next approved slice: player listing + escrow foundation with explicit no-spawn P2P constraints.
 
 ---
 End of permanent feature recovery ledger.
