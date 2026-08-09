@@ -573,6 +573,29 @@ git log -1 --oneline
 - Local setup requirement reaffirmed: Docker runtime requires local `.env`; keep it untracked/ignored.
 - Remaining out-of-scope audit target (not fixed in this work item): broader schema/route coverage outside the `/health` path (feature-toggle, wallet, and marketplace tables/routes).
 
+### 2026-08-08 — Games + Tasks + Achievements Foundation Sprint (Slices A-D)
+- Slice A completed: additive game economy foundation in `dxemb/db/migrations/008_game_economy_foundation.sql` and `dxemb/shared/game_economy_service.py` with deterministic coin-flip RNG audit, idempotent session replay, and feature-flag gated wallet settlement.
+- Slice A tests completed: `tests/test_game_economy_service.py` covering determinism, wager validation, disable flags, live payout gate, idempotency, and wallet SQL boundary checks.
+- Slice B completed: additive daily task + achievement foundation in `dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql` and `dxemb/shared/task_achievement_service.py` with UTC cycle reset, progress tracking, unlock flow, and reward idempotency.
+- Slice B tests completed: `tests/test_task_achievement_service.py` covering progress completion, duplicate reward prevention, midnight UTC split behavior, achievement idempotency, and ledger-only mutation checks.
+- Slice C completed: additive mission/bounty foundation in `dxemb/db/migrations/010_mission_bounty_foundation.sql` and `dxemb/shared/mission_bounty_service.py` with local feature flags, admin-only create/activate/cancel rules, progress eligibility, claim idempotency, and expiry/cancel protections.
+- Slice C tests completed: `tests/test_mission_bounty_service.py` covering creator/admin rules, claim idempotency, cancellation blocking, expiry blocking, feature-flag claim guards, and wallet SQL boundary checks.
+- Slice D completed: local-safe preview and reconciliation surfaces added:
+  - bot adapter/cog: `dxemb/bot/cogs/games_local.py`, loaded via `dxemb/bot/main.py`
+  - web routes: `dxemb/web/app.py` (`/games/sessions`, `/games/coinflip/preview`, `/tasks/progress/<discord_user_id>`, `/achievements/unlocks/<discord_user_id>`, `/missions`, `/missions/progress/<discord_user_id>`)
+  - route/adapter tests: `tests/test_games_tasks_missions_web_routes.py`, `tests/test_games_tasks_missions_bot_adapter.py`
+- Consolidated Slice D validation completed:
+  - `git diff --check`
+  - `docker compose up -d db; python -m unittest tests.test_game_economy_service tests.test_task_achievement_service tests.test_mission_bounty_service tests.test_games_tasks_missions_bot_adapter tests.test_games_tasks_missions_web_routes -v`
+  - `docker compose config`
+  - `docker compose down`
+  - Result: 24 tests passed.
+- Scope compliance confirmed:
+  - no `.env` or credential edits
+  - no external provider/FTP/API calls
+  - no direct wallet balance SQL writes
+  - no Auto-Trader/P2P behavior coupling changes
+
 ### 2026-08-08 — Continuity Baseline
 - Established `docs/PROJECT_CONTINUITY.md` as the authoritative AI-resume document.
 - Recorded the verified `PERM` baseline at `f9425cd`.

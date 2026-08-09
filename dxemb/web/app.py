@@ -17,8 +17,12 @@ if str(ROOT_DIR) not in sys.path:
 
 from shared.db import get_sync_health
 from shared.auto_trader_order_service import AutoTraderOrderService
+from shared.game_economy_service import DeterministicCoinFlipEngine
+from shared.game_economy_service import GameEconomyService
 from shared.market_escrow_service import MarketEscrowService
+from shared.mission_bounty_service import MissionBountyService
 from shared.nitrado_delivery_scheduler_service import NitradoDeliverySchedulerService
+from shared.task_achievement_service import TaskAchievementService
 from shared.wallet_ledger_service import WalletLedgerService
 
 try:
@@ -52,6 +56,18 @@ def _autotrader_service() -> AutoTraderOrderService:
 
 def _scheduler_service() -> NitradoDeliverySchedulerService:
     return NitradoDeliverySchedulerService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _game_service() -> GameEconomyService:
+    return GameEconomyService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _task_service() -> TaskAchievementService:
+    return TaskAchievementService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _mission_service() -> MissionBountyService:
+    return MissionBountyService(database_url=os.getenv("DATABASE_URL"))
 
 
 # ------------------------------------------------------------------
@@ -517,6 +533,136 @@ def autotrader_scheduler_order_status(order_id: int):
             "events": events,
             "mode": "read-only",
             "domain": "autotrader_scheduler",
+        }
+    )
+
+
+@app.get("/games/sessions")
+def game_sessions():
+    discord_user_id = request.args.get("discord_user_id")
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _game_service()
+    rows = service.list_sessions(discord_user_id=discord_user_id, limit=limit)
+    for row in rows:
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+
+    return jsonify(
+        {
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "game_economy",
+        }
+    )
+
+
+@app.post("/games/coinflip/preview")
+def game_coinflip_preview():
+    payload = request.get_json(silent=True) or {}
+    pick_value = str(payload.get("pick_value") or "").strip().upper()
+    wager_amount = int(payload.get("wager_amount") or 0)
+    server_seed = str(payload.get("server_seed") or "").strip()
+
+    if not server_seed:
+        return jsonify({"error": "server_seed is required"}), 400
+    if wager_amount <= 0:
+        return jsonify({"error": "wager_amount must be > 0"}), 400
+    if pick_value not in {"HEADS", "TAILS"}:
+        return jsonify({"error": "pick_value must be HEADS or TAILS"}), 400
+
+    out = DeterministicCoinFlipEngine.compute_outcome(server_seed=server_seed, pick_value=pick_value)
+    payout_amount = wager_amount * 2 if out["is_win"] else 0
+    return jsonify(
+        {
+            "mode": "dry-run",
+            "domain": "game_economy",
+            "game_code": "COIN_FLIP",
+            "pick_value": pick_value,
+            "outcome_value": out["outcome_value"],
+            "is_win": bool(out["is_win"]),
+            "wager_amount": wager_amount,
+            "payout_amount": payout_amount,
+            "server_seed_hash": out["server_seed_hash"],
+            "applied": False,
+        }
+    )
+
+
+@app.get("/tasks/progress/<discord_user_id>")
+def task_progress(discord_user_id: str):
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _task_service()
+    rows = service.list_task_progress(discord_user_id=discord_user_id, limit=limit)
+    for row in rows:
+        row["completed_at"] = row["completed_at"].isoformat() if row["completed_at"] else None
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "tasks",
+        }
+    )
+
+
+@app.get("/achievements/unlocks/<discord_user_id>")
+def achievement_unlocks(discord_user_id: str):
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _task_service()
+    rows = service.list_achievement_unlocks(discord_user_id=discord_user_id, limit=limit)
+    for row in rows:
+        row["unlocked_at"] = row["unlocked_at"].isoformat() if row["unlocked_at"] else None
+
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "achievements",
+        }
+    )
+
+
+@app.get("/missions")
+def mission_list():
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _mission_service()
+    rows = service.list_missions(limit=limit)
+    for row in rows:
+        row["starts_at"] = row["starts_at"].isoformat() if row["starts_at"] else None
+        row["expires_at"] = row["expires_at"].isoformat() if row["expires_at"] else None
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+
+    return jsonify(
+        {
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "missions",
+        }
+    )
+
+
+@app.get("/missions/progress/<discord_user_id>")
+def mission_progress(discord_user_id: str):
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _mission_service()
+    rows = service.list_progress(discord_user_id=discord_user_id, limit=limit)
+    for row in rows:
+        row["claimed_at"] = row["claimed_at"].isoformat() if row["claimed_at"] else None
+        row["updated_at"] = row["updated_at"].isoformat() if row["updated_at"] else None
+
+    return jsonify(
+        {
+            "discord_user_id": discord_user_id,
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "missions",
         }
     )
 

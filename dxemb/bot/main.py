@@ -46,6 +46,7 @@ INITIAL_COGS = [
     "cogs.wallet_local",
     "cogs.market_local",
     "cogs.autotrader_local",
+    "cogs.games_local",
 ]
 
 

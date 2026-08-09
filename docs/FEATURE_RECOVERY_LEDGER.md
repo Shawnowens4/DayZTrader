@@ -82,11 +82,11 @@ Before any implementation work, the agent must:
 | ECON-04 | Wallet bot read-only surface | Local-safe balance/history visibility and dry-run credit/debit previews | Added `dxemb/bot/cogs/wallet_local.py` with adapter tests in `tests/test_wallet_bot_adapter.py`; no live mutation command exposed | `C:\DXEMB\discord_bot\src\cogs\wallet.py`; `C:\DXEMB\core\services\economy_service.py` | Active partial | Expand with user-facing integration later | No Discord role/channel/permission/webhook/message mutation APIs used |
 | ECON-05 | Wallet web read-only surface | Local-safe HTTP balance/ledger visibility with dry-run previews | Added routes in `dxemb/web/app.py` + route tests in `tests/test_wallet_web_routes.py`; mutation endpoint returns disabled response | `C:\DXEMB\admin_panel\app\routes\economy.py`; `C:\DXEMB\core\services\economy_service.py` | Active partial | Expand with auth/session constraints later | Route set is non-mutating except explicit disabled mutation endpoint |
 | ECON-03 | Admin economy tools | Adjust balances with reason/audit trail | Not verified | Needs inventory | Needs inventory | Recover/adapt | Must use ledger |
-| GAME-01 | Casino/games | Server-side deterministic RNG, wager/payout records | Not present in active audit | `C:\DXEMB\discord_bot\src\cogs\games.py`; `C:\DXEMB\core\services\game_service.py`; `C:\DXEMB\tests\test_end_to_end.py` | Needs inventory | Recover/adapt | Feature-toggle gated |
-| GAME-02 | Game sessions | Wager, outcome, payout, seed, timestamp audit | Not present in schema | Needs inventory | Needs recovery | Design then build | Wallet ledger integration |
-| GAME-03 | Daily tasks | Definitions, progress, rewards, reset cycle | Not verified | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\core\services\game_service.py` | Needs inventory | Recover/adapt | Midnight UTC rule |
-| GAME-04 | Achievements | Definitions, unlocks, one-time rewards | Not verified | `C:\DXEMB\core\models\achievement.py`; `C:\DXEMB\core\services\achievement_service.py`; `C:\DXEMB\tests\test_user_service.py` | Needs inventory | Recover/adapt | Wallet ledger integration |
-| GAME-05 | Missions/bounties | Create, track, reward, claim, admin moderation | Not verified | Needs inventory | Needs inventory | Recover/adapt | Preserve legacy behavior if valid |
+| GAME-01 | Casino/games | Server-side deterministic RNG, wager/payout records | Additive game foundation implemented in `dxemb/db/migrations/008_game_economy_foundation.sql` and `dxemb/shared/game_economy_service.py` with deterministic coin-flip engine + tests in `tests/test_game_economy_service.py` | `C:\DXEMB\discord_bot\src\cogs\games.py`; `C:\DXEMB\core\services\game_service.py`; `C:\DXEMB\tests\test_end_to_end.py` | Active partial | Preserve and expand | Feature-flag guarded settlement; dry-run mode supported |
+| GAME-02 | Game sessions | Wager, outcome, payout, seed, timestamp audit | `game_session` schema + idempotency and ledger-link fields implemented in migration `008_game_economy_foundation.sql`; read/history surfaces added in `dxemb/web/app.py` and `dxemb/bot/cogs/games_local.py` | Needs inventory | Active partial | Preserve and expand | Wallet ledger integration enforced via service |
+| GAME-03 | Daily tasks | Definitions, progress, rewards, reset cycle | Additive task foundation implemented in `dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql` + service/tests (`dxemb/shared/task_achievement_service.py`, `tests/test_task_achievement_service.py`) | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\core\services\game_service.py` | Active partial | Preserve and expand | Midnight UTC cycle behavior tested |
+| GAME-04 | Achievements | Definitions, unlocks, one-time rewards | Additive achievement foundation implemented in migration `009_daily_tasks_achievements_foundation.sql` + unlock/reward idempotency tests in `tests/test_task_achievement_service.py` | `C:\DXEMB\core\models\achievement.py`; `C:\DXEMB\core\services\achievement_service.py`; `C:\DXEMB\tests\test_user_service.py` | Active partial | Preserve and expand | Wallet ledger-linked rewards and duplicate guardrails |
+| GAME-05 | Missions/bounties | Create, track, reward, claim, admin moderation | Additive mission foundation implemented in `dxemb/db/migrations/010_mission_bounty_foundation.sql` + feature-flagged service/tests (`dxemb/shared/mission_bounty_service.py`, `tests/test_mission_bounty_service.py`) | Needs inventory | Active partial | Preserve and expand | Admin rule, expiry/cancel, claim idempotency validated |
 | GAME-06 | Raffles/events | Tickets, winners, audit, announcements | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
 | AUTO-01 | Admin catalog | Allowed items, price, enabled/sellable controls | Catalog/admin routes present | Needs inventory | Active partial | Audit/extend | Console-safe only |
 | AUTO-02 | Vehicle builder | Admin-approved vehicle presets and valid parts/cargo | Present | Needs inventory | Active partial | Audit/extend | No PC/mod content |
@@ -155,9 +155,9 @@ At the end of each major milestone, the agent must:
 
 ## Current Next Action
 
-Prepare approval-gated next slice for controlled live-provider adapter integration:
-- read-only provider polling contracts against a test profile
-- guarded transport preflight contracts with writes/restarts still disabled
+Prepare owner-reviewed next slice after games/tasks/achievements foundation:
+- add auth/session controls for new local preview surfaces
+- expand reconciliation/reporting rollups across wallet, game sessions, tasks, achievements, and missions
 
 Do not connect live Nitrado/FTP/API flows without explicit owner approval.
 
@@ -222,6 +222,14 @@ Do not connect live Nitrado/FTP/API flows without explicit owner approval.
 - Fake-provider scheduler foundation Slice D completed: read-only local operator visibility routes in `dxemb/web/app.py` with route tests in `tests/test_nitrado_delivery_web_routes.py`.
 - Scheduler consolidated validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_nitrado_delivery_scheduler_schema tests.test_nitrado_delivery_decision_engine tests.test_nitrado_delivery_scheduler_service tests.test_nitrado_delivery_fake_boundaries tests.test_nitrado_delivery_web_routes tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down` (31 tests passed).
 - Scheduler sprint boundary compliance confirmed: no real network clients or calls, no scheduler daemon/background process, no XML/DayZ file writes, no restart actions, no P2P behavior/table modifications.
+- Games sprint Slice A completed: additive game economy foundation (`dxemb/db/migrations/008_game_economy_foundation.sql`, `dxemb/shared/game_economy_service.py`) with deterministic coin-flip and ledger-gated settlement tests in `tests/test_game_economy_service.py`.
+- Games sprint Slice A evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_game_economy_service -v`, `docker compose config`, `docker compose down`.
+- Games sprint Slice B completed: additive daily tasks + achievements foundation (`dxemb/db/migrations/009_daily_tasks_achievements_foundation.sql`, `dxemb/shared/task_achievement_service.py`) with reset/idempotent reward tests in `tests/test_task_achievement_service.py`.
+- Games sprint Slice B evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_game_economy_service tests.test_task_achievement_service -v`, `docker compose config`, `docker compose down`.
+- Games sprint Slice C completed: additive mission/bounty foundation (`dxemb/db/migrations/010_mission_bounty_foundation.sql`, `dxemb/shared/mission_bounty_service.py`) with admin/cancel/expiry/claim-idempotency coverage in `tests/test_mission_bounty_service.py`.
+- Games sprint Slice C evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_game_economy_service tests.test_task_achievement_service tests.test_mission_bounty_service -v`, `docker compose config`, `docker compose down`.
+- Games sprint Slice D completed: local-safe read-only/dry-run preview surfaces for games/tasks/achievements/missions in `dxemb/web/app.py` and `dxemb/bot/cogs/games_local.py` with route/adapter coverage in `tests/test_games_tasks_missions_web_routes.py` and `tests/test_games_tasks_missions_bot_adapter.py`.
+- Games sprint Slice D evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_game_economy_service tests.test_task_achievement_service tests.test_mission_bounty_service tests.test_games_tasks_missions_bot_adapter tests.test_games_tasks_missions_web_routes -v`, `docker compose config`, `docker compose down`.
 
 ---
 End of permanent feature recovery ledger.
