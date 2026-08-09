@@ -1,7 +1,8 @@
 ﻿# DayZTrader / DXEMB — Project Continuity
 
 > Authoritative AI-resume document. Read this file before planning, editing, testing, or proposing work.
-> Last verified repository baseline: `f9425cd` on branch `PERM`.
+> Code baseline anchor: `f9425cd` on branch `PERM`.
+> Documentation checkpoint before this update: `f8ac338` on branch `PERM`.
 > Last updated: 2026-08-08.
 
 ---
@@ -67,8 +68,10 @@
 
 ### Git State
 - Branch: `PERM`
-- Baseline commit: `f9425cd` — `resolve: keep local vehicle_thumbnail_resolver.final.json`
-- Working tree: clean at last verification on 2026-08-08.
+- Code baseline anchor: `f9425cd` — `resolve: keep local vehicle_thumbnail_resolver.final.json`
+- Documentation checkpoint: `f8ac338` — `docs: add authoritative project continuity record`
+- Local `.env` is required for Docker Compose runtime and is intentionally Git-ignored.
+- Working tree includes approved pending change in `requirements.txt` for bot health dependency parity.
 - Recent verified history:
   - `f9425cd` resolve: preserve final vehicle thumbnail resolver data
   - `892b2d7` fix Discord slash-command registration behavior
@@ -79,7 +82,7 @@
 ### Present Components
 | Area | Active source | Status |
 |---|---|---|
-| Docker stack | `docker-compose.yml`, `Dockerfile.bot`, `Dockerfile.web` | Present; must be re-tested before claiming current runtime health |
+| Docker stack | `docker-compose.yml`, `Dockerfile.bot`, `Dockerfile.web` | Local runtime re-verified: db healthy, web started, bot started (no-op mode without token), `/health` returns 200 with DB connected |
 | Discord bot | `dxemb/bot/main.py` | Present |
 | Bot health | `dxemb/bot/cogs/health.py`, `health_slash.py` | Present; recent slash-command work |
 | Auto-Trader interface | `dxemb/bot/cogs/trader.py`, `dxemb/bot/ui/` | Present; behavior must be audited before feature claims |
@@ -140,15 +143,15 @@
 ### Current Honest Status
 ```text
 Repository discovery and baseline: ██████████ 100%
-Documentation consolidation:     ██████░░░░  60%
-Docker/runtime re-verification:  ███░░░░░░░  30%
-Bot/Discord verification:       ████░░░░░░  40%
-Web/admin verification:         ████░░░░░░  40%
-Database/Neon verification:     ██░░░░░░░░  20%
+Documentation consolidation:     ███████░░░  70%
+Docker/runtime re-verification:  ███████░░░  70%
+Bot/Discord verification:       █████░░░░░  50%
+Web/admin verification:         ██████░░░░  60%
+Database/Neon verification:     ███░░░░░░░  30%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██░░░░░░░░  20%
 Automated tests audit:          ██░░░░░░░░  20%
-Total verified project state:   ████░░░░░░  35%
+Total verified project state:   █████░░░░░  46%
 ```
 
 ---
@@ -157,7 +160,8 @@ Total verified project state:   ████░░░░░░  35%
 
 | Feature | Classification | Active source | Verification | Next action |
 |---|---|---|---|---|
-| Docker local stack | Foundation | Docker root files | Historical A0 evidence only; re-check required | Run stack and capture health output |
+| Docker local stack | Foundation | Docker root files | Re-verified locally after controlled DayZTrader DB volume reset; db healthy and `/health` returns HTTP 200 with DB connected | Preserve validation command set and rerun after each infra-touching change |
+| Bot health dependency parity | Runtime correctness | `requirements.txt`, `shared/db.py`, `bot/cogs/health_slash.py` | Verified bot image installs `psycopg2-binary`; no missing `psycopg2` import error in bot startup logs | Keep dependency parity and avoid splitting shared DB helper deps across service images |
 | Discord bot startup | Foundation | `dxemb/bot/main.py` | Source present | Audit startup configuration and run |
 | Slash-command synchronization | Bot infrastructure | `health_slash.py`, `main.py` | Recent commits present | Verify sync and `/health` in test guild |
 | Catalog data | Shared domain | `dxemb/shared/catalog/` | Source/data present | Audit console filtering and source integrity |
@@ -206,6 +210,30 @@ git log -1 --oneline
 
 ## Changelog
 
+### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
+- Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
+- Isolation proof recorded before deletion:
+  - Compose project: `dayztrader`.
+  - DayZTrader db volume: `dayztrader_dxemb_db_data`.
+  - `dayztrader-db_test-1` uses `dayztrader_dxemb_test_db_data` and remained untouched.
+- Re-ran validation sequence:
+  - `git diff --check`
+  - `docker compose config`
+  - `docker compose up -d db bot web`
+  - `docker compose ps`
+  - `docker compose logs --no-color --tail=200 db`
+  - `docker compose logs --no-color --tail=200 bot`
+  - `docker compose logs --no-color --tail=200 web`
+  - `Invoke-WebRequest http://localhost:5000/health | Select-Object StatusCode, Content`
+  - `docker compose down`
+- Verified outcomes:
+  - DB initialized from `dxemb/db/init.sql` and became healthy.
+  - Bot started without missing `psycopg2` import error.
+  - Web started successfully.
+  - `/health` returned HTTP 200 with DB connected.
+- Local setup requirement reaffirmed: Docker runtime requires local `.env`; keep it untracked/ignored.
+- Remaining out-of-scope audit target (not fixed in this work item): broader schema/route coverage outside the `/health` path (feature-toggle, wallet, and marketplace tables/routes).
+
 ### 2026-08-08 — Continuity Baseline
 - Established `docs/PROJECT_CONTINUITY.md` as the authoritative AI-resume document.
 - Recorded the verified `PERM` baseline at `f9425cd`.
@@ -232,6 +260,10 @@ git log -1 --oneline
 8. Before adding features, identify tests, acceptance criteria, and validation commands.
 9. After each verified task, update this document’s baseline, feature ledger, progress bars, changelog, and next work item.
 10. Commit documentation/code only when the result is verified, or clearly label it unverified.
+
+### Next Work Item (Do Not Implement Features Yet)
+- Run a controlled runtime-startup/import audit focused on module-loading consistency and route registration boundaries.
+- Keep this as audit-only first; do not implement Auto-Trader or Player Market/Escrow feature expansion until that audit is complete.
 
 ---
 End of authoritative continuity record.
