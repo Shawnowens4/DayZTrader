@@ -73,7 +73,7 @@ Before any implementation work, the agent must:
 | BOT-01 | Discord bot startup | Bot loads safely and reports state | Present; no-op safe mode verified | Unknown | Active partial | Preserve/audit | Live token/guild test pending |
 | BOT-02 | Health commands | Prefix + slash health diagnostics | Present | Unknown | Active partial | Preserve/audit | Live Discord sync pending |
 | BOT-03 | Trader browsing | Guided item catalog/trader navigation | Present | Unknown | Active partial | Audit | Not purchase/delivery pipeline |
-| BOT-04 | Moderation bot | Warnings, staff actions, roles, logs, permission checks | Slice A added local moderation data contract + immutable audit service (`dxemb/db/migrations/003_moderation_audit_foundation.sql`, `dxemb/shared/moderation_audit_service.py`) with passing tests | `C:\DXEMB\discord_bot\src\cogs\moderation.py`; `C:\DXEMB\core\services\moderation_service.py`; `C:\DXEMB\core\services\audit_service.py` | Active partial | Build safe command adapters next | Duplicate-generation moderation file confirmed; split/adapt before enabling any commands |
+| BOT-04 | Moderation bot | Warnings, staff actions, roles, logs, permission checks | Slice A/B local moderation foundation implemented: immutable audit service + local command adapter (`dxemb/bot/cogs/moderation_local.py`) with warn, local status query, and dry-run preview only | `C:\DXEMB\discord_bot\src\cogs\moderation.py`; `C:\DXEMB\core\services\moderation_service.py`; `C:\DXEMB\core\services\audit_service.py` | Active partial | Build ticket foundation next | No kick/ban/timeout/role/channel/webhook/message mutation behavior added |
 | BOT-05 | Channel automation | Welcome, announcements, staff logs, private threads, configured IDs | Not verified in active PERM runtime | `C:\DXEMB\discord_bot\src\cogs\user.py`; `C:\DXEMB\core\services\user_service.py` | Needs inventory | Recover if present | Slice 5 found no dedicated archive tests for channel automation |
 | BOT-06 | Onboarding/profile/stats | User creation, starter info, profile, reputation, stats | Design inventory completed in Slice 5 (`docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md`) | `C:\DXEMB\discord_bot\src\cogs\user.py`; `C:\DXEMB\core\services\user_service.py`; `C:\DXEMB\tests\test_user_cog.py`; `C:\DXEMB\tests\test_user_service.py` | Needs recovery | Recover/adapt | Needs wallet boundary and PERM-compatible service contracts |
 | BOT-07 | Support tickets | Private ticket/thread, category, assignment, close/resolve | No active PERM implementation verified | No direct module match found in `C:\DXEMB` or ZIP inventory | Needs inventory | Design first | Slice 5 gap: ticket-specific archive modules/tests were not identified |
@@ -182,7 +182,10 @@ newest, and compatible source for every missing system.
 - Slice 5 confirmed: archive tests exist for user/admin domains but no explicit ticket-automation test suite was identified.
 - Slice A completed: moderation data contract + immutable audit foundation added via `dxemb/db/migrations/003_moderation_audit_foundation.sql` and `dxemb/shared/moderation_audit_service.py`.
 - Slice A validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v`, `docker compose config`, `docker compose down`.
-- Next slice: moderation command adapters limited to warn, local status query, and dry-run preview only (no Discord mutation actions).
+- Slice B completed: local moderation command adapter added in `dxemb/bot/cogs/moderation_local.py` and loaded via `dxemb/bot/main.py`.
+- Slice B command scope enforced: warn, local moderation-action query/status, and dry-run moderation preview only.
+- Slice B validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v`, `docker compose config`, `docker compose down`.
+- Next slice: ticket foundation (local-only, no guild writes).
 
 ---
 End of permanent feature recovery ledger.

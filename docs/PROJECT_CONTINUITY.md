@@ -145,13 +145,13 @@
 Repository discovery and baseline: ██████████ 100%
 Documentation consolidation:     ██████████ 100%
 Docker/runtime re-verification:  ███████░░░  70%
-Bot/Discord verification:       █████░░░░░  50%
+Bot/Discord verification:       ██████░░░░  58%
 Web/admin verification:         ██████░░░░  60%
 Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
-Automated tests audit:          ████████░░  82%
-Total verified project state:   ████████░░  75%
+Automated tests audit:          ████████░░  84%
+Total verified project state:   ████████░░  77%
 ```
 
 ---
@@ -177,6 +177,7 @@ Total verified project state:   ████████░░  75%
 | P2P listing + escrow additive foundation | Recovery implementation | `dxemb/db/migrations/002_market_escrow_foundation.sql`, `dxemb/shared/market_escrow_service.py` | `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v` passed (5 tests) | Move to Slice 5 moderation/community recovery planning |
 | Moderation/community recovery plan | Design-only planning | `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` | Slice 5 read-only inventory completed (archive modules, duplicate-generation evidence, test/dependency scan, integration sequencing) | Next sprint: moderation/tickets implementation slices |
 | Moderation immutable audit foundation | Recovery implementation | `dxemb/db/migrations/003_moderation_audit_foundation.sql`, `dxemb/shared/moderation_audit_service.py` | `docker compose up -d db; python -m unittest tests.test_moderation_audit_service -v` passed (5 tests) | Slice B command adapters (warn/status/preview only) |
+| Local moderation command adapter | Recovery implementation | `dxemb/bot/cogs/moderation_local.py`, `dxemb/bot/main.py` | `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v` passed (3 tests) | Slice C ticket foundation |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -305,6 +306,20 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice B: Moderation Command Adapters (Local Guardrails)
+- Added `dxemb/bot/cogs/moderation_local.py` with local-only slash command adapters:
+  - warn
+  - local moderation-action status query
+  - dry-run moderation preview
+- Added `LocalModerationAdapter` unit-tested behavior and loaded the cog in `dxemb/bot/main.py`.
+- Explicitly excluded: kick, ban, timeout, role changes, channel changes, webhook activity, message deletion, and any Discord mutation behavior.
+- Explicitly excluded from this slice: marketplace moderation actions (`suspend listing`, `resolve dispute`).
+- Slice B required validation completed:
+  - `git diff --check` (pass)
+  - `docker compose up -d db; python -m unittest tests.test_moderation_command_adapter -v` (pass, 3 tests)
+  - `docker compose config` (pass)
+  - `docker compose down` (completed; compose network removal reported in-use warning only)
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -359,8 +374,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice B: add moderation command adapters limited to warn, local moderation-action query/status, and dry-run moderation preview.
-- Do not implement kick, ban, timeout, role changes, channel changes, webhook activity, message deletion, or any Discord mutation.
+- Slice C: implement local-only ticket foundation (additive migration, service transitions, and tests), with no guild/channel/thread writes.
+- Keep moderation commands local and non-mutating.
 
 ---
 End of authoritative continuity record.
