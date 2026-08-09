@@ -178,7 +178,7 @@ Total verified project state:   █████░░░░░  46%
 ## Current Work Item
 
 ### Goal
-Establish a complete, evidence-based application audit and create the authoritative continuation baseline.
+Create a controlled recovery design for the wallet/ledger and Player Market + Escrow foundation, preserving the strict Auto-Trader vs P2P boundary.
 
 ### Allowed Changes
 - `docs/PROJECT_CONTINUITY.md`
@@ -209,6 +209,14 @@ git log -1 --oneline
 ---
 
 ## Changelog
+
+### 2026-08-08 — Legacy Feature Recovery Inventory (Read-Only)
+- Completed strict read-only inventory across active `PERM`, `C:\DXEMB`, and `dayz-console-trader-bot.zip`.
+- Recorded concrete evidence sources in `docs/FEATURE_RECOVERY_LEDGER.md` for moderation, economy/wallet, market/escrow, games/achievements, tests, migrations, and Nitrado/FTP/XML integration references.
+- Confirmed structured archive modules (`C:\DXEMB\core`, `C:\DXEMB\discord_bot\src`, `C:\DXEMB\database\migrations`) are preferred recovery candidates over `BACKUP_PHASE*` monolith snapshots.
+- Confirmed `C:\DXEMB\discord_bot\src\cogs\moderation.py` contains duplicate generations and must be adapted slice-by-slice, not copied directly.
+- Confirmed `dayz-console-trader-bot.zip` overlaps `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot` and is not automatically the newest source.
+- Recovery rule reinforced: future recovery must be source-by-source, test-backed, and never bulk-copied from archive or ZIP.
 
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
@@ -260,10 +268,12 @@ git log -1 --oneline
 8. Before adding features, identify tests, acceptance criteria, and validation commands.
 9. After each verified task, update this document’s baseline, feature ledger, progress bars, changelog, and next work item.
 10. Commit documentation/code only when the result is verified, or clearly label it unverified.
+11. For legacy recovery phases, design first only: source-by-source mapping, schema/test plan, and compatibility review before any implementation.
+12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Run a controlled runtime-startup/import audit focused on module-loading consistency and route registration boundaries.
-- Keep this as audit-only first; do not implement Auto-Trader or Player Market/Escrow feature expansion until that audit is complete.
+- Design only: controlled recovery plan for wallet/ledger plus Player Market + Escrow foundation, with explicit Auto-Trader vs P2P separation and test requirements.
+- Do not implement recovery code in this step.
 
 ---
 End of authoritative continuity record.

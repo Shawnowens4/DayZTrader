@@ -69,21 +69,21 @@ Before any implementation work, the agent must:
 | CORE-01 | Docker local stack | Bot, web, DB boot locally and stop cleanly | Verified at `503be4b` | Unknown | Active verified | Preserve | `/health` returns HTTP 200 with DB connected |
 | CORE-02 | PostgreSQL local DB | Clean initialization from `init.sql` | Verified at `503be4b` | Unknown | Active verified | Preserve | Local dev DB volume is disposable |
 | CORE-03 | Neon PostgreSQL | Hosted DB configuration and safe deployment path | Not verified | Unknown | Planned | Audit later | Never expose credentials |
-| CORE-04 | Test framework | Repeatable isolated automated tests | No test suite verified | Unknown | Needs inventory | Build after recovery inventory | Do not confuse with local DB |
+| CORE-04 | Test framework | Repeatable isolated automated tests | No test suite verified | `C:\DXEMB\tests` (integration/service/cog tests including economy/escrow/marketplace) | Needs inventory | Build after recovery inventory | Use archive tests as recovery reference; adapt to current PERM architecture |
 | BOT-01 | Discord bot startup | Bot loads safely and reports state | Present; no-op safe mode verified | Unknown | Active partial | Preserve/audit | Live token/guild test pending |
 | BOT-02 | Health commands | Prefix + slash health diagnostics | Present | Unknown | Active partial | Preserve/audit | Live Discord sync pending |
 | BOT-03 | Trader browsing | Guided item catalog/trader navigation | Present | Unknown | Active partial | Audit | Not purchase/delivery pipeline |
-| BOT-04 | Moderation bot | Warnings, staff actions, roles, logs, permission checks | Not verified | Needs inventory | Needs inventory | Recover if present | Includes channels/roles/logs |
+| BOT-04 | Moderation bot | Warnings, staff actions, roles, logs, permission checks | Not verified | `C:\DXEMB\discord_bot\src\cogs\moderation.py` | Needs inventory | Recover if present | File contains duplicate generations; recover slice-by-slice with adaptation, not direct copy |
 | BOT-05 | Channel automation | Welcome, announcements, staff logs, private threads, configured IDs | Not verified | Needs inventory | Needs inventory | Recover if present | Do not hardcode IDs |
 | BOT-06 | Onboarding/profile/stats | User creation, starter info, profile, reputation, stats | Not verified | Needs inventory | Needs inventory | Recover/adapt | Needs wallet boundary |
 | BOT-07 | Support tickets | Private ticket/thread, category, assignment, close/resolve | Not verified | Needs inventory | Needs inventory | Recover/adapt | Admin web management later |
-| ECON-01 | Wallet | User balances and safe credit/debit services | Not present in schema | Needs inventory | Needs recovery | Design then build | Shared source of truth |
-| ECON-02 | Ledger | Immutable audit for every wallet change | Not present in schema | Needs inventory | Needs recovery | Design then build | Required before games/trader |
+| ECON-01 | Wallet | User balances and safe credit/debit services | Not present in schema | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\discord_bot\src\cogs\wallet.py`; `C:\DXEMB\core\services\economy_service.py`; `C:\DXEMB\database\migrations\004_economy_tables.sql` | Needs recovery | Design then build | Structured modules are preferred source over `BACKUP_PHASE*` monolith snapshots |
+| ECON-02 | Ledger | Immutable audit for every wallet change | Not present in schema | `C:\DXEMB\database\migrations\004_economy_tables.sql`; `C:\DXEMB\database\migrations\001_initial_schema.sql`; `C:\DXEMB\tests\test_economy_service.py` | Needs recovery | Design then build | Build ledger as authoritative audit layer before game/reward payouts |
 | ECON-03 | Admin economy tools | Adjust balances with reason/audit trail | Not verified | Needs inventory | Needs inventory | Recover/adapt | Must use ledger |
-| GAME-01 | Casino/games | Server-side deterministic RNG, wager/payout records | Not present in active audit | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
+| GAME-01 | Casino/games | Server-side deterministic RNG, wager/payout records | Not present in active audit | `C:\DXEMB\discord_bot\src\cogs\games.py`; `C:\DXEMB\core\services\game_service.py`; `C:\DXEMB\tests\test_end_to_end.py` | Needs inventory | Recover/adapt | Feature-toggle gated |
 | GAME-02 | Game sessions | Wager, outcome, payout, seed, timestamp audit | Not present in schema | Needs inventory | Needs recovery | Design then build | Wallet ledger integration |
-| GAME-03 | Daily tasks | Definitions, progress, rewards, reset cycle | Not verified | Needs inventory | Needs inventory | Recover/adapt | Midnight UTC rule |
-| GAME-04 | Achievements | Definitions, unlocks, one-time rewards | Not verified | Needs inventory | Needs inventory | Recover/adapt | Wallet ledger integration |
+| GAME-03 | Daily tasks | Definitions, progress, rewards, reset cycle | Not verified | `C:\DXEMB\discord_bot\src\cogs\economy.py`; `C:\DXEMB\core\services\game_service.py` | Needs inventory | Recover/adapt | Midnight UTC rule |
+| GAME-04 | Achievements | Definitions, unlocks, one-time rewards | Not verified | `C:\DXEMB\core\models\achievement.py`; `C:\DXEMB\core\services\achievement_service.py`; `C:\DXEMB\tests\test_user_service.py` | Needs inventory | Recover/adapt | Wallet ledger integration |
 | GAME-05 | Missions/bounties | Create, track, reward, claim, admin moderation | Not verified | Needs inventory | Needs inventory | Recover/adapt | Preserve legacy behavior if valid |
 | GAME-06 | Raffles/events | Tickets, winners, audit, announcements | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
 | AUTO-01 | Admin catalog | Allowed items, price, enabled/sellable controls | Catalog/admin routes present | Needs inventory | Active partial | Audit/extend | Console-safe only |
@@ -94,10 +94,10 @@ Before any implementation work, the agent must:
 | AUTO-06 | Custom kits | Console-valid attachment/nesting builder | Not verified | Needs inventory | Needs inventory | Recover/adapt | Validate build-time |
 | AUTO-07 | Zombie hordes | Admin product and controlled spawn flow | Not verified | Needs inventory | Needs inventory | Recover/adapt | Feature-toggle gated |
 | AUTO-08 | Airdrops | Buyer location, randomized contents, warning/announcement | Not verified | Needs inventory | Needs inventory | Recover/adapt | Location player-chosen |
-| MARKET-01 | Player listings | P2P item/vehicle listings with lifecycle | Not present beyond starter escrow table | Needs inventory | Needs recovery | Design then build | Never server-spawn |
-| MARKET-02 | P2P escrow | Holds, release, cancel, refund, dispute, payout | Starter table only | Needs inventory | Needs recovery | Redesign/adapt | No Auto-Trader behavior |
+| MARKET-01 | Player listings | P2P item/vehicle listings with lifecycle | Not present beyond starter escrow table | `C:\DXEMB\discord_bot\src\cogs\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py`; `C:\DXEMB\database\migrations\002_marketplace_tables.sql`; `C:\DXEMB\tests\test_marketplace_service.py` | Needs recovery | Design then build | Never server-spawn |
+| MARKET-02 | P2P escrow | Holds, release, cancel, refund, dispute, payout | Starter table only | `C:\DXEMB\discord_bot\src\cogs\escrow.py`; `C:\DXEMB\core\services\escrow_service.py`; `C:\DXEMB\database\migrations\003_escrow_schema.sql`; `C:\DXEMB\tests\test_escrow_service.py`; `C:\DXEMB\tests\test_dispute_service.py` | Needs recovery | Redesign/adapt | No Auto-Trader behavior |
 | MARKET-03 | Marketplace moderation | Admin review and dispute actions | Not verified | Needs inventory | Needs inventory | Recover/adapt | Audit every action |
-| NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Not verified | Needs inventory | Needs inventory | Recover/adapt | Outbound only |
+| NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Not verified | `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/nitrado_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/ftp_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/xml_generator.py` | Needs inventory | Recover/adapt | Outbound only |
 | NIT-02 | Restart scheduler | Poll/cached restart windows | Not present in active audit | Needs inventory | Needs recovery | Design then build | Never force restart |
 | NIT-03 | Spawn-file writer | Controlled writes before confirmed restart | Not present | Needs inventory | Needs recovery | Design then build | Failure alerts/refunds |
 | NIT-04 | Status scheduler | 5-minute status checks and 30-minute file pulls | Not verified | Needs inventory | Needs inventory | Recover/adapt | Separate tool if needed |
@@ -111,7 +111,7 @@ Before any implementation work, the agent must:
 | WEB-08 | Tester/audit dashboard | Bugs, feature checks, tester workflow | Separate related app | Needs inventory | Needs inventory | Keep separate unless approved | Do not merge blindly |
 | DATA-01 | DayZ item catalog | types.xml, display names, thumbnails, pricing/categories | Present | Needs inventory | Active partial | Preserve/audit | Console validation needed |
 | DATA-02 | Vehicle thumbnails/resolver | Variant-safe vehicle visuals | Present | Needs inventory | Active partial | Preserve/audit | Latest resolver committed |
-| DATA-03 | Legacy archives | ZIP and `C:\DXEMB` recovery sources | Present/not yet inventoried | Archive itself | Needs inventory | Read-only inventory | Never bulk-copy |
+| DATA-03 | Legacy archives | ZIP and `C:\DXEMB` recovery sources | Present/not yet inventoried | `C:\DXEMB`; `dayz-console-trader-bot.zip`; `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot` | Needs inventory | Read-only inventory | ZIP overlaps archive clone and is not automatically newest; use source-by-source comparison and never bulk-copy |
 | OPS-01 | Backups/recovery | DB/file backup and restore procedure | Not verified | Needs inventory | Needs inventory | Design later | No secrets in Git |
 | OPS-02 | CI/GitHub Actions | Automated checks after local workflow stable | Not present/verified | Unknown | Planned | Later | Local test path first |
 | OPS-03 | Project status script | One-command branch/container/test status | Not present | Unknown | Planned | Build soon | Fast workflow aid |
@@ -158,6 +158,11 @@ Perform the strict read-only **Legacy Feature Recovery Inventory** across:
 
 Do not edit or restore anything until the inventory identifies the most complete,
 newest, and compatible source for every missing system.
+
+### Inventory Notes (2026-08-08)
+- Preferred recovery candidates are structured modules under `C:\DXEMB\core`, `C:\DXEMB\discord_bot\src`, and `C:\DXEMB\database\migrations`, not `BACKUP_PHASE*` monolith snapshots.
+- `C:\DXEMB\discord_bot\src\cogs\moderation.py` contains duplicate generations and requires controlled adaptation by slice.
+- ZIP evidence is useful reference but overlaps with `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot`; do not assume ZIP is newest.
 
 ---
 End of permanent feature recovery ledger.
