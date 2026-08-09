@@ -1,0 +1,427 @@
+{
+  "schema_version": "1.0",
+  "last_updated_utc": "2026-08-09T08:00:00Z",
+  "last_verified_commit": "3678bc9",
+  "owner_review_queue_resolved": false,
+  "allowed_statuses": {
+    "not_started": 0,
+    "discovery": 10,
+    "planned": 20,
+    "in_progress": 40,
+    "implemented_unverified": 60,
+    "locally_tested": 80,
+    "owner_review_required": 85,
+    "complete": 100,
+    "intentionally_disabled": 0,
+    "blocked": "retain_last_verified"
+  },
+  "items": [
+    {
+      "id": "1",
+      "product_area": "Project safety and repository health",
+      "title": "Safety boundaries and non-destructive workflow",
+      "weight": 7,
+      "phase": "local_finish",
+      "status": "locally_tested",
+      "percent_complete": 80,
+      "evidence": [
+        "docs/LOCAL_FINISH_RECOVERY_PLAN.md",
+        "git diff --check passes",
+        "docker compose config validation passes"
+      ],
+      "test_status": "passed",
+      "blocker": "",
+      "owner_action_needed": "",
+      "next_step": "Keep enforcing fail-closed audit gates before feature rollout.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run git diff --check and docker compose config before each audit commit.",
+      "usable_local": true
+    },
+    {
+      "id": "2",
+      "product_area": "Docker/local startup and database health",
+      "title": "Local db startup and health-check path",
+      "weight": 5,
+      "phase": "local_finish",
+      "status": "locally_tested",
+      "percent_complete": 80,
+      "evidence": [
+        "docker compose up -d db",
+        "docker compose ps healthy",
+        "docker compose down"
+      ],
+      "test_status": "passed",
+      "blocker": "",
+      "owner_action_needed": "",
+      "next_step": "Automate local smoke command doc references for each slice.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Bring db up, verify healthy in docker compose ps, run db-backed suites, then compose down.",
+      "usable_local": true
+    },
+    {
+      "id": "3",
+      "product_area": "Web visual foundation and responsive design",
+      "title": "Slice A template and visual shell",
+      "weight": 8,
+      "phase": "local_finish",
+      "status": "locally_tested",
+      "percent_complete": 80,
+      "evidence": [
+        "e43aa25",
+        "tests.test_web_visual_foundation_slice_a"
+      ],
+      "test_status": "passed",
+      "blocker": "",
+      "owner_action_needed": "",
+      "next_step": "Continue preserving route/API contracts while adding future slices.",
+      "last_verified_commit": "e43aa25",
+      "manual_test_instructions": "Run web visual foundation tests and load local pages for /, /catalog, /vehicles.",
+      "usable_local": true
+    },
+    {
+      "id": "4",
+      "product_area": "Trader catalog browsing, search, filters, and item thumbnails",
+      "title": "Slice B catalog thumbnail workflow",
+      "weight": 10,
+      "phase": "local_finish",
+      "status": "locally_tested",
+      "percent_complete": 80,
+      "evidence": [
+        "3678bc9",
+        "tests.test_catalog_thumbnail_workflow_slice_b"
+      ],
+      "test_status": "passed",
+      "blocker": "",
+      "owner_action_needed": "",
+      "next_step": "Expand local image map only with approved assets and tests.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run catalog thumbnail tests and verify fallback rendering in /catalog pages.",
+      "usable_local": true
+    },
+    {
+      "id": "5",
+      "product_area": "DayZ image/thumbnail coverage",
+      "title": "Inventory and coverage classification",
+      "weight": 6,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "docs/DAYZ_IMAGE_AND_VEHICLE_VARIANT_AUDIT.md"
+      ],
+      "test_status": "not_run",
+      "blocker": "coverage remains fallback-heavy and owner evidence is missing",
+      "owner_action_needed": "Provide console source files per import guide to verify allowed mappings.",
+      "next_step": "Import owner evidence and convert discovery rows to verified evidence records.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run audit script and inspect generated coverage totals.",
+      "usable_local": false
+    },
+    {
+      "id": "6",
+      "product_area": "Console vehicle image/color coverage",
+      "title": "Console-only vehicle body/color evidence",
+      "weight": 6,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "dxemb/shared/catalog/data/console_vehicle_compatibility.review.json"
+      ],
+      "test_status": "not_run",
+      "blocker": "no direct console proof records yet",
+      "owner_action_needed": "Attach vehicle XML blocks to prove variant availability.",
+      "next_step": "Populate evidence records with source locators from owner files.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run audit script and check evidence_state counts.",
+      "usable_local": false
+    },
+    {
+      "id": "7",
+      "product_area": "Console vehicle compatibility and part validation",
+      "title": "Fail-closed compatibility matrix",
+      "weight": 12,
+      "phase": "local_finish",
+      "status": "blocked",
+      "percent_complete": 10,
+      "evidence": [
+        "docs/CONSOLE_VEHICLE_COMPATIBILITY_MATRIX.md",
+        "docs/CONSOLE_VEHICLE_OWNER_REVIEW_QUEUE.md"
+      ],
+      "test_status": "passed",
+      "blocker": "owner console evidence required to approve any slot mapping",
+      "owner_action_needed": "Provide types.xml and cfgspawnabletypes.xml vehicle sections.",
+      "next_step": "Resolve grouped owner review queue in priority order.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run audit tests and verify approved_total remains zero until evidence import.",
+      "usable_local": false,
+      "depends_on_owner_review_queue": true
+    },
+    {
+      "id": "8",
+      "product_area": "Vehicle builder local preview",
+      "title": "Vehicle preview UI with constrained compatibility",
+      "weight": 10,
+      "phase": "local_finish",
+      "status": "blocked",
+      "percent_complete": 40,
+      "evidence": [
+        "dxemb/web/templates/vehicle_builder.html",
+        "dxemb/web/templates/vehicle_list.html"
+      ],
+      "test_status": "passed",
+      "blocker": "cannot expose verified builder compatibility until owner queue is resolved",
+      "owner_action_needed": "Confirm compatibility rows promoted by console source evidence.",
+      "next_step": "Wire builder to reviewed compatibility JSON only after approvals.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Open /vehicles and confirm browse-only behavior with fallback imagery.",
+      "usable_local": true,
+      "depends_on_owner_review_queue": true
+    },
+    {
+      "id": "9",
+      "product_area": "Loot/Chernarus map local preview",
+      "title": "Local map preview slice",
+      "weight": 8,
+      "phase": "local_finish",
+      "status": "not_started",
+      "percent_complete": 0,
+      "evidence": [],
+      "test_status": "not_run",
+      "blocker": "slice is explicitly paused",
+      "owner_action_needed": "Provide explicit go-ahead to start map slice.",
+      "next_step": "Remain paused until audit baseline is accepted.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "10",
+      "product_area": "Auto-Trader admin-stock workflow",
+      "title": "Read-only autotrader product/admin checks",
+      "weight": 3,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "autotrader products endpoint used in regression tests"
+      ],
+      "test_status": "passed",
+      "blocker": "full local stock management slice not verified",
+      "owner_action_needed": "",
+      "next_step": "Document target local-finish behavior and add focused tests.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Request /autotrader/products and confirm read-only mode payload.",
+      "usable_local": false
+    },
+    {
+      "id": "11",
+      "product_area": "Player Market and P2P escrow separation",
+      "title": "Escrow boundary and market flow readiness",
+      "weight": 3,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "migration foundations present"
+      ],
+      "test_status": "not_run",
+      "blocker": "workflow-level behavior not locally verified in this slice",
+      "owner_action_needed": "",
+      "next_step": "Add focused market escrow local tests.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "12",
+      "product_area": "Wallet/immutable ledger",
+      "title": "Ledger foundation and route integrity",
+      "weight": 3,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "wallet foundation migration present",
+        "table checks exercised by web test harness"
+      ],
+      "test_status": "passed",
+      "blocker": "end-to-end wallet workflows not fully verified",
+      "owner_action_needed": "",
+      "next_step": "Add focused ledger behavior tests.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "13",
+      "product_area": "Games/tasks/missions local workflows",
+      "title": "Local workflow integrity for non-market features",
+      "weight": 2,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "route contracts preserved in Slice A"
+      ],
+      "test_status": "passed",
+      "blocker": "feature-specific local workflows not validated in current audit",
+      "owner_action_needed": "",
+      "next_step": "Add dedicated tests per games/tasks/missions path.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "14",
+      "product_area": "Nitrado delivery/scheduler design",
+      "title": "Live delivery path intentionally disabled",
+      "weight": 0,
+      "phase": "deferred_live_phase",
+      "status": "intentionally_disabled",
+      "percent_complete": 0,
+      "evidence": [
+        "policy: local-only audit phase"
+      ],
+      "test_status": "not_applicable",
+      "blocker": "live integration explicitly disabled",
+      "owner_action_needed": "",
+      "next_step": "Revisit only in live phase.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "15",
+      "product_area": "Discord bot prefix commands",
+      "title": "Prefix command baseline health",
+      "weight": 3,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "dxemb/bot/cogs modules present"
+      ],
+      "test_status": "not_run",
+      "blocker": "no current local verification evidence in this slice",
+      "owner_action_needed": "",
+      "next_step": "Add local bot command smoke tests or documented manual checks.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "16",
+      "product_area": "Discord slash-command/local dashboard entry",
+      "title": "Slash command/local dashboard bridge",
+      "weight": 2,
+      "phase": "local_finish",
+      "status": "discovery",
+      "percent_complete": 10,
+      "evidence": [
+        "slash command files present"
+      ],
+      "test_status": "not_run",
+      "blocker": "integration behavior not verified in current local slice",
+      "owner_action_needed": "",
+      "next_step": "Define and test local slash/dashboard interaction path.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "17",
+      "product_area": "Local test coverage and regression health",
+      "title": "Slice A/B and audit regression suites",
+      "weight": 8,
+      "phase": "local_finish",
+      "status": "locally_tested",
+      "percent_complete": 80,
+      "evidence": [
+        "tests.test_web_visual_foundation_slice_a",
+        "tests.test_catalog_thumbnail_workflow_slice_b",
+        "tests.test_console_vehicle_audit_artifacts"
+      ],
+      "test_status": "passed",
+      "blocker": "",
+      "owner_action_needed": "",
+      "next_step": "Add progress-system validation tests and include in slice checklist.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Run targeted unittest suites after each slice.",
+      "usable_local": true
+    },
+    {
+      "id": "18",
+      "product_area": "Documentation, recovery ledger, and manual test checklist",
+      "title": "Operational docs and handoff tracking",
+      "weight": 4,
+      "phase": "local_finish",
+      "status": "implemented_unverified",
+      "percent_complete": 60,
+      "evidence": [
+        "docs/MASTER_HANDOFF.md",
+        "docs/LOCAL_FINISH_RECOVERY_PLAN.md",
+        "docs/CURRENT_PROGRESS_SNAPSHOT.md"
+      ],
+      "test_status": "not_applicable",
+      "blocker": "doc consistency checks are not yet automated",
+      "owner_action_needed": "",
+      "next_step": "Use progress generator as recurring source of truth and verify each slice update.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "Review docs for consistency after each slice.",
+      "usable_local": true
+    },
+    {
+      "id": "19",
+      "product_area": "Public hosting/Cloudflare/DNS",
+      "title": "Public deployment deferred to live phase",
+      "weight": 0,
+      "phase": "deferred_live_phase",
+      "status": "intentionally_disabled",
+      "percent_complete": 0,
+      "evidence": [
+        "deferred/live phase boundary"
+      ],
+      "test_status": "not_applicable",
+      "blocker": "outside local-finish scope",
+      "owner_action_needed": "",
+      "next_step": "Plan only after local finish acceptance.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    },
+    {
+      "id": "20",
+      "product_area": "Real Nitrado/FTP/XML/server write integration",
+      "title": "Real server write integration deferred",
+      "weight": 0,
+      "phase": "deferred_live_phase",
+      "status": "intentionally_disabled",
+      "percent_complete": 0,
+      "evidence": [
+        "deferred/live phase boundary"
+      ],
+      "test_status": "not_applicable",
+      "blocker": "outside local-finish scope",
+      "owner_action_needed": "",
+      "next_step": "Plan only after local finish acceptance.",
+      "last_verified_commit": "3678bc9",
+      "manual_test_instructions": "",
+      "usable_local": false
+    }
+  ],
+  "changes_since_last_verified_commit": {
+    "newly_completed": [],
+    "percentage_changes": [
+      "Added measurable baseline percentages tied to verified Slice A/B and audit evidence.",
+      "Compatibility and vehicle-color areas remain discovery/blocked pending owner console evidence."
+    ],
+    "new_blockers": [
+      "Owner console XML/mission evidence required to verify compatibility mappings."
+    ],
+    "owner_actions_needed": [
+      "Provide console XML files or vehicle-only blocks listed in docs/CONSOLE_VEHICLE_SOURCE_IMPORT_GUIDE.md"
+    ],
+    "next_highest_value_slice": "Import owner console evidence into review records, then promote specific rows from owner_review_required toward verified mappings."
+  }
+}
