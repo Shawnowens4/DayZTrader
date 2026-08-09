@@ -151,7 +151,7 @@ Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ██████░░░░  58%
 Player Market + Escrow audit:   ████████░░  78%
 Automated tests audit:          ██████████  97%
-Total verified project state:   █████████░  90%
+Total verified project state:   █████████░  91%
 ```
 
 ---
@@ -171,6 +171,7 @@ Total verified project state:   █████████░  90%
 | Auto-Trader order foundation | Server store | `dxemb/db/migrations/006_auto_trader_order_foundation.sql`, `dxemb/shared/auto_trader_order_service.py`, `tests/test_auto_trader_order_service.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service -v` passed (5 tests) | Extend toward controlled delivery scheduler design (no server writes yet) |
 | Auto-Trader wallet bridge foundation | Server store | `dxemb/shared/auto_trader_wallet_bridge.py`, `tests/test_auto_trader_wallet_bridge.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_wallet_bridge -v` passed (3 tests) | Add delivery-preparation orchestration after restart-window design |
 | Auto-Trader local bot/web previews | Server store | `dxemb/bot/cogs/autotrader_local.py`, `dxemb/web/app.py`, `tests/test_auto_trader_bot_adapter.py`, `tests/test_auto_trader_web_routes.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v` passed (7 tests) | Keep read-only/dry-run; add auth/session controls later |
+| Nitrado delivery scheduler design | Design-only | `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` | Design-only sprint completed with read-only archive reference review; no runtime integration/actions executed | Begin additive scheduler schema/service implementation slice only after explicit owner approval |
 | Player Market + Escrow | P2P system | To be verified | Not yet verified | Locate active code/schema or mark unimplemented |
 | Wallet/Ledger + Market/Escrow design | Recovery planning | `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Slice 1 design completed; boundaries, lifecycle, idempotency, migration order documented | Use as contract for additive migrations and service tests |
 | Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
@@ -225,6 +226,31 @@ git log -1 --oneline
 ---
 
 ## Changelog
+
+### 2026-08-08 — Nitrado Delivery Scheduler Sprint (Design-Only)
+- Added `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` as implementation-ready design contract for future Auto-Trader delivery orchestration.
+- Documented:
+  - Auto-Trader-to-delivery boundary states and explicit P2P prohibitions
+  - future additive scheduler data model (tables/retention/audit rules)
+  - 5-minute status polling and 30-minute file-pull cadence model
+  - restart-window caching, stale/unknown/conflict handling, and no-restart rule
+  - write-window timing contract (about 10 minutes before confirmed restart)
+  - failure/retry/alert policy and idempotent refund-link rules
+  - DayZ console artifact constraints and checksum/atomic-write strategy (future)
+  - security, redaction, manual hold/approve/cancel controls, and dry-run plan
+  - test strategy with fake clock/provider/FTP adapters and integration boundaries
+  - additive future implementation sequence with explicit approval gates
+- Read-only reference candidates reviewed from archive clone paths only:
+  - `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\nitrado_client.py`
+  - `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\ftp_client.py`
+  - `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\xml_generator.py`
+- Confirmed scope compliance:
+  - no Nitrado/FTP/API calls
+  - no scheduler process start
+  - no XML/spawn file writes
+  - no restart actions
+  - no Docker/database/network commands in this sprint
+  - no source-code changes outside approved docs files
 
 ### 2026-08-08 — Auto-Trader Order Foundation Sprint Slice A
 - Added additive schema foundation `dxemb/db/migrations/006_auto_trader_order_foundation.sql` for:
@@ -542,7 +568,7 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Recommended next sprint: Nitrado delivery scheduler design for Auto-Trader (restart-window polling/cache model, spawn-write timing contract, and failure/refund orchestration design only; no live FTP/API writes).
+- First future implementation slice requiring explicit owner approval: additive scheduler foundation tables and service scaffolding for delivery request lifecycle and polling decision engine, with tests only and no live provider/FTP integration.
 
 ---
 End of authoritative continuity record.

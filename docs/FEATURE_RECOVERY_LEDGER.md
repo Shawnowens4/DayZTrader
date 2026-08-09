@@ -101,9 +101,9 @@ Before any implementation work, the agent must:
 | MARKET-04 | P2P bot local-safe workflows | Local-safe preview/create/hold/status flows for listings and escrow | Added `dxemb/bot/cogs/market_local.py` and adapter tests in `tests/test_market_bot_adapter.py` | `C:\DXEMB\discord_bot\src\cogs\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py` | Active partial | Expand with web parity and auth checks | Explicit preview returns `spawn_behavior=not-supported` and `delivery_mode=P2P_PHYSICAL` |
 | MARKET-05 | P2P web read-only workflows | Local-safe browse/detail/preview/status timeline routes | Added routes in `dxemb/web/app.py` and tests in `tests/test_market_web_routes.py` | `C:\DXEMB\admin_panel\app\routes\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py` | Active partial | Expand with auth/session constraints later | Includes escrow timeline endpoint and explicit no-spawn preview behavior |
 | MARKET-03 | Marketplace moderation | Admin review and dispute actions | Not verified | Needs inventory | Needs inventory | Recover/adapt | Audit every action |
-| NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Not verified | `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/nitrado_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/ftp_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/xml_generator.py` | Needs inventory | Recover/adapt | Outbound only |
-| NIT-02 | Restart scheduler | Poll/cached restart windows | Not present in active audit | Needs inventory | Needs recovery | Design then build | Never force restart |
-| NIT-03 | Spawn-file writer | Controlled writes before confirmed restart | Not present | Needs inventory | Needs recovery | Design then build | Failure alerts/refunds |
+| NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Design reference candidates reviewed only; no runtime integration in active PERM | `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\nitrado_client.py`; `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\ftp_client.py`; `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\xml_generator.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/nitrado_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/ftp_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/xml_generator.py` | Planned | Design then build | Outbound only; credentials by secret reference only |
+| NIT-02 | Restart scheduler | Poll/cached restart windows | Design contract documented in `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` (5m status poll, restart cache/expiry, stale/conflict handling) | Needs inventory | Planned | Design then build | Never force restart |
+| NIT-03 | Spawn-file writer | Controlled writes before confirmed restart | Design contract documented in `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` (write ~10m pre-window, checksum gates, retries/alerts/refunds) | Needs inventory | Planned | Design then build | Failure alerts/refunds |
 | NIT-04 | Status scheduler | 5-minute status checks and 30-minute file pulls | Not verified | Needs inventory | Needs inventory | Recover/adapt | Separate tool if needed |
 | WEB-01 | Flask dashboard | Health/status/admin shell | Present | Needs inventory | Active partial | Preserve/audit | Browser route test pending |
 | WEB-02 | Catalog administration | Item cards, prices, availability | Present | Needs inventory | Active partial | Preserve/audit | Bulk tools pending |
@@ -155,12 +155,11 @@ At the end of each major milestone, the agent must:
 
 ## Current Next Action
 
-Design the Auto-Trader **Nitrado delivery scheduler** foundation (design-only) for:
-- restart-window polling/cache model
-- pre-restart delivery-write timing contract
-- failure/refund orchestration boundaries
+Prepare first additive implementation slice for Auto-Trader scheduler foundation:
+- delivery-request lifecycle tables and immutable scheduler audit events
+- scheduler decision-engine service scaffolding and tests with fake provider adapters
 
-Do not connect live Nitrado/FTP/API flows during this design sprint.
+Do not connect live Nitrado/FTP/API flows without explicit owner approval.
 
 ### Inventory Notes (2026-08-08)
 - Preferred recovery candidates are structured modules under `C:\DXEMB\core`, `C:\DXEMB\discord_bot\src`, and `C:\DXEMB\database\migrations`, not `BACKUP_PHASE*` monolith snapshots.
@@ -213,6 +212,9 @@ Do not connect live Nitrado/FTP/API flows during this design sprint.
 - Auto-Trader Slice C evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down`.
 - Auto-Trader sprint Slice D completed: reconciliation and consolidated sprint regression run passed (`15` tests).
 - Auto-Trader Slice D evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_auto_trader_order_service tests.test_auto_trader_wallet_bridge tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down`.
+- Nitrado scheduler design-only sprint completed: implementation-ready design contract added at `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md`.
+- Nitrado design sprint evidence recorded: required boundary mapping, data-model proposal, scheduler behavior, failure/refund policy, DayZ artifact rules, security/ops controls, test plan, and additive implementation sequence documented with read-only archive candidate references.
+- Nitrado design sprint confirmed: no Nitrado/FTP/API calls, no scheduler runtime, no file writes, no restart actions, and no source changes outside approved docs files.
 
 ---
 End of permanent feature recovery ledger.
