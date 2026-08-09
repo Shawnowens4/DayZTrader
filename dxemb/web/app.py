@@ -16,6 +16,7 @@ if str(ROOT_DIR) not in sys.path:
   sys.path.insert(0, str(ROOT_DIR))
 
 from shared.db import get_sync_health
+from shared.market_escrow_service import MarketEscrowService
 from shared.wallet_ledger_service import WalletLedgerService
 
 try:
@@ -37,6 +38,10 @@ TABLES = ["player", "item", "escrow_transaction"]
 
 def _wallet_service() -> WalletLedgerService:
   return WalletLedgerService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _market_service() -> MarketEscrowService:
+  return MarketEscrowService(database_url=os.getenv("DATABASE_URL"))
 
 
 # ------------------------------------------------------------------
@@ -148,6 +153,223 @@ def wallet_adjust_disabled(discord_user_id: str):
             }
         ),
         403,
+    )
+
+
+@app.get("/market/listings")
+def market_listings():
+    status = request.args.get("status")
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _market_service()
+
+    with service._connect() as conn:
+        with conn.cursor() as cur:
+            if status:
+                cur.execute(
+                    """
+                    SELECT id, seller_discord_id, buyer_discord_id, listing_type,
+                           item_classname, vehicle_label, vehicle_running, quantity,
+                           price, delivery_mode, status, created_at, updated_at
+                    FROM player_listing
+                    WHERE status = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    (status, limit),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT id, seller_discord_id, buyer_discord_id, listing_type,
+                           item_classname, vehicle_label, vehicle_running, quantity,
+                           price, delivery_mode, status, created_at, updated_at
+                    FROM player_listing
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    (limit,),
+                )
+            rows = cur.fetchall()
+
+    listings = []
+    for row in rows:
+        listings.append(
+            {
+                "id": int(row[0]),
+                "seller_discord_id": row[1],
+                "buyer_discord_id": row[2],
+                "listing_type": row[3],
+                "item_classname": row[4],
+                "vehicle_label": row[5],
+                "vehicle_running": bool(row[6]),
+                "quantity": int(row[7]),
+                "price": int(row[8]),
+                "delivery_mode": row[9],
+                "status": row[10],
+                "created_at": row[11].isoformat() if row[11] else None,
+                "updated_at": row[12].isoformat() if row[12] else None,
+            }
+        )
+
+    return jsonify(
+        {
+            "count": len(listings),
+            "rows": listings,
+            "mode": "read-only",
+        }
+    )
+
+
+@app.get("/market/listings/<int:listing_id>")
+def market_listing_detail(listing_id: int):
+    service = _market_service()
+    with service._connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, seller_discord_id, buyer_discord_id, listing_type,
+                       item_classname, vehicle_label, vehicle_running, quantity,
+                       price, delivery_mode, status, created_at, updated_at, closed_at
+                FROM player_listing
+                WHERE id = %s
+                """,
+                (listing_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "listing not found"}), 404
+
+    return jsonify(
+        {
+            "id": int(row[0]),
+            "seller_discord_id": row[1],
+            "buyer_discord_id": row[2],
+            "listing_type": row[3],
+            "item_classname": row[4],
+            "vehicle_label": row[5],
+            "vehicle_running": bool(row[6]),
+            "quantity": int(row[7]),
+            "price": int(row[8]),
+            "delivery_mode": row[9],
+            "status": row[10],
+            "created_at": row[11].isoformat() if row[11] else None,
+            "updated_at": row[12].isoformat() if row[12] else None,
+            "closed_at": row[13].isoformat() if row[13] else None,
+            "mode": "read-only",
+        }
+    )
+
+
+@app.post("/market/listings/preview")
+def market_listing_preview():
+    payload = request.get_json(silent=True) or {}
+    listing_type = (payload.get("listing_type") or "").strip().upper()
+    item_classname = payload.get("item_classname")
+    vehicle_label = payload.get("vehicle_label")
+    vehicle_running = bool(payload.get("vehicle_running", True))
+    quantity = int(payload.get("quantity") or 0)
+    price = int(payload.get("price") or 0)
+
+    errors = []
+    if listing_type not in {"ITEM", "VEHICLE"}:
+        errors.append("listing_type must be ITEM or VEHICLE")
+    if quantity <= 0:
+        errors.append("quantity must be > 0")
+    if price <= 0:
+        errors.append("price must be > 0")
+    if listing_type == "VEHICLE" and not vehicle_running:
+        errors.append("non-running vehicles cannot be listed")
+
+    return jsonify(
+        {
+            "mode": "dry-run",
+            "delivery_mode": "P2P_PHYSICAL",
+            "listing_type": listing_type,
+            "item_classname": item_classname,
+            "vehicle_label": vehicle_label,
+            "vehicle_running": vehicle_running,
+            "quantity": quantity,
+            "price": price,
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "spawn_behavior": "not-supported",
+            "applied": False,
+        }
+    )
+
+
+@app.get("/market/escrow/<int:escrow_id>")
+def market_escrow_status(escrow_id: int):
+    service = _market_service()
+    with service._connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, listing_id, seller_discord_id, buyer_discord_id,
+                       amount, status, pickup_confirmed_by_buyer, pickup_confirmed_at,
+                       dispute_reason, created_at, updated_at
+                FROM market_escrow
+                WHERE id = %s
+                """,
+                (escrow_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "escrow not found"}), 404
+
+    return jsonify(
+        {
+            "id": int(row[0]),
+            "listing_id": int(row[1]),
+            "seller_discord_id": row[2],
+            "buyer_discord_id": row[3],
+            "amount": int(row[4]),
+            "status": row[5],
+            "pickup_confirmed_by_buyer": bool(row[6]),
+            "pickup_confirmed_at": row[7].isoformat() if row[7] else None,
+            "dispute_reason": row[8],
+            "created_at": row[9].isoformat() if row[9] else None,
+            "updated_at": row[10].isoformat() if row[10] else None,
+            "mode": "read-only",
+        }
+    )
+
+
+@app.get("/market/escrow/<int:escrow_id>/timeline")
+def market_escrow_timeline(escrow_id: int):
+    service = _market_service()
+    with service._connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, event_type, actor_discord_id, details, created_at
+                FROM market_escrow_event
+                WHERE escrow_id = %s
+                ORDER BY created_at ASC, id ASC
+                """,
+                (escrow_id,),
+            )
+            rows = cur.fetchall()
+
+    events = []
+    for row in rows:
+        events.append(
+            {
+                "id": int(row[0]),
+                "event_type": row[1],
+                "actor_discord_id": row[2],
+                "details": row[3],
+                "created_at": row[4].isoformat() if row[4] else None,
+            }
+        )
+
+    return jsonify(
+        {
+            "escrow_id": escrow_id,
+            "count": len(events),
+            "rows": events,
+            "mode": "read-only",
+        }
     )
 
 
