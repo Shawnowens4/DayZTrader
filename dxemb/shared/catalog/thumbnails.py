@@ -6,6 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from urllib.parse import unquote
+from urllib.parse import urlsplit
 
 DAYZIDB_IMAGE_BASE_URL = os.getenv(
     "DAYZIDB_IMAGE_BASE_URL",
@@ -14,8 +16,48 @@ DAYZIDB_IMAGE_BASE_URL = os.getenv(
 
 THUMBNAIL_FALLBACK_URL = os.getenv(
     "DAYZ_THUMBNAIL_FALLBACK_URL",
-    "https://via.placeholder.com/320x180.png?text=DayZ+Item",
+    "/static/ui/thumbnail-fallback.svg",
 )
+
+_WEB_STATIC_ROOT = Path(__file__).resolve().parents[2] / "web" / "static"
+_LOCAL_IMAGE_DIRS = [
+    _WEB_STATIC_ROOT / "catalog_items",
+    _WEB_STATIC_ROOT / "items",
+]
+
+
+def _static_url(path: Path) -> str:
+    return f"/static/{path.relative_to(_WEB_STATIC_ROOT).as_posix()}"
+
+
+def _local_asset_url(path_or_url: str) -> str | None:
+    candidate = (path_or_url or "").strip()
+    if not candidate:
+        return None
+
+    raw_path = Path(unquote(urlsplit(candidate).path))
+    options: list[Path] = []
+    if raw_path.as_posix().strip("."):
+        options.append(raw_path)
+    if raw_path.name:
+        options.append(Path(raw_path.name))
+
+    seen: set[str] = set()
+    for option in options:
+        key = option.as_posix().lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        for directory in _LOCAL_IMAGE_DIRS:
+            exact = directory / option
+            if exact.exists() and exact.is_file():
+                return _static_url(exact)
+            if option.name:
+                for found in directory.rglob(option.name):
+                    if found.is_file():
+                        return _static_url(found)
+
+    return None
 
 
 def resolve_thumbnail(
@@ -29,22 +71,24 @@ def resolve_thumbnail(
     2) mapped DayZIDB path from local map file
     3) shared fallback URL
     """
-    mapped_url = mapped_thumbnail_url(classname)
     existing = (existing_thumbnail_url or "").strip()
+    mapped_url = mapped_thumbnail_url(classname)
 
     if existing:
-        if mapped_url and _normalize_url(existing) == _normalize_url(mapped_url):
-            return {
-                "thumbnail_url": existing,
-                "thumbnail_status": "mapped",
-                "thumbnail_source": "dayzidb_map",
-            }
+        local_existing = _local_asset_url(existing)
+        if local_existing:
+            if mapped_url and _normalize_url(local_existing) == _normalize_url(mapped_url):
+                return {
+                    "thumbnail_url": local_existing,
+                    "thumbnail_status": "mapped",
+                    "thumbnail_source": "dayzidb_map",
+                }
 
-        return {
-            "thumbnail_url": existing,
-            "thumbnail_status": "override",
-            "thumbnail_source": "item.thumbnail_url",
-        }
+            return {
+                "thumbnail_url": local_existing,
+                "thumbnail_status": "override",
+                "thumbnail_source": "item.thumbnail_url",
+            }
 
     if mapped_url:
         return {
@@ -71,10 +115,11 @@ def mapped_thumbnail_url(classname: str) -> str | None:
     if not relative:
         return None
 
-    if relative.startswith("http://") or relative.startswith("https://"):
-        return relative
+    local_url = _local_asset_url(relative)
+    if local_url:
+        return local_url
 
-    return f"{DAYZIDB_IMAGE_BASE_URL.rstrip('/')}/{relative.lstrip('/')}"
+    return THUMBNAIL_FALLBACK_URL
 
 
 @lru_cache(maxsize=1)

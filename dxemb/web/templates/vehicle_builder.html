@@ -40,7 +40,7 @@
       <div class="card-body">
         <div><strong>{{ c.display_name }}</strong></div>
         <div class="muted">{{ c.classname or '-' }}</div>
-        <span class="status-pill status-warn">{{ c.thumbnail_status }}</span>
+        <span class="status-pill {{ 'status-ok' if c.thumbnail_status in ['exact', 'mapped'] else 'status-warn' if c.thumbnail_status == 'override' else 'status-neutral' if c.thumbnail_status == 'family_fallback' else 'status-blocked' }}">{{ c.thumbnail_status }}</span>
       </div>
     </div>
     {% endfor %}
@@ -65,7 +65,7 @@
         <div><strong>{{ s.display_name }}</strong></div>
         <div class="muted">{{ s.classname or '-' }}</div>
         {% if s.required %}<div class="muted">required</div>{% endif %}
-        <span class="status-pill status-warn">{{ s.thumbnail_status }}</span>
+        <span class="status-pill {{ 'status-ok' if s.thumbnail_status in ['exact', 'mapped', 'override'] else 'status-warn' if s.thumbnail_status == 'owner_review_required' else 'status-neutral' if s.thumbnail_status in ['family_fallback', 'fallback'] else 'status-blocked' }}">{{ s.thumbnail_status }}</span>
       </div>
     </div>
     {% endfor %}

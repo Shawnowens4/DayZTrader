@@ -6,6 +6,12 @@
     <a href="/">&larr; Admin Home</a>
     <a href="/catalog">Catalog</a>
   </div>
+  <img
+    class="vehicle-category-banner"
+    src="{{ ui_asset('images.vehicle_category_banner') }}"
+    alt="Vehicle category banner"
+    loading="lazy"
+  >
   <h1 class="page-title">Vehicle Builder</h1>
   <p class="page-subtitle">Select a vehicle family to inspect color variants and part slots.</p>
 </section>
@@ -29,7 +35,7 @@
         {{ v.slot_count }} part{{ 's' if v.slot_count != 1 else '' }}
       </div>
       <div style="margin-top:0.35rem">
-        <span class="status-pill {{ 'status-ok' if v.thumbnail_status == 'mapped' else 'status-warn' }}">{{ v.thumbnail_status }}</span>
+        <span class="status-pill {{ 'status-ok' if v.thumbnail_status in ['mapped', 'exact'] else 'status-warn' if v.thumbnail_status == 'override' else 'status-neutral' if v.thumbnail_status == 'family_fallback' else 'status-blocked' }}">{{ v.thumbnail_status }}</span>
       </div>
     </div>
   </a>

@@ -11,7 +11,8 @@
         data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
         alt="{{ item.classname }}"
       >
-      <p class="muted">{{ item.thumbnail_status }} / {{ item.thumbnail_source }}</p>
+      <p><span class="status-pill {{ 'status-ok' if item.thumbnail_status == 'mapped' else 'status-warn' if item.thumbnail_status == 'override' else 'status-blocked' }}">{{ item.thumbnail_status }}</span></p>
+      <p class="muted">{{ item.thumbnail_source }}</p>
     </div>
     <div>
       <h1 class="page-title">{{ item.display_name or item.classname }}</h1>

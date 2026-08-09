@@ -144,15 +144,104 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
         self.assertEqual(vehicles_page.status_code, 200)
         self.assertIn("data-fallback-src=\"/static/ui/thumbnail-fallback.svg\"", body)
         self.assertIn("js-fallback-img", body)
+        self.assertIn("/static/catalog_items/vehicles.webp", body)
+        self.assertEqual(body.count("/static/catalog_items/vehicles.webp"), 1)
+        self.assertIn("data:image/svg+xml;utf8,", body)
+        self.assertNotIn("dayzidb.com/images/items", body)
 
         catalog_detail = self.client.get("/catalog/SLICE_A_ITEM")
         detail_body = catalog_detail.get_data(as_text=True)
         self.assertEqual(catalog_detail.status_code, 200)
         self.assertIn("data-fallback-src=\"/static/ui/thumbnail-fallback.svg\"", detail_body)
+        self.assertNotIn("dayzidb.com/images/items", detail_body)
 
         fallback_asset = self.client.get("/static/ui/thumbnail-fallback.svg")
         self.assertEqual(fallback_asset.status_code, 200)
         self.assertIn("thumbnail missing", fallback_asset.get_data(as_text=True))
+
+    def test_vehicle_builder_details_use_local_assets_only(self) -> None:
+        catalog = self.client.get("/api/vehicles/catalog")
+        self.assertEqual(catalog.status_code, 200)
+        catalog_payload = catalog.get_json()
+        self.assertGreater(catalog_payload["count"], 0)
+
+        family = catalog_payload["families"][0]
+        self.assertTrue(
+            family["body_thumbnail_url"].startswith("/static/")
+            or family["body_thumbnail_url"].startswith("data:image/svg+xml;utf8,")
+        )
+        self.assertNotIn("/static/catalog_items/vehicles.webp", family["body_thumbnail_url"])
+        self.assertNotIn("dayzidb.com", family["body_thumbnail_url"])
+
+        first_classname = family["classname"]
+        detail = self.client.get(f"/api/vehicles/builder/{first_classname}")
+        self.assertEqual(detail.status_code, 200)
+        detail_payload = detail.get_json()["vehicle"]
+        self.assertTrue(
+            detail_payload["body_thumbnail_url"].startswith("/static/")
+            or detail_payload["body_thumbnail_url"].startswith("data:image/svg+xml;utf8,")
+        )
+        self.assertNotIn("/static/catalog_items/vehicles.webp", detail_payload["body_thumbnail_url"])
+        self.assertNotIn("dayzidb.com", detail_payload["body_thumbnail_url"])
+
+        if detail_payload["colors"]:
+            first_color = detail_payload["colors"][0]
+            self.assertTrue(
+                first_color["thumbnail_url"].startswith("/static/")
+                or first_color["thumbnail_url"].startswith("data:image/svg+xml;utf8,")
+            )
+            self.assertNotIn("dayzidb.com", first_color["thumbnail_url"])
+
+        if detail_payload["slots"]:
+            first_slot = detail_payload["slots"][0]
+            self.assertTrue(
+                first_slot["thumbnail_url"].startswith("/static/")
+                or first_slot["thumbnail_url"].startswith("data:image/svg+xml;utf8,")
+            )
+            self.assertNotIn("/static/catalog_items/vehicles.webp", first_slot["thumbnail_url"])
+            self.assertNotIn("dayzidb.com", first_slot["thumbnail_url"])
+
+    def test_generic_vehicle_banner_is_not_used_for_card_thumbnails(self) -> None:
+        vehicles_page = self.client.get("/vehicles")
+        self.assertEqual(vehicles_page.status_code, 200)
+        body = vehicles_page.get_data(as_text=True)
+        self.assertIn('class="vehicle-category-banner"', body)
+        self.assertIn('/static/catalog_items/vehicles.webp', body)
+        self.assertEqual(body.count('/static/catalog_items/vehicles.webp'), 1)
+
+        catalog = self.client.get("/api/vehicles/catalog")
+        self.assertEqual(catalog.status_code, 200)
+        payload = catalog.get_json()
+        for family in payload.get("families", []):
+            self.assertNotEqual(family.get("body_thumbnail_url"), "/static/catalog_items/vehicles.webp")
+
+    def test_vehicle_and_part_identity_fallback_cards_include_labels(self) -> None:
+        catalog = self.client.get("/api/vehicles/catalog")
+        self.assertEqual(catalog.status_code, 200)
+        payload = catalog.get_json()
+        self.assertGreater(payload.get("count", 0), 0)
+
+        family = payload["families"][0]
+        if family["thumbnail_status"] in {"family_fallback", "fallback"}:
+            self.assertIn("data:image/svg+xml;utf8,", family["body_thumbnail_url"])
+            self.assertTrue(
+                "Art%20pending%20-%20local%20fallback" in family["body_thumbnail_url"]
+                or "Art pending - local fallback" in family["body_thumbnail_url"]
+            )
+
+        detail = self.client.get(f"/api/vehicles/builder/{family['classname']}")
+        self.assertEqual(detail.status_code, 200)
+        vehicle = detail.get_json()["vehicle"]
+
+        fallback_slots = [s for s in vehicle.get("slots", []) if s.get("thumbnail_status") in {"family_fallback", "fallback", "owner_review_required"}]
+        if fallback_slots:
+            self.assertIn("data:image/svg+xml;utf8,", fallback_slots[0]["thumbnail_url"])
+            self.assertTrue(
+                "Art%20pending%20-%20local%20fallback" in fallback_slots[0]["thumbnail_url"]
+                or "Art pending - local fallback" in fallback_slots[0]["thumbnail_url"]
+                or "Owner%20review%20required" in fallback_slots[0]["thumbnail_url"]
+                or "Owner review required" in fallback_slots[0]["thumbnail_url"]
+            )
 
     def test_json_contracts_are_unchanged(self) -> None:
         health = self.client.get("/health")

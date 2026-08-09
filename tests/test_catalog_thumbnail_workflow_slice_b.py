@@ -94,19 +94,21 @@ class CatalogThumbnailWorkflowSliceBTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("item-thumb", body)
         self.assertIn("js-fallback-img", body)
+        self.assertNotIn("dayzidb.com/images/items", body)
 
     def test_catalog_detail_prefers_local_thumbnail_when_available(self) -> None:
         response = self.client.get("/catalog/CATALOG_LOCAL_ITEM")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("/static/catalog_items/tourist_map.webp", body)
+        self.assertNotIn("dayzidb.com/images/items", body)
 
-    def test_catalog_detail_uses_remote_when_local_missing(self) -> None:
+    def test_catalog_detail_uses_local_fallback_when_local_missing(self) -> None:
         response = self.client.get("/catalog/CATALOG_REMOTE_ITEM")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("https://example.invalid/assets/not_present_anywhere.webp", body)
-        self.assertIn('data-fallback-src="/static/ui/thumbnail-fallback.svg"', body)
+        self.assertIn('/static/ui/thumbnail-fallback.svg', body)
+        self.assertNotIn("dayzidb.com/images/items", body)
 
     def test_catalog_filters_and_query_contracts_still_work(self) -> None:
         response = self.client.get("/catalog?q=CATALOG_LOCAL_ITEM&state=enabled")

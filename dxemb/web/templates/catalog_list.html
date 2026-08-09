@@ -51,12 +51,10 @@
         </td>
         <td>{{ item.category or '-' }} / {{ item.subcategory or '-' }}</td>
         <td>
-          <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-error' }}">
-            {{ 'enabled' if item.is_enabled else 'disabled' }}
-          </span>
+          <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-error' }}">{{ 'enabled' if item.is_enabled else 'disabled' }}</span>
         </td>
         <td>
-          <span class="{{ item.thumbnail_status }}">{{ item.thumbnail_status }}</span>
+          <span class="status-pill {{ 'status-ok' if item.thumbnail_status == 'mapped' else 'status-warn' if item.thumbnail_status == 'override' else 'status-blocked' }}">{{ item.thumbnail_status }}</span>
           <div class="muted">{{ item.thumbnail_source }}</div>
         </td>
         <td>

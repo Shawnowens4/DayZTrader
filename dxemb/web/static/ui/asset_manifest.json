@@ -6,6 +6,7 @@
     "shell": "js/ui_shell.js"
   },
   "images": {
-    "thumbnail_fallback": "ui/thumbnail-fallback.svg"
+    "thumbnail_fallback": "ui/thumbnail-fallback.svg",
+    "vehicle_category_banner": "catalog_items/vehicles.webp"
   }
 }

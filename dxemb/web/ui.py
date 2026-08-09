@@ -43,9 +43,23 @@ def ui_asset(key: str) -> str:
 
 
 def ui_image(src: str | None) -> str:
-    if src and src.strip():
-        return src.strip()
-    return ui_asset("images.thumbnail_fallback")
+    if not src or not src.strip():
+        return ui_asset("images.thumbnail_fallback")
+
+    candidate = src.strip()
+    if candidate.startswith("/static/"):
+        return candidate
+    if candidate.startswith("data:image/"):
+        return candidate
+
+    local = _resolve_local_asset_url(candidate)
+    if local:
+        return local
+
+    if candidate.startswith("http://") or candidate.startswith("https://"):
+        return ui_asset("images.thumbnail_fallback")
+
+    return candidate if candidate.startswith("/") else ui_asset("images.thumbnail_fallback")
 
 
 @lru_cache(maxsize=8)
@@ -54,6 +68,38 @@ def _dir_index(directory: str) -> dict[str, str]:
     if not root.exists() or not root.is_dir():
         return {}
     return {entry.name.lower(): entry.name for entry in root.iterdir() if entry.is_file()}
+
+
+def _resolve_local_asset_url(src: str) -> str | None:
+    candidate = (src or "").strip()
+    if not candidate:
+        return None
+
+    raw_path = Path(unquote(urlsplit(candidate).path))
+    options: list[Path] = []
+    if raw_path.as_posix().strip("."):
+        options.append(raw_path)
+    if raw_path.name:
+        options.append(Path(raw_path.name))
+
+    seen: set[str] = set()
+    for option in options:
+        key = option.as_posix().lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        for directory in _LOCAL_CATALOG_DIRS:
+            exact = directory / option
+            if exact.exists() and exact.is_file():
+                rel = exact.relative_to(_STATIC_ROOT).as_posix()
+                return f"/static/{rel}"
+            if option.name:
+                for found in directory.rglob(option.name):
+                    if found.is_file():
+                        rel = found.relative_to(_STATIC_ROOT).as_posix()
+                        return f"/static/{rel}"
+
+    return None
 
 
 def _catalog_candidates(classname: str | None, source_url: str | None) -> list[str]:
