@@ -143,7 +143,7 @@
 ### Current Honest Status
 ```text
 Repository discovery and baseline: ██████████ 100%
-Documentation consolidation:     █████████░  89%
+Documentation consolidation:     ██████████ 100%
 Docker/runtime re-verification:  ███████░░░  70%
 Bot/Discord verification:       █████░░░░░  50%
 Web/admin verification:         ██████░░░░  60%
@@ -151,7 +151,7 @@ Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ███░░░░░░░  30%
 Player Market + Escrow audit:   ██████░░░░  60%
 Automated tests audit:          ████████░░  80%
-Total verified project state:   ████████░░  72%
+Total verified project state:   ████████░░  74%
 ```
 
 ---
@@ -175,6 +175,7 @@ Total verified project state:   ████████░░  72%
 | Schema contract coverage (`player`, `item`, `escrow_transaction`) | Test foundation | `tests/test_schema_contracts.py` | `docker compose up -d db; python -m unittest tests.test_schema_contracts -v` passed (5 tests) against disposable DB | Start Slice 3 wallet/ledger additive migration + service tests |
 | Wallet + ledger additive foundation | Recovery implementation | `dxemb/db/migrations/001_wallet_ledger_foundation.sql`, `dxemb/shared/wallet_ledger_service.py` | `docker compose up -d db; python -m unittest tests.test_wallet_ledger_service -v` passed (5 tests) | Start Slice 4 P2P listing/escrow foundation |
 | P2P listing + escrow additive foundation | Recovery implementation | `dxemb/db/migrations/002_market_escrow_foundation.sql`, `dxemb/shared/market_escrow_service.py` | `docker compose up -d db; python -m unittest tests.test_market_escrow_service -v` passed (5 tests) | Move to Slice 5 moderation/community recovery planning |
+| Moderation/community recovery plan | Design-only planning | `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` | Slice 5 read-only inventory completed (archive modules, duplicate-generation evidence, test/dependency scan, integration sequencing) | Next sprint: moderation/tickets implementation slices |
 | Neon database path | Infrastructure | `.env.example`, shared/db, Docker config | Not yet verified | Audit configuration safely |
 | Nitrado schedule/spawn integration | Infrastructure | To be verified | Not yet verified | Locate code, confirm no forced restart behavior |
 
@@ -283,6 +284,16 @@ git log -1 --oneline
   - `docker compose config` (pass)
   - `docker compose down` (completed; compose network removal reported in-use warning only)
 
+### 2026-08-08 — Slice 5: Moderation + Community Recovery Plan (Design-Only)
+- Added `docs/MODERATION_COMMUNITY_RECOVERY_PLAN.md` with read-only inventory and safe integration design for moderation, staff logs, roles/channels, onboarding/profile, and tickets.
+- Confirmed archive moderation duplication risk in `C:\DXEMB\discord_bot\src\cogs\moderation.py` (mixed legacy/new sections and setup patterns).
+- Confirmed archive module/test/dependency evidence used for planning:
+  - modules: `C:\DXEMB\discord_bot\src\cogs\moderation.py`, `C:\DXEMB\discord_bot\src\cogs\user.py`, `C:\DXEMB\core\services\moderation_service.py`, `C:\DXEMB\core\services\user_service.py`, `C:\DXEMB\core\services\audit_service.py`
+  - tests: `C:\DXEMB\tests\test_user_cog.py`, `C:\DXEMB\tests\test_user_service.py`, `C:\DXEMB\tests\test_admin_service_integration.py`, `C:\DXEMB\tests\test_discord_bot.py`
+  - dependencies: `C:\DXEMB\requirements.txt`, `C:\DXEMB\discord_bot\requirements.txt`
+- Gap identified: no explicit archive ticket-automation module/test set was identified by filename/content scan.
+- Slice 5 remained design-only; no moderation/community runtime code was restored and no Discord/server settings were changed.
+
 ### 2026-08-08 — Runtime Dependency Validation + Local DB Reset Verification
 - Performed controlled local reset of DayZTrader Compose DB volume only: `dayztrader_dxemb_db_data`.
 - Isolation proof recorded before deletion:
@@ -337,8 +348,8 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- Slice 5: design-only moderation + community recovery plan (inventory exact archive modules, duplicate generations, dependencies, tests, and safe integration approach for moderation, staff logs, roles/channels, onboarding, and tickets).
-- Do not alter Discord/server settings or restore moderation/ticket code in this slice.
+- Next autonomous sprint recommendation: moderation/tickets implementation (test-first, feature-flagged, no live guild mutations by default).
+- Keep Auto-Trader and P2P market boundaries unchanged while moderation/ticket slices are introduced.
 
 ---
 End of authoritative continuity record.
