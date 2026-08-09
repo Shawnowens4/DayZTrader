@@ -18,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
 from shared.db import get_sync_health
 from shared.auto_trader_order_service import AutoTraderOrderService
 from shared.market_escrow_service import MarketEscrowService
+from shared.nitrado_delivery_scheduler_service import NitradoDeliverySchedulerService
 from shared.wallet_ledger_service import WalletLedgerService
 
 try:
@@ -47,6 +48,10 @@ def _market_service() -> MarketEscrowService:
 
 def _autotrader_service() -> AutoTraderOrderService:
     return AutoTraderOrderService(database_url=os.getenv("DATABASE_URL"))
+
+
+def _scheduler_service() -> NitradoDeliverySchedulerService:
+    return NitradoDeliverySchedulerService(database_url=os.getenv("DATABASE_URL"))
 
 
 # ------------------------------------------------------------------
@@ -451,6 +456,67 @@ def autotrader_order_history(order_id: int):
             "rows": events,
             "mode": "read-only",
             "domain": "autotrader",
+        }
+    )
+
+
+@app.get("/autotrader/scheduler/requests")
+def autotrader_scheduler_requests():
+    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    service = _scheduler_service()
+    rows = service.list_requests(limit=limit)
+    for row in rows:
+        row["enqueue_at"] = row["enqueue_at"].isoformat() if row["enqueue_at"] else None
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+        row["updated_at"] = row["updated_at"].isoformat() if row["updated_at"] else None
+
+    return jsonify(
+        {
+            "count": len(rows),
+            "rows": rows,
+            "mode": "read-only",
+            "domain": "autotrader_scheduler",
+        }
+    )
+
+
+@app.get("/autotrader/scheduler/orders/<int:order_id>/status")
+def autotrader_scheduler_order_status(order_id: int):
+    service = _scheduler_service()
+    request_row = service.get_request_for_order(order_id)
+    if not request_row:
+        return jsonify({"error": "scheduler request not found"}), 404
+
+    attempts = service.list_attempts(order_id=order_id, limit=20)
+    alerts = service.list_alerts(order_id=order_id, limit=20)
+    events = service.list_events(order_id=order_id, limit=50)
+
+    request_row["enqueue_at"] = request_row["enqueue_at"].isoformat() if request_row["enqueue_at"] else None
+    request_row["created_at"] = request_row["created_at"].isoformat() if request_row["created_at"] else None
+    request_row["updated_at"] = request_row["updated_at"].isoformat() if request_row["updated_at"] else None
+
+    for row in attempts:
+        row["attempted_at"] = row["attempted_at"].isoformat() if row["attempted_at"] else None
+
+    for row in alerts:
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+        row["acknowledged_at"] = row["acknowledged_at"].isoformat() if row["acknowledged_at"] else None
+
+    for row in events:
+        row["created_at"] = row["created_at"].isoformat() if row["created_at"] else None
+
+    return jsonify(
+        {
+            "order_id": order_id,
+            "request": request_row,
+            "attempt_count": len(attempts),
+            "alert_count": len(alerts),
+            "event_count": len(events),
+            "attempts": attempts,
+            "alerts": alerts,
+            "events": events,
+            "mode": "read-only",
+            "domain": "autotrader_scheduler",
         }
     )
 

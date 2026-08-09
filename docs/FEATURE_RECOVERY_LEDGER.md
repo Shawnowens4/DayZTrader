@@ -102,8 +102,8 @@ Before any implementation work, the agent must:
 | MARKET-05 | P2P web read-only workflows | Local-safe browse/detail/preview/status timeline routes | Added routes in `dxemb/web/app.py` and tests in `tests/test_market_web_routes.py` | `C:\DXEMB\admin_panel\app\routes\marketplace.py`; `C:\DXEMB\core\services\marketplace_service.py` | Active partial | Expand with auth/session constraints later | Includes escrow timeline endpoint and explicit no-spawn preview behavior |
 | MARKET-03 | Marketplace moderation | Admin review and dispute actions | Not verified | Needs inventory | Needs inventory | Recover/adapt | Audit every action |
 | NIT-01 | Nitrado/FTP client | Console file pull/upload/backup actions | Design reference candidates reviewed only; no runtime integration in active PERM | `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\nitrado_client.py`; `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\ftp_client.py`; `C:\DXEMB\REPO CLONE\DayZTrader\dayz-console-trader-bot\dayz-console-trader-bot\bot\services\xml_generator.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/nitrado_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/ftp_client.py`; `dayz-console-trader-bot.zip: dayz-console-trader-bot/bot/services/xml_generator.py` | Planned | Design then build | Outbound only; credentials by secret reference only |
-| NIT-02 | Restart scheduler | Poll/cached restart windows | Design contract documented in `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` (5m status poll, restart cache/expiry, stale/conflict handling) | Needs inventory | Planned | Design then build | Never force restart |
-| NIT-03 | Spawn-file writer | Controlled writes before confirmed restart | Design contract documented in `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` (write ~10m pre-window, checksum gates, retries/alerts/refunds) | Needs inventory | Planned | Design then build | Failure alerts/refunds |
+| NIT-02 | Restart scheduler | Poll/cached restart windows | Additive scheduler foundation implemented with fake-provider flow only: `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql`, `dxemb/shared/nitrado_delivery_decision_engine.py`, `dxemb/shared/nitrado_delivery_scheduler_service.py`, `tests/test_nitrado_delivery_scheduler_schema.py`, `tests/test_nitrado_delivery_decision_engine.py`, `tests/test_nitrado_delivery_scheduler_service.py` | `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` | Active partial | Build then integrate | Never force restart; no live provider calls enabled |
+| NIT-03 | Spawn-file writer | Controlled writes before confirmed restart | Dry-run artifact metadata only (no file write): `trader_spawn_artifact` + `prepare_artifact_metadata_dry_run` and tests in `tests/test_nitrado_delivery_scheduler_service.py` | `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` | Active partial | Build then integrate | No XML generation/upload/write/delete in active code |
 | NIT-04 | Status scheduler | 5-minute status checks and 30-minute file pulls | Not verified | Needs inventory | Needs inventory | Recover/adapt | Separate tool if needed |
 | WEB-01 | Flask dashboard | Health/status/admin shell | Present | Needs inventory | Active partial | Preserve/audit | Browser route test pending |
 | WEB-02 | Catalog administration | Item cards, prices, availability | Present | Needs inventory | Active partial | Preserve/audit | Bulk tools pending |
@@ -155,9 +155,9 @@ At the end of each major milestone, the agent must:
 
 ## Current Next Action
 
-Prepare first additive implementation slice for Auto-Trader scheduler foundation:
-- delivery-request lifecycle tables and immutable scheduler audit events
-- scheduler decision-engine service scaffolding and tests with fake provider adapters
+Prepare approval-gated next slice for controlled live-provider adapter integration:
+- read-only provider polling contracts against a test profile
+- guarded transport preflight contracts with writes/restarts still disabled
 
 Do not connect live Nitrado/FTP/API flows without explicit owner approval.
 
@@ -215,6 +215,13 @@ Do not connect live Nitrado/FTP/API flows without explicit owner approval.
 - Nitrado scheduler design-only sprint completed: implementation-ready design contract added at `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md`.
 - Nitrado design sprint evidence recorded: required boundary mapping, data-model proposal, scheduler behavior, failure/refund policy, DayZ artifact rules, security/ops controls, test plan, and additive implementation sequence documented with read-only archive candidate references.
 - Nitrado design sprint confirmed: no Nitrado/FTP/API calls, no scheduler runtime, no file writes, no restart actions, and no source changes outside approved docs files.
+- Fake-provider scheduler foundation Slice A completed: additive migration `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql` with strict FK/idempotency/immutability constraints.
+- Fake-provider scheduler foundation Slice A tests completed: `tests/test_nitrado_delivery_scheduler_schema.py` (6 tests).
+- Fake-provider scheduler foundation Slice B completed: pure decision engine in `dxemb/shared/nitrado_delivery_decision_engine.py` with fake-clock timing tests in `tests/test_nitrado_delivery_decision_engine.py` (11 tests).
+- Fake-provider scheduler foundation Slice C completed: interfaces/fakes/scaffolding in `dxemb/shared/nitrado_delivery_interfaces.py`, `dxemb/shared/nitrado_delivery_fakes.py`, `dxemb/shared/nitrado_delivery_scheduler_service.py` with service/boundary tests (`tests/test_nitrado_delivery_scheduler_service.py`, `tests/test_nitrado_delivery_fake_boundaries.py`).
+- Fake-provider scheduler foundation Slice D completed: read-only local operator visibility routes in `dxemb/web/app.py` with route tests in `tests/test_nitrado_delivery_web_routes.py`.
+- Scheduler consolidated validation evidence recorded: `git diff --check`, `docker compose up -d db; python -m unittest tests.test_nitrado_delivery_scheduler_schema tests.test_nitrado_delivery_decision_engine tests.test_nitrado_delivery_scheduler_service tests.test_nitrado_delivery_fake_boundaries tests.test_nitrado_delivery_web_routes tests.test_auto_trader_web_routes -v`, `docker compose config`, `docker compose down` (31 tests passed).
+- Scheduler sprint boundary compliance confirmed: no real network clients or calls, no scheduler daemon/background process, no XML/DayZ file writes, no restart actions, no P2P behavior/table modifications.
 
 ---
 End of permanent feature recovery ledger.

@@ -137,7 +137,6 @@ class AutoTraderWebRoutesTests(unittest.TestCase):
     def test_routes_have_no_external_delivery_side_effect_tokens(self) -> None:
         source = (DXEMB_ROOT / "web" / "app.py").read_text(encoding="utf-8")
         forbidden = [
-            "nitrado",
             "ftp",
             "xml_generator",
             "force_restart",

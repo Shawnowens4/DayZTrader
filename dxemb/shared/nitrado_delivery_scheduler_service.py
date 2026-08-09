@@ -566,6 +566,105 @@ class NitradoDeliverySchedulerService:
             )
         return out
 
+    def get_request_for_order(self, order_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, order_id, delivery_request_key, state, enqueue_at,
+                           blocked_reason, created_at, updated_at
+                    FROM trader_delivery_request
+                    WHERE order_id = %s
+                    """,
+                    (order_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return None
+
+        return {
+            "id": int(row[0]),
+            "order_id": int(row[1]),
+            "delivery_request_key": row[2],
+            "state": row[3],
+            "enqueue_at": row[4],
+            "blocked_reason": row[5],
+            "created_at": row[6],
+            "updated_at": row[7],
+        }
+
+    def list_attempts(self, order_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 200))
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, trader_delivery_request_id, restart_window_cache_id,
+                           write_key, attempt_no, decision, decision_reason,
+                           attempted_at, duration_ms, provider_result
+                    FROM trader_delivery_attempt
+                    WHERE order_id = %s
+                    ORDER BY attempted_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    (order_id, safe_limit),
+                )
+                rows = cur.fetchall()
+
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "id": int(row[0]),
+                    "trader_delivery_request_id": int(row[1]),
+                    "restart_window_cache_id": int(row[2]) if row[2] is not None else None,
+                    "write_key": row[3],
+                    "attempt_no": int(row[4]),
+                    "decision": row[5],
+                    "decision_reason": row[6],
+                    "attempted_at": row[7],
+                    "duration_ms": row[8],
+                    "provider_result": row[9],
+                }
+            )
+        return out
+
+    def list_alerts(self, order_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 200))
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, trader_delivery_request_id, severity, alert_code,
+                           message_redacted, dedupe_key, metadata,
+                           created_at, acknowledged_at, acknowledged_by
+                    FROM trader_delivery_alert
+                    WHERE order_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    (order_id, safe_limit),
+                )
+                rows = cur.fetchall()
+
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            out.append(
+                {
+                    "id": int(row[0]),
+                    "trader_delivery_request_id": int(row[1]) if row[1] is not None else None,
+                    "severity": row[2],
+                    "alert_code": row[3],
+                    "message_redacted": row[4],
+                    "dedupe_key": row[5],
+                    "metadata": row[6],
+                    "created_at": row[7],
+                    "acknowledged_at": row[8],
+                    "acknowledged_by": row[9],
+                }
+            )
+        return out
+
     def _insert_scheduler_event(
         self,
         cur,

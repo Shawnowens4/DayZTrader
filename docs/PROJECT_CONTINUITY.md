@@ -151,7 +151,7 @@ Database/Neon verification:     ███████░░░  65%
 Auto-Trader audit:              ██████░░░░  58%
 Player Market + Escrow audit:   ████████░░  78%
 Automated tests audit:          ██████████  97%
-Total verified project state:   █████████░  91%
+Total verified project state:   █████████░  92%
 ```
 
 ---
@@ -172,6 +172,7 @@ Total verified project state:   █████████░  91%
 | Auto-Trader wallet bridge foundation | Server store | `dxemb/shared/auto_trader_wallet_bridge.py`, `tests/test_auto_trader_wallet_bridge.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_wallet_bridge -v` passed (3 tests) | Add delivery-preparation orchestration after restart-window design |
 | Auto-Trader local bot/web previews | Server store | `dxemb/bot/cogs/autotrader_local.py`, `dxemb/web/app.py`, `tests/test_auto_trader_bot_adapter.py`, `tests/test_auto_trader_web_routes.py` | `docker compose up -d db; python -m unittest tests.test_auto_trader_bot_adapter tests.test_auto_trader_web_routes -v` passed (7 tests) | Keep read-only/dry-run; add auth/session controls later |
 | Nitrado delivery scheduler design | Design-only | `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` | Design-only sprint completed with read-only archive reference review; no runtime integration/actions executed | Begin additive scheduler schema/service implementation slice only after explicit owner approval |
+| Nitrado scheduler foundation (fake-provider) | Recovery implementation | `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql`, `dxemb/shared/nitrado_delivery_decision_engine.py`, `dxemb/shared/nitrado_delivery_interfaces.py`, `dxemb/shared/nitrado_delivery_fakes.py`, `dxemb/shared/nitrado_delivery_scheduler_service.py`, `tests/test_nitrado_delivery_*` | `docker compose up -d db; python -m unittest tests.test_nitrado_delivery_scheduler_schema tests.test_nitrado_delivery_decision_engine tests.test_nitrado_delivery_scheduler_service tests.test_nitrado_delivery_fake_boundaries tests.test_nitrado_delivery_web_routes tests.test_auto_trader_web_routes -v` passed (31 tests) | Keep fake-only mode; require explicit owner approval before any live provider/file transport integration |
 | Player Market + Escrow | P2P system | To be verified | Not yet verified | Locate active code/schema or mark unimplemented |
 | Wallet/Ledger + Market/Escrow design | Recovery planning | `docs/WALLET_LEDGER_MARKET_ESCROW_DESIGN.md` | Slice 1 design completed; boundaries, lifecycle, idempotency, migration order documented | Use as contract for additive migrations and service tests |
 | Isolated PostgreSQL test harness | Test foundation | `tests/harness/postgres_isolated.py`, `tests/test_harness_smoke.py` | `python -m unittest discover -s tests -p "test_*.py" -v` passed (4 tests) | Add schema contract tests in Slice 2 |
@@ -226,6 +227,40 @@ git log -1 --oneline
 ---
 
 ## Changelog
+
+### 2026-08-08 — Fake-Provider Delivery Scheduler Foundation Sprint (Slices A-D)
+- Slice A completed: additive scheduler schema migration `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql` added:
+  - `delivery_poll_run`
+  - `restart_window_cache`
+  - `trader_delivery_request`
+  - `trader_scheduler_event` (immutable)
+  - `trader_spawn_artifact` (immutable)
+  - `trader_delivery_attempt` (immutable)
+  - `trader_delivery_alert`
+  - `trader_delivery_refund_link` (immutable)
+- Slice A tests completed: `tests/test_nitrado_delivery_scheduler_schema.py` validated FK scope/idempotency/immutability/P2P-separation constraints.
+- Slice B completed: pure decision engine added in `dxemb/shared/nitrado_delivery_decision_engine.py` with fake-clock timing coverage in `tests/test_nitrado_delivery_decision_engine.py`.
+- Slice C completed: interfaces/fakes/service scaffolding added:
+  - `dxemb/shared/nitrado_delivery_interfaces.py`
+  - `dxemb/shared/nitrado_delivery_fakes.py`
+  - `dxemb/shared/nitrado_delivery_scheduler_service.py`
+  - tests: `tests/test_nitrado_delivery_scheduler_service.py`, `tests/test_nitrado_delivery_fake_boundaries.py`
+- Slice D completed: read-only local operator visibility routes added in `dxemb/web/app.py`:
+  - `GET /autotrader/scheduler/requests`
+  - `GET /autotrader/scheduler/orders/<order_id>/status`
+  - tests: `tests/test_nitrado_delivery_web_routes.py`
+- Consolidated scheduler regression evidence:
+  - `git diff --check`
+  - `docker compose up -d db; python -m unittest tests.test_nitrado_delivery_scheduler_schema tests.test_nitrado_delivery_decision_engine tests.test_nitrado_delivery_scheduler_service tests.test_nitrado_delivery_fake_boundaries tests.test_nitrado_delivery_web_routes tests.test_auto_trader_web_routes -v`
+  - `docker compose config`
+  - `docker compose down`
+- Scope compliance confirmed:
+  - no `.env`/credential edits
+  - no real network client usage (HTTP/FTP/SFTP)
+  - no daemon/background scheduler
+  - no XML/DayZ file writes/uploads/deletes
+  - no restart actions
+  - no Player Market + Escrow behavior/table changes
 
 ### 2026-08-08 — Nitrado Delivery Scheduler Sprint (Design-Only)
 - Added `docs/NITRADO_DELIVERY_SCHEDULER_DESIGN.md` as implementation-ready design contract for future Auto-Trader delivery orchestration.
@@ -568,7 +603,7 @@ git log -1 --oneline
 12. Never bulk-copy from `C:\DXEMB` or `dayz-console-trader-bot.zip`; recover in small test-backed slices.
 
 ### Next Work Item (Do Not Implement Features Yet)
-- First future implementation slice requiring explicit owner approval: additive scheduler foundation tables and service scaffolding for delivery request lifecycle and polling decision engine, with tests only and no live provider/FTP integration.
+- First future implementation slice requiring explicit owner approval: controlled live-provider adapter integration for test-server read operations and guarded transport preflight contracts, still with writes/restarts disabled unless separately approved.
 
 ---
 End of authoritative continuity record.
