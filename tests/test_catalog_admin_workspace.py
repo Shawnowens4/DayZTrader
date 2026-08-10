@@ -28,6 +28,8 @@ FIXTURE_TYPES = ROOT / "tests" / "fixtures" / "catalog" / "types_valid_small.xml
 
 
 class CatalogAdminWorkspaceTests(unittest.TestCase):
+    ADMIN_HEADERS = {"X-DXEMB-ROLE": "admin"}
+
     @classmethod
     def setUpClass(cls) -> None:
         if not ensure_psycopg2_available():
@@ -119,8 +121,40 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
     def _connect(self):
         return psycopg2.connect(self.db_url, connect_timeout=5)
 
+    def _get_admin(self, path: str):
+        return self.client.get(path, headers=self.ADMIN_HEADERS)
+
+    def _post_admin(self, path: str, *, data: dict[str, str], follow_redirects: bool = False):
+        return self.client.post(path, data=data, follow_redirects=follow_redirects, headers=self.ADMIN_HEADERS)
+
+    def test_admin_routes_require_admin_role(self) -> None:
+        page = self.client.get("/catalog/admin")
+        save = self.client.post(
+            "/catalog/admin/AKM",
+            data={
+                "display_name": "AKM",
+                "curated_category": "Weapons",
+                "curated_subcategory": "Rifles",
+                "buy_price": "",
+                "sell_price": "",
+                "thumbnail_override": "",
+                "catalog_enabled": "1",
+                "review_required": "1",
+                "auto_trader_candidate": "0",
+                "direct_purchase_candidate": "0",
+                "rental_candidate": "0",
+                "bundle_candidate": "0",
+                "horde_event_candidate": "0",
+                "admin_note_append": "auth check",
+            },
+        )
+
+        self.assertEqual(page.status_code, 403)
+        self.assertEqual(save.status_code, 403)
+        self.assertIn("admin role is required", page.get_data(as_text=True))
+
     def test_admin_route_renders(self) -> None:
-        response = self.client.get("/catalog/admin")
+        response = self._get_admin("/catalog/admin")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("Catalog Admin Curation Workspace", body)
@@ -147,17 +181,18 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
                 "admin_note_append": "rename for search",
             },
             follow_redirects=True,
+            headers=self.ADMIN_HEADERS,
         )
         self.assertEqual(save.status_code, 200)
 
-        by_classname = self.client.get("/catalog/admin?q=AKM")
+        by_classname = self._get_admin("/catalog/admin?q=AKM")
         self.assertIn("Curated AKM", by_classname.get_data(as_text=True))
 
-        by_display = self.client.get("/catalog/admin?q=Curated+AKM")
+        by_display = self._get_admin("/catalog/admin?q=Curated+AKM")
         self.assertIn("Curated AKM", by_display.get_data(as_text=True))
 
     def test_filter_behavior(self) -> None:
-        response = self.client.get(
+        response = self._get_admin(
             "/catalog/admin?review_state=yes&warning_state=yes&imported_usage=Industrial"
         )
         body = response.get_data(as_text=True)
@@ -166,20 +201,20 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertNotIn("AKM", body)
 
     def test_bounded_result_behavior(self) -> None:
-        response = self.client.get("/catalog/admin?limit=25")
+        response = self._get_admin("/catalog/admin?limit=25")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("Next", body)
         self.assertLessEqual(body.count('class="action-link"'), 25)
 
     def test_detail_route_and_lookup(self) -> None:
-        ok = self.client.get("/catalog/admin/AKM")
-        missing = self.client.get("/catalog/admin/DOES_NOT_EXIST")
+        ok = self._get_admin("/catalog/admin/AKM")
+        missing = self._get_admin("/catalog/admin/DOES_NOT_EXIST")
         self.assertEqual(ok.status_code, 200)
         self.assertEqual(missing.status_code, 404)
 
     def test_read_only_imported_evidence_provenance_rendering(self) -> None:
-        response = self.client.get("/catalog/admin/BROKEN_NUMBER_ITEM")
+        response = self._get_admin("/catalog/admin/BROKEN_NUMBER_ITEM")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("Imported Evidence and Provenance", body)
@@ -188,7 +223,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertIn("nominal", body)
 
     def test_manual_curation_persists(self) -> None:
-        response = self.client.post(
+        response = self._post_admin(
             "/catalog/admin/AK74_Black",
             data={
                 "display_name": "Curated AK74 Black",
@@ -227,7 +262,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
                 cur.execute("SELECT notes FROM item WHERE classname = %s", ("AKM",))
                 before = json.loads(cur.fetchone()[0])
 
-        self.client.post(
+        self._post_admin(
             "/catalog/admin/AKM",
             data={
                 "display_name": "AKM Provenance Safe",
@@ -263,7 +298,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertTrue(all(value is False for value in legacy_item["future_flags"].values()))
 
     def test_valid_single_item_enable_disable(self) -> None:
-        disable = self.client.post(
+        disable = self._post_admin(
             "/catalog/admin/AKM",
             data={
                 "display_name": "AKM",
@@ -282,7 +317,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
                 "admin_note_append": "disable catalog",
             },
         )
-        enable = self.client.post(
+        enable = self._post_admin(
             "/catalog/admin/AKM",
             data={
                 "display_name": "AKM",
@@ -307,7 +342,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertTrue(item["is_enabled"])
 
     def test_invalid_price_thumbnail_flag_input_rejection(self) -> None:
-        response = self.client.post(
+        response = self._post_admin(
             "/catalog/admin/AKM",
             data={
                 "display_name": "Bad Input",
@@ -334,7 +369,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertIn("Auto Trader candidate must be a boolean form value", body)
 
     def test_bulk_confirmation_count_mismatch_rejection(self) -> None:
-        response = self.client.post(
+        response = self._post_admin(
             "/catalog/admin/bulk-review",
             data={
                 "query": "BULK_",
@@ -360,7 +395,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertIn("confirmation token must exactly match DISABLE 3", response.get_data(as_text=True))
 
     def test_valid_bounded_bulk_enable_disable_behavior(self) -> None:
-        response = self.client.post(
+        response = self._post_admin(
             "/catalog/admin/bulk-review",
             data={
                 "query": "BULK_",
@@ -391,7 +426,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
             self.assertFalse(item["review_required"])
 
     def test_malformed_warning_display_for_fixture_equivalent(self) -> None:
-        response = self.client.get("/catalog/admin/BROKEN_NUMBER_ITEM")
+        response = self._get_admin("/catalog/admin/BROKEN_NUMBER_ITEM")
         body = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("source warning", body)
@@ -399,7 +434,7 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
 
     def test_existing_catalog_and_vehicle_routes_remain_intact(self) -> None:
         catalog = self.client.get("/catalog")
-        vehicles = self.client.get("/vehicles")
+        vehicles = self._get_admin("/vehicles")
         self.assertEqual(catalog.status_code, 200)
         self.assertEqual(vehicles.status_code, 200)
 

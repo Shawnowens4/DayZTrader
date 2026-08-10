@@ -41,6 +41,21 @@ except ModuleNotFoundError:
     from vehicle_admin import vehicle_bp
 
 try:
+    from web.local_auth import admin_or_higher
+    from web.local_auth import authenticated_player
+    from web.local_auth import get_request_role_hint
+    from web.local_auth import get_resolved_identity
+    from web.local_auth import has_role
+    from web.local_auth import moderator_or_higher
+except ModuleNotFoundError:
+    from local_auth import admin_or_higher
+    from local_auth import authenticated_player
+    from local_auth import get_request_role_hint
+    from local_auth import get_resolved_identity
+    from local_auth import has_role
+    from local_auth import moderator_or_higher
+
+try:
     from web.ui import register_ui_helpers
 except ModuleNotFoundError:
     from ui import register_ui_helpers
@@ -474,6 +489,7 @@ def autotrader_order_detail(order_id: int):
 
 
 @app.get("/autotrader/orders/<int:order_id>/history")
+@moderator_or_higher(message="moderator role is required for scheduler workspace")
 def autotrader_order_history(order_id: int):
     service = _autotrader_service()
     events = service.list_order_events(order_id)
@@ -489,6 +505,7 @@ def autotrader_order_history(order_id: int):
 
 
 @app.get("/autotrader/scheduler/requests")
+@moderator_or_higher(message="moderator role is required for scheduler workspace")
 def autotrader_scheduler_requests():
     limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
     service = _scheduler_service()

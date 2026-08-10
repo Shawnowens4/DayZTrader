@@ -8,6 +8,11 @@ from flask import request
 from flask import url_for
 from urllib.parse import urlencode
 
+try:
+    from web.local_auth import admin_or_higher
+except ModuleNotFoundError:
+    from local_auth import admin_or_higher
+
 from shared.catalog.service import ADMIN_FUTURE_FLAG_KEYS
 from shared.catalog.service import CATALOG_ADMIN_DEFAULT_LIMIT
 from shared.catalog.service import bulk_set_catalog_review_required_sync
@@ -102,6 +107,7 @@ def set_enabled(classname: str):
 
 
 @catalog_bp.get("/catalog/admin")
+@admin_or_higher(message="admin role is required for catalog admin workspace")
 def catalog_admin_list():
     workspace = _catalog_admin_workspace_from_args(request.args)
     return render_template(
@@ -115,6 +121,7 @@ def catalog_admin_list():
 
 
 @catalog_bp.post("/catalog/admin/bulk-review")
+@admin_or_higher(message="admin role is required for catalog admin workspace")
 def catalog_admin_bulk_review():
     desired_review_required = (request.form.get("bulk_action", "") or "").strip().lower() == "enable"
     filters = _catalog_admin_filters_from_form(request.form)
@@ -149,6 +156,7 @@ def catalog_admin_bulk_review():
 
 
 @catalog_bp.get("/catalog/admin/<classname>")
+@admin_or_higher(message="admin role is required for catalog admin workspace")
 def catalog_admin_detail(classname: str):
     item = get_catalog_admin_item_sync(classname)
     if item is None:
@@ -165,6 +173,7 @@ def catalog_admin_detail(classname: str):
 
 
 @catalog_bp.post("/catalog/admin/<classname>")
+@admin_or_higher(message="admin role is required for catalog admin workspace")
 def catalog_admin_save(classname: str):
     payload = {
         key: request.form.getlist(key)[-1]

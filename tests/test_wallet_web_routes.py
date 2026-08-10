@@ -56,6 +56,32 @@ class WalletWebRoutesTests(unittest.TestCase):
         self.service = WalletLedgerService(database_url=self.db_url)
         self.owner_id = f"local:web-{self._testMethodName}"
         self.service.ensure_wallet_owner(self.owner_id, display_name="WalletWebUser", owner_kind="LOCAL_PLAYER")
+        self.admin_headers = {"X-DXEMB-ROLE": "admin", "X-DXEMB-ACTOR-ID": "local_admin"}
+
+    def test_admin_adjust_requires_admin_role(self) -> None:
+        blocked = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "credit",
+                "amount_minor": "50",
+                "reason_text": "manual credit",
+                "confirmation": "APPLY +50",
+            },
+        )
+
+        self.assertEqual(blocked.status_code, 403)
+        self.assertIn("admin role is required", blocked.get_data(as_text=True))
+
+    def test_admin_list_requires_admin_role(self) -> None:
+        blocked = self.client.get("/wallet/admin")
+        self.assertEqual(blocked.status_code, 403)
+        self.assertIn("admin role is required", blocked.get_data(as_text=True))
+
+    def test_admin_detail_requires_admin_role(self) -> None:
+        blocked = self.client.get(f"/wallet/admin/{self.owner_id}")
+        self.assertEqual(blocked.status_code, 403)
+        self.assertIn("admin role is required", blocked.get_data(as_text=True))
+
 
     def test_admin_route_rendering_and_bounded_history(self) -> None:
         for idx in range(30):
@@ -68,8 +94,8 @@ class WalletWebRoutesTests(unittest.TestCase):
                 idempotency_key=f"web-credit-{idx}",
             )
 
-        list_resp = self.client.get("/wallet/admin")
-        detail_resp = self.client.get(f"/wallet/admin/{self.owner_id}?limit=25")
+        list_resp = self.client.get("/wallet/admin?as_role=admin")
+        detail_resp = self.client.get(f"/wallet/admin/{self.owner_id}?as_role=admin&limit=25")
         detail_body = detail_resp.get_data(as_text=True)
 
         self.assertEqual(list_resp.status_code, 200)
@@ -94,6 +120,7 @@ class WalletWebRoutesTests(unittest.TestCase):
                 "owner_kind": "LOCAL_PLAYER",
                 "owner_label": "Wallet Web User",
             },
+            headers=self.admin_headers,
         )
         self.assertEqual(bad.status_code, 400)
         self.assertIn("confirmation phrase must exactly match APPLY +50", bad.get_data(as_text=True))
@@ -113,6 +140,7 @@ class WalletWebRoutesTests(unittest.TestCase):
                 "owner_label": "Wallet Web User",
             },
             follow_redirects=True,
+            headers=self.admin_headers,
         )
         body = ok.get_data(as_text=True)
         self.assertEqual(ok.status_code, 200)
@@ -159,6 +187,7 @@ class WalletWebRoutesTests(unittest.TestCase):
                 "owner_label": "Wallet Web User",
             },
             follow_redirects=True,
+            headers=self.admin_headers,
         )
         refund = self.client.post(
             f"/wallet/admin/{self.owner_id}/adjust",
@@ -174,6 +203,7 @@ class WalletWebRoutesTests(unittest.TestCase):
                 "owner_label": "Wallet Web User",
             },
             follow_redirects=True,
+            headers=self.admin_headers,
         )
 
         self.assertEqual(reversal.status_code, 200)

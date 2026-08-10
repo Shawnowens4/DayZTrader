@@ -27,6 +27,8 @@ if str(DXEMB_ROOT) not in sys.path:
 
 
 class WebVisualFoundationSliceATests(unittest.TestCase):
+    ADMIN_HEADERS = {"X-DXEMB-ROLE": "admin"}
+
     @classmethod
     def setUpClass(cls) -> None:
         if not ensure_psycopg2_available():
@@ -101,23 +103,31 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
                         out[table] = int(cur.fetchone()[0])
         return out
 
+    def _get_admin(self, path: str):
+        return self.client.get(path, headers=self.ADMIN_HEADERS)
+
+    def test_vehicle_routes_require_admin_role(self) -> None:
+        page = self.client.get("/vehicles")
+        api = self.client.get("/api/vehicles/catalog")
+        self.assertEqual(page.status_code, 403)
+        self.assertEqual(api.status_code, 403)
+        self.assertIn("admin role is required", page.get_data(as_text=True))
+
     def test_core_routes_preserved_non_500(self) -> None:
         paths = [
             "/",
             "/health",
             "/catalog",
-            "/vehicles",
-            "/api/vehicles/catalog",
             "/autotrader/products",
         ]
         for path in paths:
             response = self.client.get(path)
             self.assertLess(response.status_code, 500, msg=f"route {path} returned {response.status_code}")
 
-        catalog = self.client.get("/api/vehicles/catalog").get_json()
+        catalog = self._get_admin("/api/vehicles/catalog").get_json()
         if catalog["count"] > 0:
             classname = catalog["families"][0]["classname"]
-            detail = self.client.get(f"/vehicles/{classname}")
+            detail = self._get_admin(f"/vehicles/{classname}")
             self.assertLess(detail.status_code, 500)
 
     def test_get_pages_do_not_mutate_state(self) -> None:
@@ -127,19 +137,21 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
             "/",
             "/health",
             "/catalog",
-            "/vehicles",
-            "/api/vehicles/catalog",
             "/autotrader/products",
         ]
         for path in pages:
             response = self.client.get(path)
             self.assertLess(response.status_code, 500)
 
+        for path in ["/vehicles", "/api/vehicles/catalog"]:
+            response = self._get_admin(path)
+            self.assertLess(response.status_code, 500)
+
         after = self._table_counts()
         self.assertEqual(before, after)
 
     def test_image_fallback_behavior_is_controlled(self) -> None:
-        vehicles_page = self.client.get("/vehicles")
+        vehicles_page = self._get_admin("/vehicles")
         body = vehicles_page.get_data(as_text=True)
         self.assertEqual(vehicles_page.status_code, 200)
         self.assertIn("data-fallback-src=\"/static/ui/thumbnail-fallback.svg\"", body)
@@ -160,7 +172,7 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
         self.assertIn("thumbnail missing", fallback_asset.get_data(as_text=True))
 
     def test_vehicle_builder_details_use_local_assets_only(self) -> None:
-        catalog = self.client.get("/api/vehicles/catalog")
+        catalog = self._get_admin("/api/vehicles/catalog")
         self.assertEqual(catalog.status_code, 200)
         catalog_payload = catalog.get_json()
         self.assertGreater(catalog_payload["count"], 0)
@@ -174,7 +186,7 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
         self.assertNotIn("dayzidb.com", family["body_thumbnail_url"])
 
         first_classname = family["classname"]
-        detail = self.client.get(f"/api/vehicles/builder/{first_classname}")
+        detail = self._get_admin(f"/api/vehicles/builder/{first_classname}")
         self.assertEqual(detail.status_code, 200)
         detail_payload = detail.get_json()["vehicle"]
         self.assertTrue(
@@ -202,21 +214,21 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
             self.assertNotIn("dayzidb.com", first_slot["thumbnail_url"])
 
     def test_generic_vehicle_banner_is_not_used_for_card_thumbnails(self) -> None:
-        vehicles_page = self.client.get("/vehicles")
+        vehicles_page = self._get_admin("/vehicles")
         self.assertEqual(vehicles_page.status_code, 200)
         body = vehicles_page.get_data(as_text=True)
         self.assertIn('class="vehicle-category-banner"', body)
         self.assertIn('/static/catalog_items/vehicles.webp', body)
         self.assertEqual(body.count('/static/catalog_items/vehicles.webp'), 1)
 
-        catalog = self.client.get("/api/vehicles/catalog")
+        catalog = self._get_admin("/api/vehicles/catalog")
         self.assertEqual(catalog.status_code, 200)
         payload = catalog.get_json()
         for family in payload.get("families", []):
             self.assertNotEqual(family.get("body_thumbnail_url"), "/static/catalog_items/vehicles.webp")
 
     def test_vehicle_and_part_identity_fallback_cards_include_labels(self) -> None:
-        catalog = self.client.get("/api/vehicles/catalog")
+        catalog = self._get_admin("/api/vehicles/catalog")
         self.assertEqual(catalog.status_code, 200)
         payload = catalog.get_json()
         self.assertGreater(payload.get("count", 0), 0)
@@ -229,7 +241,7 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
                 or "Art pending - local fallback" in family["body_thumbnail_url"]
             )
 
-        detail = self.client.get(f"/api/vehicles/builder/{family['classname']}")
+        detail = self._get_admin(f"/api/vehicles/builder/{family['classname']}")
         self.assertEqual(detail.status_code, 200)
         vehicle = detail.get_json()["vehicle"]
 

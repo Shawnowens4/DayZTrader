@@ -9,6 +9,17 @@ from flask import redirect
 from flask import render_template
 from flask import request
 
+try:
+    from web.local_auth import admin_or_higher
+    from web.local_auth import get_request_role_hint
+    from web.local_auth import get_resolved_identity
+    from web.local_auth import has_role
+except ModuleNotFoundError:
+    from local_auth import admin_or_higher
+    from local_auth import get_request_role_hint
+    from local_auth import get_resolved_identity
+    from local_auth import has_role
+
 from shared.wallet_ledger_service import InvalidAmountError
 from shared.wallet_ledger_service import InvalidOwnerError
 from shared.wallet_ledger_service import InsufficientFundsError
@@ -27,7 +38,76 @@ def _wallet_service() -> WalletLedgerService:
     return WalletLedgerService()
 
 
+def _request_role_hint() -> str:
+    return get_request_role_hint()
+
+
+def _is_admin_actor() -> bool:
+    return has_role(get_resolved_identity(), "admin")
+
+
+def _wallet_admin_adjust_auth_error(message: str, status_code: int):
+    owner_id = ""
+    if request.view_args:
+        owner_id = str(request.view_args.get("owner_id") or "")
+
+    service = _wallet_service()
+    owner = service.get_wallet_summary(owner_id) if owner_id else None
+    if owner is None:
+        owner = {
+            "account_id": 0,
+            "owner_id": owner_id,
+            "owner_kind": "LOCAL_PLAYER",
+            "owner_label": None,
+            "balance_minor": 0,
+            "created_at": None,
+            "updated_at": None,
+            "transaction_count": 0,
+            "latest_activity": None,
+            "total_credits_minor": 0,
+            "total_debits_minor": 0,
+            "ledger_net_minor": 0,
+            "last_ledger_at": None,
+            "recent_reference": None,
+        }
+
+    return (
+        render_template(
+            "wallet_admin_detail.html",
+            owner=owner,
+            history=[],
+            direction="all",
+            status="all",
+            entry_type="",
+            reference_query="",
+            created_after="",
+            created_before="",
+            page=1,
+            limit=PAGE_SIZE,
+            has_next=False,
+            reconciliation={
+                "owner_id": owner_id,
+                "account_balance_minor": 0,
+                "ledger_total_minor": 0,
+                "entry_count": 0,
+                "matches": True,
+            },
+            highlighted_entry=None,
+            highlight_ledger_id=0,
+            as_role=_request_role_hint(),
+            is_admin_actor=False,
+            admin_message="",
+            admin_errors=[message],
+            auth_notice=AUTH_NOTICE,
+            capability_notice=CAPABILITY_NOTICE,
+            form_values={},
+        ),
+        status_code,
+    )
+
+
 @wallet_admin_bp.get("/wallet/admin")
+@admin_or_higher(message="admin role is required for wallet admin workspace")
 def wallet_admin_list():
     query = (request.args.get("q", "") or "").strip()
     page = max(1, int(request.args.get("page", "1") or "1"))
@@ -44,6 +124,8 @@ def wallet_admin_list():
         page=page,
         limit=limit,
         has_next=has_next,
+        as_role=_request_role_hint(),
+        is_admin_actor=_is_admin_actor(),
         admin_message=(request.args.get("message", "") or "").strip(),
         admin_errors=[],
         auth_notice=AUTH_NOTICE,
@@ -52,6 +134,7 @@ def wallet_admin_list():
 
 
 @wallet_admin_bp.get("/wallet/admin/<path:owner_id>")
+@admin_or_higher(message="admin role is required for wallet admin workspace")
 def wallet_admin_detail(owner_id: str):
     service = _wallet_service()
     owner = service.get_wallet_owner(owner_id)
@@ -73,6 +156,8 @@ def wallet_admin_detail(owner_id: str):
         limit=limit,
         has_next=has_next,
         reconciliation=reconciliation,
+        as_role=_request_role_hint(),
+        is_admin_actor=_is_admin_actor(),
         admin_message=(request.args.get("message", "") or "").strip(),
         admin_errors=[],
         auth_notice=AUTH_NOTICE,
@@ -81,6 +166,7 @@ def wallet_admin_detail(owner_id: str):
 
 
 @wallet_admin_bp.post("/wallet/admin/<path:owner_id>/adjust")
+@admin_or_higher(message="admin role is required for wallet mutations", on_fail=_wallet_admin_adjust_auth_error)
 def wallet_admin_adjust(owner_id: str):
     service = _wallet_service()
     page = max(1, int(request.form.get("page", "1") or "1"))

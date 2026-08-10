@@ -14,6 +14,11 @@ from __future__ import annotations
 from flask import Blueprint, abort, jsonify, render_template, request
 
 try:
+    from web.local_auth import admin_or_higher
+except ModuleNotFoundError:
+    from local_auth import admin_or_higher
+
+try:
     from shared.catalog.vehicle_builder_service import (
         flush_resolver_cache,
         get_builder_catalog,
@@ -37,6 +42,7 @@ vehicle_bp = Blueprint("vehicles", __name__)
 # ------------------------------------------------------------------
 
 @vehicle_bp.get("/api/vehicles/catalog")
+@admin_or_higher(message="admin role is required for vehicle admin workspace")
 def api_vehicle_catalog():
     """Return all vehicle families as card-ready JSON list."""
     families = get_builder_catalog()
@@ -44,6 +50,7 @@ def api_vehicle_catalog():
 
 
 @vehicle_bp.get("/api/vehicles/builder/<classname>")
+@admin_or_higher(message="admin role is required for vehicle admin workspace")
 def api_vehicle_builder(classname: str):
     """Return full builder payload for one vehicle family."""
     payload = get_builder_payload(classname)
@@ -53,6 +60,7 @@ def api_vehicle_builder(classname: str):
 
 
 @vehicle_bp.post("/api/vehicles/cache/flush")
+@admin_or_higher(message="admin role is required for vehicle admin workspace")
 def api_flush_cache():
     """Flush resolver LRU caches (call after uploading new resolver JSON)."""
     flush_resolver_cache()
@@ -64,6 +72,7 @@ def api_flush_cache():
 # ------------------------------------------------------------------
 
 @vehicle_bp.get("/vehicles")
+@admin_or_higher(message="admin role is required for vehicle admin workspace")
 def vehicle_list():
     """Vehicle family card grid — admin vehicle builder landing page."""
     families = get_builder_catalog()
@@ -71,6 +80,7 @@ def vehicle_list():
 
 
 @vehicle_bp.get("/vehicles/<classname>")
+@admin_or_higher(message="admin role is required for vehicle admin workspace")
 def vehicle_builder(classname: str):
     """Single vehicle builder page — color + slot card selectors."""
     payload = get_builder_payload(classname)
