@@ -48,6 +48,15 @@ Relevant local validation commands:
 - `python -m unittest tests.test_web_visual_foundation_slice_a tests.test_catalog_thumbnail_workflow_slice_b`
 - `git diff --check`
 
+### Local release acceptance gate
+
+From PowerShell, run `.\scripts\local_acceptance.ps1`. The command validates
+the Compose configuration, starts the existing PostgreSQL service without
+resetting its volume, waits for readiness, runs harness and schema smoke checks,
+and runs the broad web regression suite. It exits nonzero on any failure and
+leaves the database service running for inspection; use `docker compose down`
+when finished.
+
 ### Notes
 
 - This Phase 1 baseline does not change vehicle compatibility approvals.
