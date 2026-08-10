@@ -6,6 +6,9 @@
   <p class="page-subtitle">Local admin inspection for virtual-credit balances and append-only ledger history.</p>
   <p class="notice-banner notice-neutral">{{ auth_notice }}</p>
   <p class="notice-banner notice-neutral">{{ capability_notice }}</p>
+  {% if not is_admin_actor %}
+  <p class="notice-banner notice-warn">Read-only mode. Use <code>?as_role=admin</code> (local-safe only) for mutation controls.</p>
+  {% endif %}
   {% if admin_message %}
   <p class="notice-banner notice-ok">{{ admin_message }}</p>
   {% endif %}
@@ -16,6 +19,7 @@
 
 <section class="panel">
   <form method="get" action="/wallet/admin" class="filters" aria-label="Wallet owner filters">
+    <input type="hidden" name="as_role" value="{{ as_role }}">
     <input type="text" name="q" value="{{ query }}" placeholder="Search owner id or label" aria-label="Search owner id or label">
     <select name="limit" aria-label="Wallet owner row limit">
       <option value="25" {{ 'selected' if limit == 25 else '' }}>25 rows</option>
@@ -49,7 +53,7 @@
         <td><span class="status-pill {{ 'status-ok' if owner.balance_minor >= 0 else 'status-error' }}">{{ owner.balance_minor }}</span></td>
         <td>{{ owner.transaction_count }}</td>
         <td>{{ owner.latest_activity or 'none' }}</td>
-        <td><a class="action-link" href="/wallet/admin/{{ owner.owner_id }}">Open wallet</a></td>
+        <td><a class="action-link" href="/wallet/admin/{{ owner.owner_id }}?as_role={{ as_role }}">Open wallet</a></td>
       </tr>
       {% else %}
       <tr>
@@ -60,10 +64,10 @@
   </table>
   <div class="inline-nav" aria-label="Wallet owner pagination">
     {% if page > 1 %}
-      <a href="?q={{ query }}&limit={{ limit }}&page={{ page - 1 }}">Prev</a>
+      <a href="?q={{ query|urlencode }}&limit={{ limit }}&page={{ page - 1 }}&as_role={{ as_role|urlencode }}">Prev</a>
     {% endif %}
     {% if has_next %}
-      <a href="?q={{ query }}&limit={{ limit }}&page={{ page + 1 }}">Next</a>
+      <a href="?q={{ query|urlencode }}&limit={{ limit }}&page={{ page + 1 }}&as_role={{ as_role|urlencode }}">Next</a>
     {% endif %}
   </div>
 </section>

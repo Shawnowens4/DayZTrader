@@ -326,6 +326,228 @@ class WalletLedgerServiceTests(unittest.TestCase):
         self.assertEqual(reconciliation["account_balance_minor"], 20)
         self.assertEqual(reconciliation["ledger_total_minor"], 20)
 
+    def test_wallet_summary_contains_totals_and_recent_reference(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=100,
+            reference_type="AUTO_TRADER_ORDER_DEBIT",
+            reference_id="order-01",
+            reason_code="TEST",
+            idempotency_key="summary-credit",
+        )
+        self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=40,
+            reference_type="TEST_DEBIT",
+            reference_id="debit-01",
+            reason_code="TEST",
+            idempotency_key="summary-debit",
+        )
+
+        summary = self.service.get_wallet_summary(self.owner_id)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary["balance_minor"], 60)
+        self.assertEqual(summary["total_credits_minor"], 100)
+        self.assertEqual(summary["total_debits_minor"], 40)
+        self.assertEqual(summary["ledger_net_minor"], 60)
+        self.assertIsNotNone(summary["recent_reference"])
+
+    def test_list_ledger_history_filters_and_ordering(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=20,
+            reference_type="FILTER",
+            reference_id="credit-a",
+            reason_code="TEST",
+            idempotency_key="filter-credit-a",
+        )
+        self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=5,
+            reference_type="FILTER",
+            reference_id="debit-a",
+            reason_code="TEST",
+            idempotency_key="filter-debit-a",
+        )
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=30,
+            reference_type="AUTO_TRADER_ORDER_DEBIT",
+            reference_id="credit-b",
+            reason_code="TEST",
+            idempotency_key="filter-credit-b",
+            metadata={"order_id": 77},
+        )
+
+        all_rows = self.service.list_ledger_history(self.owner_id, limit=10, offset=0)
+        credit_rows = self.service.list_ledger_history(self.owner_id, direction="credit", limit=10, offset=0)
+        searched_rows = self.service.list_ledger_history(self.owner_id, reference_query="credit-b", limit=10, offset=0)
+        paged_rows = self.service.list_ledger_history(self.owner_id, limit=1, offset=1)
+
+        self.assertGreaterEqual(len(all_rows), 3)
+        self.assertTrue(all_rows[0]["id"] > all_rows[1]["id"])
+        self.assertTrue(all(row["signed_amount"] > 0 for row in credit_rows))
+        self.assertEqual(len(searched_rows), 1)
+        self.assertEqual(searched_rows[0]["reference_id"], "credit-b")
+        self.assertEqual(len(paged_rows), 1)
+
+    def test_create_authorized_entry_idempotency_and_funds_guards(self) -> None:
+        first = self.service.create_authorized_entry(
+            owner_id=self.owner_id,
+            operation="credit",
+            amount_minor=55,
+            reason_text="grant",
+            actor_id="local_admin",
+            idempotency_key="authorized-credit-001",
+            reference_id="authorized-credit-001",
+        )
+        duplicate = self.service.create_authorized_entry(
+            owner_id=self.owner_id,
+            operation="credit",
+            amount_minor=55,
+            reason_text="grant",
+            actor_id="local_admin",
+            idempotency_key="authorized-credit-001",
+            reference_id="authorized-credit-001",
+        )
+
+        self.assertTrue(first.applied)
+        self.assertTrue(duplicate.idempotent)
+        self.assertEqual(self.service.get_balance(self.owner_id), 55)
+
+        with self.assertRaises(InsufficientFundsError):
+            self.service.create_authorized_entry(
+                owner_id=self.owner_id,
+                operation="debit",
+                amount_minor=500,
+                reason_text="too much",
+                actor_id="local_admin",
+                idempotency_key="authorized-debit-001",
+            )
+
+    def test_reverse_entry_duplicate_guardrails_and_idempotency(self) -> None:
+        credit = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=80,
+            reference_type="TEST_CREDIT",
+            reference_id="rev-src-1",
+            reason_code="TEST",
+            idempotency_key="rev-src-1",
+        )
+
+        first = self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=credit.ledger_id,
+            transaction_type="REVERSAL",
+            idempotency_key="rev-entry-001",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="reverse once",
+        )
+        repeat_same_key = self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=credit.ledger_id,
+            transaction_type="REVERSAL",
+            idempotency_key="rev-entry-001",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="reverse once",
+        )
+
+        self.assertTrue(first.applied)
+        self.assertTrue(repeat_same_key.idempotent)
+
+        with self.assertRaises(InvalidAmountError):
+            self.service.reverse_entry(
+                owner_id=self.owner_id,
+                original_ledger_id=credit.ledger_id,
+                transaction_type="REVERSAL",
+                idempotency_key="rev-entry-002",
+                actor_id="local_admin",
+                actor_source="local_admin",
+                reason_text="duplicate reversal attempt",
+            )
+
+    def test_reverse_entry_metadata_contains_original_lineage(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=15,
+            reference_type="TEST_CREDIT",
+            reference_id="lineage-funding",
+            reason_code="TEST",
+            idempotency_key="lineage-funding",
+        )
+        debit = self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=15,
+            reference_type="AUTO_TRADER_ORDER_DEBIT",
+            reference_id="order-989",
+            reason_code="TEST",
+            idempotency_key="lineage-src-debit",
+        )
+        refund = self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=debit.ledger_id,
+            transaction_type="REFUND",
+            idempotency_key="lineage-refund-001",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="refund with lineage",
+        )
+
+        entry = self.service.get_ledger_entry(self.owner_id, refund.ledger_id)
+        self.assertIsNotNone(entry)
+        metadata = entry["metadata"]
+        self.assertEqual(metadata["original_ledger_id"], debit.ledger_id)
+        self.assertEqual(metadata["original_reference_type"], "AUTO_TRADER_ORDER_DEBIT")
+        self.assertEqual(metadata["original_reference_id"], "order-989")
+
+    def test_list_ledger_history_status_and_date_filters(self) -> None:
+        first = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=40,
+            reference_type="TEST_CREDIT",
+            reference_id="status-a",
+            reason_code="TEST",
+            idempotency_key="status-a",
+        )
+        second = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=30,
+            reference_type="TEST_CREDIT",
+            reference_id="status-b",
+            reason_code="TEST",
+            idempotency_key="status-b",
+        )
+        self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=first.ledger_id,
+            transaction_type="REVERSAL",
+            idempotency_key="status-reversal",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="correct status a",
+        )
+
+        corrected = self.service.list_ledger_history(self.owner_id, status="corrected", limit=50)
+        corrections = self.service.list_ledger_history(self.owner_id, status="correction", limit=50)
+        posted = self.service.list_ledger_history(self.owner_id, status="posted", limit=50)
+        date_filtered = self.service.list_ledger_history(
+            self.owner_id,
+            created_after="2000-01-01T00:00:00Z",
+            created_before="2100-01-01T00:00:00Z",
+            limit=50,
+        )
+
+        self.assertTrue(any(row["id"] == first.ledger_id for row in corrected))
+        self.assertTrue(all(row["entry_type"] in {"REVERSAL", "REFUND"} for row in corrections))
+        self.assertTrue(any(row["id"] == second.ledger_id for row in posted))
+        self.assertGreaterEqual(len(date_filtered), 3)
+
+        with self.assertRaises(InvalidAmountError):
+            self.service.list_ledger_history(self.owner_id, created_after="not-a-datetime", limit=10)
+
 
 if __name__ == "__main__":
     unittest.main()

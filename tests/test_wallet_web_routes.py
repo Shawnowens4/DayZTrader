@@ -58,6 +58,78 @@ class WalletWebRoutesTests(unittest.TestCase):
         self.service.ensure_wallet_owner(self.owner_id, display_name="WalletWebUser", owner_kind="LOCAL_PLAYER")
         self.admin_headers = {"X-DXEMB-ROLE": "admin", "X-DXEMB-ACTOR-ID": "local_admin"}
 
+    def test_player_wallet_page_requires_identity_and_renders_history(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=120,
+            reference_type="AUTO_TRADER_ORDER_DEBIT",
+            reference_id="order-1",
+            reason_code="TEST",
+            idempotency_key="wallet-player-credit-1",
+            metadata={"order_id": 42},
+        )
+        missing = self.client.get("/wallet/me")
+        mismatch = self.client.get(
+            f"/wallet/me?discord_user_id={self.owner_id}",
+            headers={"X-DXEMB-PLAYER-ID": "local:other"},
+        )
+        ok = self.client.get(
+            f"/wallet/me?discord_user_id={self.owner_id}&direction=all&limit=25",
+            headers={"X-DXEMB-PLAYER-ID": self.owner_id},
+        )
+
+        self.assertEqual(missing.status_code, 401)
+        self.assertIn("player identity is required", missing.get_data(as_text=True))
+        self.assertEqual(mismatch.status_code, 403)
+        body = ok.get_data(as_text=True)
+        self.assertEqual(ok.status_code, 200)
+        self.assertIn("My Wallet", body)
+        self.assertIn(self.owner_id, body)
+        self.assertIn("Available balance", body)
+        self.assertIn("AUTO_TRADER_ORDER_DEBIT", body)
+        self.assertIn("wallet-player-credit-1", body)
+        self.assertIn("Auto-Trader", body)
+        self.assertIn("order #42", body)
+
+    def test_player_wallet_filter_errors_and_status_filters(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=35,
+            reference_type="TEST_CREDIT",
+            reference_id="status-1",
+            reason_code="TEST",
+            idempotency_key="status-1",
+        )
+        bad = self.client.get(
+            f"/wallet/me?discord_user_id={self.owner_id}&created_after=bad-date",
+            headers={"X-DXEMB-PLAYER-ID": self.owner_id},
+        )
+        filtered = self.client.get(
+            f"/wallet/me?discord_user_id={self.owner_id}&status=posted&direction=credit",
+            headers={"X-DXEMB-PLAYER-ID": self.owner_id},
+        )
+
+        self.assertEqual(bad.status_code, 400)
+        self.assertIn("created_after must be an ISO datetime", bad.get_data(as_text=True))
+        self.assertEqual(filtered.status_code, 200)
+        self.assertIn("posted", filtered.get_data(as_text=True))
+
+    def test_player_wallet_limit_and_page_invalid_values_fallback(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=10,
+            reference_type="TEST_CREDIT",
+            reference_id="bad-pagination-fallback",
+            reason_code="TEST",
+            idempotency_key="bad-pagination-fallback",
+        )
+        response = self.client.get(
+            f"/wallet/me?discord_user_id={self.owner_id}&limit=abc&page=xyz",
+            headers={"X-DXEMB-PLAYER-ID": self.owner_id},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Transaction History", response.get_data(as_text=True))
+
     def test_admin_adjust_requires_admin_role(self) -> None:
         blocked = self.client.post(
             f"/wallet/admin/{self.owner_id}/adjust",
@@ -81,7 +153,6 @@ class WalletWebRoutesTests(unittest.TestCase):
         blocked = self.client.get(f"/wallet/admin/{self.owner_id}")
         self.assertEqual(blocked.status_code, 403)
         self.assertIn("admin role is required", blocked.get_data(as_text=True))
-
 
     def test_admin_route_rendering_and_bounded_history(self) -> None:
         for idx in range(30):
@@ -109,8 +180,7 @@ class WalletWebRoutesTests(unittest.TestCase):
         bad = self.client.post(
             f"/wallet/admin/{self.owner_id}/adjust",
             data={
-                "entry_mode": "adjustment",
-                "direction": "credit",
+                "entry_mode": "credit",
                 "amount_minor": "50",
                 "idempotency_key": "wallet-route-001",
                 "actor_id": "local_admin",
@@ -128,8 +198,7 @@ class WalletWebRoutesTests(unittest.TestCase):
         ok = self.client.post(
             f"/wallet/admin/{self.owner_id}/adjust",
             data={
-                "entry_mode": "adjustment",
-                "direction": "credit",
+                "entry_mode": "credit",
                 "amount_minor": "50",
                 "idempotency_key": "wallet-route-001",
                 "actor_id": "local_admin",
@@ -144,8 +213,86 @@ class WalletWebRoutesTests(unittest.TestCase):
         )
         body = ok.get_data(as_text=True)
         self.assertEqual(ok.status_code, 200)
-        self.assertIn("Posted wallet entry ADMIN_ADJUSTMENT +50", body)
+        self.assertIn("Posted wallet entry CREDIT +50", body)
         self.assertEqual(self.service.get_balance(self.owner_id), 50)
+
+        dup = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "credit",
+                "amount_minor": "50",
+                "idempotency_key": "wallet-route-001",
+                "actor_id": "local_admin",
+                "reason_text": "manual credit",
+                "metadata_json": '{"ticket":"route-1"}',
+                "confirmation": "APPLY +50",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            follow_redirects=True,
+            headers=self.admin_headers,
+        )
+        self.assertEqual(dup.status_code, 200)
+        self.assertIn("reused existing idempotency key", dup.get_data(as_text=True))
+        self.assertEqual(self.service.get_balance(self.owner_id), 50)
+
+    def test_admin_adjust_redirect_preserves_filters(self) -> None:
+        response = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "credit",
+                "amount_minor": "25",
+                "idempotency_key": "wallet-route-filters-001",
+                "actor_id": "local_admin",
+                "reason_text": "credit with filter state",
+                "metadata_json": '{"note":"contains ampersand & symbol"}',
+                "confirmation": "APPLY +25",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+                "page": "2",
+                "limit": "50",
+                "direction": "credit",
+                "status": "posted",
+                "entry_type": "CREDIT",
+                "reference_query": "order & refund",
+                "created_after": "2000-01-01T00:00:00Z",
+                "created_before": "2100-01-01T00:00:00Z",
+                "as_role": "admin",
+            },
+            headers=self.admin_headers,
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        location = response.headers.get("Location", "")
+        self.assertIn("page=2", location)
+        self.assertIn("limit=50", location)
+        self.assertIn("direction=credit", location)
+        self.assertIn("status=posted", location)
+        self.assertIn("entry_type=CREDIT", location)
+        self.assertIn("reference_query=order+%26+refund", location)
+        self.assertIn("created_after=2000-01-01T00%3A00%3A00Z", location)
+        self.assertIn("created_before=2100-01-01T00%3A00%3A00Z", location)
+
+    def test_admin_debit_insufficient_funds_rejected(self) -> None:
+        response = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "debit",
+                "amount_minor": "20",
+                "idempotency_key": "wallet-route-insufficient",
+                "actor_id": "local_admin",
+                "reason_text": "manual debit",
+                "metadata_json": '{}',
+                "confirmation": "APPLY -20",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            headers=self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("insufficient funds", response.get_data(as_text=True))
 
     def test_reversal_and_refund_routes(self) -> None:
         credit = self.service.credit(
@@ -210,6 +357,81 @@ class WalletWebRoutesTests(unittest.TestCase):
         self.assertEqual(refund.status_code, 200)
         self.assertIn("REVERSAL -60", reversal.get_data(as_text=True))
         self.assertIn("REFUND +20", refund.get_data(as_text=True))
+        self.assertIn("original ledger", reversal.get_data(as_text=True))
+
+    def test_duplicate_reversal_guardrail_feedback(self) -> None:
+        credit = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=45,
+            reference_type="TEST_CREDIT",
+            reference_id="dup-rev-credit",
+            reason_code="TEST",
+            idempotency_key="dup-rev-credit",
+        )
+
+        first = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "reversal",
+                "original_ledger_id": str(credit.ledger_id),
+                "idempotency_key": "dup-rev-001",
+                "actor_id": "local_admin",
+                "reason_text": "reverse once",
+                "metadata_json": '{}',
+                "confirmation": "APPLY -45",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            follow_redirects=True,
+            headers=self.admin_headers,
+        )
+        duplicate = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "reversal",
+                "original_ledger_id": str(credit.ledger_id),
+                "idempotency_key": "dup-rev-002",
+                "actor_id": "local_admin",
+                "reason_text": "reverse twice",
+                "metadata_json": '{}',
+                "confirmation": "APPLY -45",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            headers=self.admin_headers,
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(duplicate.status_code, 400)
+        self.assertIn("already exists", duplicate.get_data(as_text=True))
+
+    def test_admin_adjust_actor_header_mismatch_rejected(self) -> None:
+        response = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "credit",
+                "amount_minor": "10",
+                "idempotency_key": "wallet-route-actor-mismatch",
+                "actor_id": "other_actor",
+                "reason_text": "actor mismatch",
+                "metadata_json": '{}',
+                "confirmation": "APPLY +10",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            headers={"X-DXEMB-ROLE": "admin", "X-DXEMB-ACTOR-ID": "local_admin"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("must match X-DXEMB-ACTOR-ID", response.get_data(as_text=True))
+
+    def test_wallet_preview_rejects_non_integer_amount(self) -> None:
+        response = self.client.post(
+            f"/wallet/{self.owner_id}/preview",
+            json={"operation": "credit", "amount": "not-an-int"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("amount must be an integer", response.get_data(as_text=True))
 
     def test_existing_and_neighboring_routes_remain_intact(self) -> None:
         self.service.credit(
@@ -223,6 +445,7 @@ class WalletWebRoutesTests(unittest.TestCase):
         paths = [
             f"/wallet/{self.owner_id}",
             f"/wallet/{self.owner_id}/ledger?limit=10",
+            f"/wallet/me?discord_user_id={self.owner_id}",
             "/catalog",
             "/catalog/admin",
             "/vehicles",

@@ -23,6 +23,7 @@ from shared.market_escrow_service import MarketEscrowService
 from shared.mission_bounty_service import MissionBountyService
 from shared.delivery_scheduler_service import NitradoDeliverySchedulerService
 from shared.task_achievement_service import TaskAchievementService
+from shared.wallet_ledger_service import InvalidAmountError
 from shared.wallet_ledger_service import WalletLedgerService
 
 try:
@@ -97,6 +98,47 @@ def _mission_service() -> MissionBountyService:
     return MissionBountyService(database_url=os.getenv("DATABASE_URL"))
 
 
+def _resolve_local_player_identity() -> tuple[str | None, str | None, int]:
+    identity = get_resolved_identity()
+    if not identity.player_id:
+        return None, "player identity is required via X-DXEMB-PLAYER-ID or discord_user_id", 401
+    return identity.player_id, None, 200
+
+
+def _parse_bounded_int(raw_value: str | None, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int((raw_value or "").strip() or str(default))
+    except ValueError:
+        return default
+    return max(minimum, min(parsed, maximum))
+
+
+def _normalize_choice(raw_value: str | None, *, allowed: set[str], default: str) -> str:
+    candidate = (raw_value or "").strip()
+    return candidate if candidate in allowed else default
+
+
+def _wallet_auth_error_response(message: str, status_code: int):
+    return (
+        render_template(
+            "wallet_player.html",
+            auth_error=message,
+            owner=None,
+            history=[],
+            page=1,
+            limit=25,
+            has_next=False,
+            direction="all",
+            status="all",
+            entry_type="",
+            reference_query="",
+            created_after="",
+            created_before="",
+        ),
+        status_code,
+    )
+
+
 # ------------------------------------------------------------------
 # DB helper — synchronous psycopg2 (Flask is sync; asyncpg is bot-only)
 # ------------------------------------------------------------------
@@ -144,7 +186,7 @@ def wallet_balance(discord_user_id: str):
 
 @app.get("/wallet/<discord_user_id>/ledger")
 def wallet_ledger(discord_user_id: str):
-    limit = max(1, min(int(request.args.get("limit", "25") or "25"), 200))
+    limit = _parse_bounded_int(request.args.get("limit"), default=25, minimum=1, maximum=200)
     service = _wallet_service()
     rows = service.list_ledger_entries(discord_user_id=discord_user_id, limit=limit)
     return jsonify(
@@ -161,7 +203,10 @@ def wallet_ledger(discord_user_id: str):
 def wallet_preview(discord_user_id: str):
     payload = request.get_json(silent=True) or {}
     operation = (payload.get("operation") or "").strip().lower()
-    amount = int(payload.get("amount") or 0)
+    try:
+        amount = int(payload.get("amount") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "amount must be an integer"}), 400
     service = _wallet_service()
 
     if amount <= 0:
@@ -206,6 +251,76 @@ def wallet_adjust_disabled(discord_user_id: str):
             }
         ),
         403,
+    )
+
+
+@app.get("/wallet/me")
+@authenticated_player(on_fail=_wallet_auth_error_response)
+def wallet_me():
+    owner_id = get_resolved_identity().player_id or ""
+
+    service = _wallet_service()
+    owner = service.get_wallet_summary(owner_id)
+    if owner is None:
+        service.ensure_wallet_owner(owner_id=owner_id, display_name=owner_id, owner_kind="LOCAL_PLAYER")
+        owner = service.get_wallet_summary(owner_id)
+
+    page = _parse_bounded_int(request.args.get("page"), default=1, minimum=1, maximum=100000)
+    limit = _parse_bounded_int(request.args.get("limit"), default=25, minimum=1, maximum=50)
+    direction = (request.args.get("direction", "all") or "all").strip().lower()
+    status = (request.args.get("status", "all") or "all").strip().lower()
+    entry_type = (request.args.get("entry_type", "") or "").strip().upper()
+    reference_query = (request.args.get("reference_query", "") or "").strip()
+    created_after = (request.args.get("created_after", "") or "").strip()
+    created_before = (request.args.get("created_before", "") or "").strip()
+
+    try:
+        history = service.list_ledger_history(
+            owner_id,
+            limit=limit + 1,
+            offset=(page - 1) * limit,
+            direction=direction,
+            status=status,
+            entry_type=entry_type or None,
+            reference_query=reference_query,
+            created_after=created_after,
+            created_before=created_before,
+        )
+    except InvalidAmountError as exc:
+        return (
+            render_template(
+                "wallet_player.html",
+                auth_error=str(exc),
+                owner=owner,
+                history=[],
+                page=1,
+                limit=limit,
+                has_next=False,
+                direction=direction,
+                status=status,
+                entry_type=entry_type,
+                reference_query=reference_query,
+                created_after=created_after,
+                created_before=created_before,
+            ),
+            400,
+        )
+    has_next = len(history) > limit
+
+    return render_template(
+        "wallet_player.html",
+        auth_error="",
+        owner=owner,
+        history=history[:limit],
+        page=page,
+        limit=limit,
+        has_next=has_next,
+        direction=direction,
+        status=status,
+        entry_type=entry_type,
+        reference_query=reference_query,
+        created_after=created_after,
+        created_before=created_before,
     )
 
 

@@ -10,6 +10,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import uuid
+from datetime import datetime
+from datetime import timezone
 from dataclasses import dataclass
 from typing import Any
 
@@ -191,6 +194,56 @@ class WalletLedgerService:
             "latest_activity": row[8],
         }
 
+    def get_wallet_summary(self, owner_id: str) -> dict[str, Any] | None:
+        owner = self.get_wallet_owner(owner_id)
+        if owner is None:
+            return None
+
+        normalized_owner_id = self._normalize_owner_id(owner_id)
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        COALESCE(SUM(CASE WHEN signed_amount > 0 THEN signed_amount ELSE 0 END), 0),
+                        COALESCE(ABS(SUM(CASE WHEN signed_amount < 0 THEN signed_amount ELSE 0 END)), 0),
+                        COALESCE(SUM(signed_amount), 0),
+                        COALESCE(MAX(created_at), NULL)
+                    FROM wallet_ledger
+                    WHERE discord_user_id = %s
+                    """,
+                    (normalized_owner_id,),
+                )
+                totals = cur.fetchone()
+
+                cur.execute(
+                    """
+                    SELECT reference_type, reference_id, entry_type, created_at
+                    FROM wallet_ledger
+                    WHERE discord_user_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1
+                    """,
+                    (normalized_owner_id,),
+                )
+                latest = cur.fetchone()
+
+        owner["total_credits_minor"] = int(totals[0])
+        owner["total_debits_minor"] = int(totals[1])
+        owner["ledger_net_minor"] = int(totals[2])
+        owner["last_ledger_at"] = totals[3]
+        owner["recent_reference"] = (
+            {
+                "reference_type": latest[0],
+                "reference_id": latest[1],
+                "entry_type": latest[2],
+                "created_at": latest[3],
+            }
+            if latest
+            else None
+        )
+        return owner
+
     def list_wallet_owners(self, query: str = "", limit: int = 25, offset: int = 0) -> list[dict[str, Any]]:
         safe_limit = max(1, min(limit, 50))
         safe_offset = max(0, offset)
@@ -342,12 +395,13 @@ class WalletLedgerService:
         normalized_transaction_type = transaction_type.strip().upper()
         if normalized_transaction_type not in {"REVERSAL", "REFUND"}:
             raise InvalidAmountError("transaction_type must be REVERSAL or REFUND")
+        normalized_idempotency_key = self._normalize_required_text(idempotency_key, "idempotency_key")
 
         with self._connect() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT signed_amount, reference_type, reference_id
+                    SELECT id, signed_amount, reference_type, reference_id, entry_type
                     FROM wallet_ledger
                     WHERE id = %s AND discord_user_id = %s
                     LIMIT 1
@@ -358,7 +412,70 @@ class WalletLedgerService:
                 if not row:
                     raise InvalidOwnerError("original ledger entry not found for owner")
 
-        signed_amount = -int(row[0])
+                original_entry_type = (row[4] or "").strip().upper()
+                if original_entry_type in {"REVERSAL", "REFUND"}:
+                    raise InvalidAmountError("cannot reverse a correction entry")
+
+                cur.execute(
+                    """
+                    SELECT
+                        id,
+                        entry_type,
+                        amount,
+                        signed_amount,
+                        balance_before,
+                        balance_after,
+                        idempotency_key,
+                        actor_discord_id,
+                        actor_source,
+                        reason_code,
+                        reason_text,
+                        reference_type,
+                        reference_id
+                    FROM wallet_ledger
+                    WHERE discord_user_id = %s
+                      AND reference_type IN ('REVERSAL', 'REFUND')
+                      AND reference_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1
+                    """,
+                    (normalized_owner_id, str(original_ledger_id)),
+                )
+                existing_correction = cur.fetchone()
+
+                if existing_correction:
+                    existing_type = (existing_correction[1] or "").strip().upper()
+                    existing_idempotency = existing_correction[6]
+                    if existing_idempotency == normalized_idempotency_key:
+                        return LedgerResult(
+                            ledger_id=int(existing_correction[0]),
+                            owner_id=normalized_owner_id,
+                            entry_type=existing_type,
+                            amount=int(existing_correction[2]),
+                            signed_amount=int(existing_correction[3]),
+                            balance_before=int(existing_correction[4]),
+                            balance_after=int(existing_correction[5]),
+                            reference_type=existing_correction[11],
+                            reference_id=existing_correction[12],
+                            idempotency_key=existing_idempotency,
+                            actor_id=existing_correction[7] or "system:local",
+                            actor_source=existing_correction[8],
+                            reason_code=existing_correction[9],
+                            reason_text=existing_correction[10],
+                            applied=False,
+                            idempotent=True,
+                        )
+
+                    if existing_type == normalized_transaction_type:
+                        raise InvalidAmountError(
+                            f"a {existing_type} already exists for ledger entry {original_ledger_id}"
+                        )
+
+                    raise InvalidAmountError(
+                        f"ledger entry {original_ledger_id} already has correction type {existing_type}"
+                    )
+
+        signed_amount = -int(row[1])
         return self._apply_entry(
             owner_id=normalized_owner_id,
             entry_type=normalized_transaction_type,
@@ -369,60 +486,176 @@ class WalletLedgerService:
             reason_text=reason_text,
             actor_id=actor_id,
             actor_source=actor_source,
-            idempotency_key=idempotency_key,
+            idempotency_key=normalized_idempotency_key,
             metadata={
                 **(metadata or {}),
                 "original_ledger_id": original_ledger_id,
-                "original_reference_type": row[1],
-                "original_reference_id": row[2],
+                "original_reference_type": row[2],
+                "original_reference_id": row[3],
+                "original_entry_type": row[4],
             },
         )
 
-    def list_ledger_entries(self, discord_user_id: str, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    def list_ledger_history(
+        self,
+        owner_id: str,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        entry_type: str | None = None,
+        direction: str = "all",
+        status: str = "all",
+        reference_query: str = "",
+        created_after: str = "",
+        created_before: str = "",
+    ) -> list[dict[str, Any]]:
         safe_limit = max(1, min(limit, 500))
         safe_offset = max(0, offset)
-        normalized_owner_id = self._normalize_owner_id(discord_user_id)
+        normalized_owner_id = self._normalize_owner_id(owner_id)
+
+        conditions = ["wl.discord_user_id = %s"]
+        params: list[Any] = [normalized_owner_id]
+
+        normalized_direction = (direction or "all").strip().lower()
+        if normalized_direction not in {"all", "credit", "debit"}:
+            raise InvalidAmountError("direction must be one of all, credit, debit")
+        if normalized_direction == "credit":
+            conditions.append("wl.signed_amount > 0")
+        elif normalized_direction == "debit":
+            conditions.append("wl.signed_amount < 0")
+
+        normalized_status = (status or "all").strip().lower()
+        if normalized_status not in {"all", "posted", "corrected", "correction"}:
+            raise InvalidAmountError("status must be one of all, posted, corrected, correction")
+        if normalized_status == "correction":
+            conditions.append("wl.entry_type IN ('REVERSAL', 'REFUND')")
+        elif normalized_status == "corrected":
+            conditions.append("wl.entry_type NOT IN ('REVERSAL', 'REFUND')")
+            conditions.append(
+                "EXISTS (SELECT 1 FROM wallet_ledger corr WHERE corr.discord_user_id = wl.discord_user_id "
+                "AND corr.reference_type IN ('REVERSAL', 'REFUND') AND corr.reference_id = wl.id::text)"
+            )
+        elif normalized_status == "posted":
+            conditions.append("wl.entry_type NOT IN ('REVERSAL', 'REFUND')")
+            conditions.append(
+                "NOT EXISTS (SELECT 1 FROM wallet_ledger corr WHERE corr.discord_user_id = wl.discord_user_id "
+                "AND corr.reference_type IN ('REVERSAL', 'REFUND') AND corr.reference_id = wl.id::text)"
+            )
+
+        normalized_entry_type = (entry_type or "").strip().upper()
+        if normalized_entry_type:
+            if normalized_entry_type not in ENTRY_TYPES | {"HOLD", "RELEASE"}:
+                raise InvalidAmountError("unsupported transaction type filter")
+            conditions.append("wl.entry_type = %s")
+            params.append(normalized_entry_type)
+
+        normalized_created_after = self._parse_optional_datetime(created_after, "created_after")
+        if normalized_created_after:
+            conditions.append("wl.created_at >= %s")
+            params.append(normalized_created_after)
+
+        normalized_created_before = self._parse_optional_datetime(created_before, "created_before")
+        if normalized_created_before:
+            conditions.append("wl.created_at <= %s")
+            params.append(normalized_created_before)
+
+        reference_filter = (reference_query or "").strip()
+        if reference_filter:
+            like = f"%{reference_filter}%"
+            conditions.append(
+                "(wl.reference_type ILIKE %s OR wl.reference_id ILIKE %s OR wl.idempotency_key ILIKE %s OR COALESCE(wl.reason_text, '') ILIKE %s)"
+            )
+            params.extend([like, like, like, like])
+
+        where_clause = " AND ".join(conditions)
 
         with self._connect() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """
+                    f"""
                     SELECT
-                        id,
-                        discord_user_id,
-                        entry_type,
-                        amount,
-                        signed_amount,
-                        balance_before,
-                        balance_after,
-                        reference_type,
-                        reference_id,
-                        idempotency_key,
-                        reason_code,
-                        reason_text,
-                        actor_discord_id,
-                        actor_source,
-                        metadata,
-                        created_at
-                    FROM wallet_ledger
-                    WHERE discord_user_id = %s
-                    ORDER BY created_at DESC, id DESC
+                        wl.id,
+                        wl.discord_user_id,
+                        wl.entry_type,
+                        wl.amount,
+                        wl.signed_amount,
+                        wl.balance_before,
+                        wl.balance_after,
+                        wl.reference_type,
+                        wl.reference_id,
+                        wl.idempotency_key,
+                        wl.reason_code,
+                        wl.reason_text,
+                        wl.actor_discord_id,
+                        wl.actor_source,
+                        wl.metadata,
+                        wl.created_at
+                    FROM wallet_ledger wl
+                    WHERE {where_clause}
+                    ORDER BY wl.created_at DESC, wl.id DESC
                     LIMIT %s OFFSET %s
                     """,
-                    (normalized_owner_id, safe_limit, safe_offset),
+                    (*params, safe_limit, safe_offset),
                 )
                 rows = cur.fetchall()
 
+                row_ids = [int(row[0]) for row in rows]
+                corrected_by: dict[int, list[dict[str, Any]]] = {}
+                if row_ids:
+                    cur.execute(
+                        """
+                        SELECT
+                            id,
+                            entry_type,
+                            reference_id,
+                            idempotency_key,
+                            created_at
+                        FROM wallet_ledger
+                        WHERE discord_user_id = %s
+                          AND reference_type IN ('REVERSAL', 'REFUND')
+                          AND reference_id = ANY(%s)
+                        ORDER BY created_at DESC, id DESC
+                        """,
+                        (normalized_owner_id, [str(v) for v in row_ids]),
+                    )
+                    for corr in cur.fetchall():
+                        original_id = int(corr[2])
+                        corrected_by.setdefault(original_id, []).append(
+                            {
+                                "ledger_id": int(corr[0]),
+                                "entry_type": corr[1],
+                                "idempotency_key": corr[3],
+                                "created_at": corr[4],
+                            }
+                        )
+
         out: list[dict[str, Any]] = []
         for row in rows:
+            entry_id = int(row[0])
+            entry_type_value = row[2]
+            signed_minor = int(row[4])
+            is_correction = entry_type_value in {"REVERSAL", "REFUND"}
+            original_ledger_id = self._extract_original_ledger_id(
+                reference_type=row[7],
+                reference_id=row[8],
+                metadata=row[14],
+            )
+            row_corrected_by = corrected_by.get(entry_id, [])
+            if is_correction:
+                normalized_status_value = "correction"
+            elif row_corrected_by:
+                normalized_status_value = "corrected"
+            else:
+                normalized_status_value = "posted"
+
             out.append(
                 {
-                    "id": row[0],
+                    "id": entry_id,
                     "discord_user_id": row[1],
-                    "entry_type": row[2],
+                    "entry_type": entry_type_value,
                     "amount": int(row[3]),
-                    "amount_minor": int(row[4]),
-                    "signed_amount": int(row[4]),
+                    "amount_minor": signed_minor,
+                    "signed_amount": signed_minor,
                     "balance_before": int(row[5]),
                     "balance_after": int(row[6]),
                     "balance_after_minor": int(row[6]),
@@ -435,10 +668,110 @@ class WalletLedgerService:
                     "actor_source": row[13],
                     "metadata": row[14],
                     "created_at": row[15],
+                    "direction": "credit" if signed_minor > 0 else "debit",
+                    "status": normalized_status_value,
+                    "display_type": self._display_entry_type(entry_type_value),
+                    "display_direction": "Credit" if signed_minor > 0 else "Debit",
+                    "display_reference": f"{row[7]}:{row[8]}",
+                    "original_ledger_id": original_ledger_id,
+                    "is_correction": is_correction,
+                    "corrected_by": row_corrected_by,
+                    "related_order_id": self._extract_related_order_id(row[14]),
+                    "trace_context": self._build_trace_context(
+                        entry_type=entry_type_value,
+                        reference_type=row[7],
+                        metadata=row[14],
+                        original_ledger_id=original_ledger_id,
+                        corrected_by=row_corrected_by,
+                    ),
                 }
             )
 
         return out
+
+    def list_ledger_entries(self, discord_user_id: str, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+        return self.list_ledger_history(
+            discord_user_id,
+            limit=limit,
+            offset=offset,
+            entry_type=None,
+            direction="all",
+            reference_query="",
+            status="all",
+            created_after="",
+            created_before="",
+        )
+
+    def create_authorized_entry(
+        self,
+        *,
+        owner_id: str,
+        operation: str,
+        amount_minor: int,
+        reason_text: str,
+        actor_id: str,
+        actor_source: str = "local_admin",
+        idempotency_key: str | None = None,
+        reference_id: str | None = None,
+        reason_code: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> LedgerResult:
+        normalized_operation = (operation or "").strip().lower()
+        normalized_reason_text = self._normalize_required_text(reason_text, "reason_text")
+        normalized_actor_id = self._normalize_required_text(actor_id, "actor_id")
+
+        if normalized_operation not in {"credit", "debit", "adjustment"}:
+            raise InvalidAmountError("operation must be one of credit, debit, adjustment")
+        if amount_minor == 0:
+            raise InvalidAmountError("amount_minor must not be zero")
+
+        amount = abs(int(amount_minor))
+        operation_ref = (
+            self._normalize_optional_text(reference_id)
+            or self._normalize_optional_text(idempotency_key)
+            or f"wallet-op-{uuid.uuid4().hex[:16]}"
+        )
+        operation_idempotency = self._normalize_optional_text(idempotency_key) or operation_ref
+
+        if normalized_operation == "credit":
+            return self.credit(
+                discord_user_id=owner_id,
+                amount=amount,
+                reference_type="ADMIN_CREDIT",
+                reference_id=operation_ref,
+                reason_code=reason_code or "ADMIN_CREDIT",
+                reason_text=normalized_reason_text,
+                actor_discord_id=normalized_actor_id,
+                actor_source=actor_source,
+                idempotency_key=operation_idempotency,
+                metadata=metadata,
+            )
+
+        if normalized_operation == "debit":
+            return self.debit(
+                discord_user_id=owner_id,
+                amount=amount,
+                reference_type="ADMIN_DEBIT",
+                reference_id=operation_ref,
+                reason_code=reason_code or "ADMIN_DEBIT",
+                reason_text=normalized_reason_text,
+                actor_discord_id=normalized_actor_id,
+                actor_source=actor_source,
+                idempotency_key=operation_idempotency,
+                metadata=metadata,
+            )
+
+        return self.admin_adjust(
+            discord_user_id=owner_id,
+            signed_amount=int(amount_minor),
+            reference_id=operation_ref,
+            reason_code=reason_code or "ADMIN_ADJUSTMENT",
+            reason_text=normalized_reason_text,
+            actor_discord_id=normalized_actor_id,
+            actor_source=actor_source,
+            idempotency_key=operation_idempotency,
+            metadata=metadata,
+        )
 
     def get_ledger_entry(self, owner_id: str, ledger_id: int) -> dict[str, Any] | None:
         normalized_owner_id = self._normalize_owner_id(owner_id)
@@ -779,3 +1112,83 @@ class WalletLedgerService:
             return out
 
         raise MetadataValidationError("metadata contains an unsupported value type")
+
+    def _parse_optional_datetime(self, value: str | None, field_name: str) -> datetime | None:
+        raw = (value or "").strip()
+        if not raw:
+            return None
+        normalized = raw.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise InvalidAmountError(f"{field_name} must be an ISO datetime") from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+
+    def _extract_original_ledger_id(self, *, reference_type: str, reference_id: str, metadata: Any) -> int | None:
+        if isinstance(metadata, dict):
+            value = metadata.get("original_ledger_id")
+            try:
+                if value is not None:
+                    return int(value)
+            except (TypeError, ValueError):
+                return None
+        if reference_type in {"REVERSAL", "REFUND"}:
+            try:
+                return int(reference_id)
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def _extract_related_order_id(self, metadata: Any) -> int | None:
+        if not isinstance(metadata, dict):
+            return None
+        value = metadata.get("order_id")
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _display_entry_type(self, entry_type: str) -> str:
+        names = {
+            "CREDIT": "Credit",
+            "DEBIT": "Debit",
+            "ADMIN_ADJUSTMENT": "Admin Adjustment",
+            "REVERSAL": "Reversal",
+            "REFUND": "Refund",
+            "HOLD": "Hold",
+            "RELEASE": "Release",
+        }
+        return names.get(entry_type, entry_type)
+
+    def _build_trace_context(
+        self,
+        *,
+        entry_type: str,
+        reference_type: str,
+        metadata: Any,
+        original_ledger_id: int | None,
+        corrected_by: list[dict[str, Any]],
+    ) -> str:
+        parts: list[str] = []
+        if reference_type.startswith("AUTO_TRADER_ORDER"):
+            parts.append("Auto-Trader")
+        elif reference_type.startswith("ADMIN_"):
+            parts.append("Admin operation")
+
+        order_id = self._extract_related_order_id(metadata)
+        if order_id is not None:
+            parts.append(f"order #{order_id}")
+
+        if original_ledger_id is not None:
+            parts.append(f"original ledger #{original_ledger_id}")
+
+        if corrected_by:
+            correction_labels = ", ".join(f"{c['entry_type']} #{c['ledger_id']}" for c in corrected_by)
+            parts.append(f"corrected by {correction_labels}")
+
+        if not parts and entry_type in {"REVERSAL", "REFUND"}:
+            parts.append("Ledger correction")
+
+        return " | ".join(parts)

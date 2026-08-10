@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}My Wallet - DXEMB{% endblock %}
+{% block content %}
+<section class="panel">
+  <p><a href="/">&larr; Back to dashboard</a> | <a href="/wallet/admin">Wallet admin workspace</a></p>
+  <h1 class="page-title">My Wallet</h1>
+  <p class="page-subtitle">Local-safe wallet view for virtual credits and ledger history.</p>
+  <p class="notice-banner notice-neutral">No production authentication is enabled yet. Provide local player identity using <code>X-DXEMB-PLAYER-ID</code> or <code>?discord_user_id=...</code>.</p>
+  {% if auth_error %}
+  <p class="notice-banner notice-error">{{ auth_error }}</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <form method="get" action="/wallet/me" class="filters" aria-label="Wallet identity and history filters">
+    <input type="text" name="discord_user_id" value="{{ owner.owner_id if owner else request.args.get('discord_user_id', '') }}" placeholder="local:player-001" aria-label="Player identity">
+    <select name="direction" aria-label="Direction filter">
+      <option value="all" {{ 'selected' if direction == 'all' else '' }}>All directions</option>
+      <option value="credit" {{ 'selected' if direction == 'credit' else '' }}>Credits only</option>
+      <option value="debit" {{ 'selected' if direction == 'debit' else '' }}>Debits only</option>
+    </select>
+    <select name="status" aria-label="Status filter">
+      <option value="all" {{ 'selected' if status == 'all' else '' }}>All status values</option>
+      <option value="posted" {{ 'selected' if status == 'posted' else '' }}>Posted only</option>
+      <option value="corrected" {{ 'selected' if status == 'corrected' else '' }}>Corrected originals</option>
+      <option value="correction" {{ 'selected' if status == 'correction' else '' }}>Corrections only</option>
+    </select>
+    <select name="entry_type" aria-label="Entry type filter">
+      <option value="" {{ 'selected' if not entry_type else '' }}>All entry types</option>
+      <option value="CREDIT" {{ 'selected' if entry_type == 'CREDIT' else '' }}>CREDIT</option>
+      <option value="DEBIT" {{ 'selected' if entry_type == 'DEBIT' else '' }}>DEBIT</option>
+      <option value="ADMIN_ADJUSTMENT" {{ 'selected' if entry_type == 'ADMIN_ADJUSTMENT' else '' }}>ADMIN_ADJUSTMENT</option>
+      <option value="REVERSAL" {{ 'selected' if entry_type == 'REVERSAL' else '' }}>REVERSAL</option>
+      <option value="REFUND" {{ 'selected' if entry_type == 'REFUND' else '' }}>REFUND</option>
+    </select>
+    <input type="text" name="reference_query" value="{{ reference_query }}" placeholder="Search reference or idempotency key" aria-label="Reference query">
+    <input type="text" name="created_after" value="{{ created_after }}" placeholder="Created after (ISO datetime)">
+    <input type="text" name="created_before" value="{{ created_before }}" placeholder="Created before (ISO datetime)">
+    <select name="limit" aria-label="Row limit">
+      <option value="10" {{ 'selected' if limit == 10 else '' }}>10 rows</option>
+      <option value="25" {{ 'selected' if limit == 25 else '' }}>25 rows</option>
+      <option value="50" {{ 'selected' if limit == 50 else '' }}>50 rows</option>
+    </select>
+    <button type="submit">View wallet</button>
+  </form>
+</section>
+
+{% if owner %}
+<section class="detail-grid">
+  <div class="panel">
+    <h2>Available Balance</h2>
+    <div class="row"><span class="label">Player</span><span class="val"><code>{{ owner.owner_id }}</code></span></div>
+    <div class="row"><span class="label">Units</span><span class="val">virtual credits (minor units)</span></div>
+    <div class="row"><span class="label">Available balance</span><span class="val">{{ owner.balance_minor }}</span></div>
+    <div class="row"><span class="label">Total credits</span><span class="val">{{ owner.total_credits_minor }}</span></div>
+    <div class="row"><span class="label">Total debits</span><span class="val">{{ owner.total_debits_minor }}</span></div>
+    <div class="row"><span class="label">Net ledger total</span><span class="val">{{ owner.ledger_net_minor }}</span></div>
+  </div>
+  <div class="panel">
+    <h2>Recent Activity</h2>
+    <div class="row"><span class="label">Transactions</span><span class="val">{{ owner.transaction_count }}</span></div>
+    <div class="row"><span class="label">Latest activity</span><span class="val">{{ owner.latest_activity or 'none' }}</span></div>
+    {% if owner.recent_reference %}
+    <div class="row"><span class="label">Latest reference</span><span class="val"><code>{{ owner.recent_reference.reference_type }}:{{ owner.recent_reference.reference_id }}</code></span></div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Transaction History</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Direction / Type</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Reference / Idempotency</th>
+        <th>Trace context</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in history %}
+      <tr>
+        <td><code>{{ row.id }}</code></td>
+        <td>
+          <span class="status-pill {{ 'status-ok' if row.signed_amount > 0 else 'status-error' }}">{{ row.direction|upper }}</span>
+          <div class="muted">{{ row.display_type }}</div>
+        </td>
+        <td>{{ row.signed_amount }}</td>
+        <td><span class="status-pill status-neutral">{{ row.status }}</span></td>
+        <td>
+          <div><code>{{ row.display_reference }}</code></div>
+          <div class="muted"><code>{{ row.idempotency_key }}</code></div>
+        </td>
+        <td>
+          {% if row.trace_context %}
+          <div class="muted">{{ row.trace_context }}</div>
+          {% endif %}
+          {% if row.related_order_id %}
+          <div class="muted">order #{{ row.related_order_id }}</div>
+          {% endif %}
+          {% if row.original_ledger_id %}
+          <div class="muted">original ledger #{{ row.original_ledger_id }}</div>
+          {% endif %}
+          {% if row.corrected_by %}
+          <div class="muted">corrected by
+            {% for corr in row.corrected_by %}
+            <code>{{ corr.entry_type }} #{{ corr.ledger_id }}</code>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div class="muted">{{ row.reason_text }}</div>
+        </td>
+        <td>{{ row.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">No wallet transactions for this player yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="inline-nav" aria-label="Wallet history pagination">
+    {% if page > 1 %}
+      <a href="?discord_user_id={{ owner.owner_id|urlencode }}&direction={{ direction|urlencode }}&status={{ status|urlencode }}&entry_type={{ entry_type|urlencode }}&reference_query={{ reference_query|urlencode }}&created_after={{ created_after|urlencode }}&created_before={{ created_before|urlencode }}&limit={{ limit }}&page={{ page - 1 }}">Prev</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?discord_user_id={{ owner.owner_id|urlencode }}&direction={{ direction|urlencode }}&status={{ status|urlencode }}&entry_type={{ entry_type|urlencode }}&reference_query={{ reference_query|urlencode }}&created_after={{ created_after|urlencode }}&created_before={{ created_before|urlencode }}&limit={{ limit }}&page={{ page + 1 }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
