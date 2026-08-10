@@ -40,6 +40,7 @@ class MarketWebRoutesTests(unittest.TestCase):
         try:
             apply_schema(cls.db_url)
             apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("002_market_escrow_foundation.sql"))
         except Exception:
             drop_disposable_database(cls.db_name)

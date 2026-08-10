@@ -39,6 +39,9 @@ class AutoTraderWebRoutesTests(unittest.TestCase):
         create_disposable_database(cls.db_name)
         try:
             apply_schema(cls.db_url)
+            apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("002_market_escrow_foundation.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("006_auto_trader_order_foundation.sql"))
         except Exception:
             drop_disposable_database(cls.db_name)

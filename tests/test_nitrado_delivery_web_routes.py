@@ -35,6 +35,8 @@ from shared.nitrado_delivery_scheduler_service import NitradoDeliverySchedulerSe
 
 
 class NitradoDeliveryWebRoutesTests(unittest.TestCase):
+    MODERATOR_HEADERS = {"X-DXEMB-ROLE": "moderator"}
+
     @classmethod
     def setUpClass(cls) -> None:
         if not ensure_psycopg2_available():
@@ -46,6 +48,7 @@ class NitradoDeliveryWebRoutesTests(unittest.TestCase):
         try:
             apply_schema(cls.db_url)
             apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("002_market_escrow_foundation.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("006_auto_trader_order_foundation.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("007_nitrado_delivery_scheduler_foundation.sql"))
@@ -121,7 +124,7 @@ class NitradoDeliveryWebRoutesTests(unittest.TestCase):
         self.scheduler.evaluate_request(order_id=self.order_id, now=now)
 
     def test_scheduler_request_and_status_routes_are_read_only(self) -> None:
-        resp_requests = self.client.get("/autotrader/scheduler/requests?limit=25")
+        resp_requests = self.client.get("/autotrader/scheduler/requests?limit=25", headers=self.MODERATOR_HEADERS)
         requests_data = resp_requests.get_json()
 
         self.assertEqual(resp_requests.status_code, 200)
@@ -129,7 +132,10 @@ class NitradoDeliveryWebRoutesTests(unittest.TestCase):
         self.assertEqual(requests_data["domain"], "autotrader_scheduler")
         self.assertGreaterEqual(requests_data["count"], 1)
 
-        resp_status = self.client.get(f"/autotrader/scheduler/orders/{self.order_id}/status")
+        resp_status = self.client.get(
+            f"/autotrader/scheduler/orders/{self.order_id}/status",
+            headers=self.MODERATOR_HEADERS,
+        )
         status_data = resp_status.get_json()
 
         self.assertEqual(resp_status.status_code, 200)
@@ -139,8 +145,13 @@ class NitradoDeliveryWebRoutesTests(unittest.TestCase):
         self.assertGreaterEqual(status_data["event_count"], 1)
 
     def test_scheduler_status_not_found_for_unknown_order(self) -> None:
-        resp = self.client.get("/autotrader/scheduler/orders/999999/status")
+        resp = self.client.get("/autotrader/scheduler/orders/999999/status", headers=self.MODERATOR_HEADERS)
         self.assertEqual(resp.status_code, 404)
+
+    def test_scheduler_routes_require_moderator_or_higher(self) -> None:
+        blocked = self.client.get("/autotrader/scheduler/requests?limit=25")
+        self.assertEqual(blocked.status_code, 403)
+        self.assertIn("moderator role is required", blocked.get_data(as_text=True))
 
     def test_scheduler_routes_have_no_mutation_verbs(self) -> None:
         rules = self.app_module.app.url_map.iter_rules()

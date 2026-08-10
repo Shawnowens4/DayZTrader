@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC
 from datetime import datetime
 from dataclasses import asdict
@@ -29,6 +30,10 @@ CATALOG_ADMIN_DEFAULT_LIMIT = 25
 CATALOG_ADMIN_MAX_LIMIT = 50
 
 _WEB_STATIC_ROOT = Path(__file__).resolve().parents[2] / "web" / "static"
+
+
+def _catalog_database_url() -> str:
+    return os.getenv("DATABASE_URL", DATABASE_URL)
 
 
 def import_types_xml_sync(path: str | None = None) -> dict[str, Any]:
@@ -76,7 +81,7 @@ def import_types_xml_foundation_sync(path: str | None = None, dry_run: bool = Tr
     }
 
     existing_by_classname: dict[str, dict[str, Any]] = {}
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -312,7 +317,7 @@ def upsert_items_sync(items: list[CatalogItem]) -> int:
             updated_at = NOW();
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             for item in items:
                 cur.execute(statement, _item_params(item))
@@ -395,7 +400,7 @@ def search_catalog_sync(
         LIMIT %s OFFSET %s;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement, params)
             rows = cur.fetchall()
@@ -421,7 +426,7 @@ def list_catalog_categories_sync(enabled_only: bool = False) -> list[str]:
         ORDER BY category ASC;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement)
             rows = cur.fetchall()
@@ -449,7 +454,7 @@ def get_catalog_item_sync(classname: str) -> dict[str, Any] | None:
         LIMIT 1;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement, (classname,))
             row = cur.fetchone()
@@ -482,7 +487,7 @@ def set_catalog_item_enabled_sync(classname: str, enabled: bool) -> bool:
         WHERE classname = %s;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement, (enabled, classname))
             updated = cur.rowcount > 0
@@ -748,7 +753,7 @@ def update_catalog_admin_item_sync(
         WHERE classname = %s;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 statement,
@@ -833,7 +838,7 @@ def bulk_set_catalog_review_required_sync(
 
     import psycopg2
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             for row in target_rows:
                 notes = _safe_notes_dict(row.get("notes"))
@@ -1049,7 +1054,7 @@ def _fetch_all_catalog_rows_sync() -> list[dict[str, Any]]:
         ORDER BY classname ASC;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement)
             rows = cur.fetchall()
@@ -1076,7 +1081,7 @@ def _get_catalog_row_by_classname_sync(classname: str) -> dict[str, Any] | None:
         LIMIT 1;
     """
 
-    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+    with psycopg2.connect(_catalog_database_url(), connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(statement, (classname,))
             row = cur.fetchone()

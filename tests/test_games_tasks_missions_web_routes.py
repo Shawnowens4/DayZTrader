@@ -43,6 +43,7 @@ class GamesTasksMissionsWebRoutesTests(unittest.TestCase):
         try:
             apply_schema(cls.db_url)
             apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("008_game_economy_foundation.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("009_daily_tasks_achievements_foundation.sql"))
             apply_sql_file(cls.db_url, migration_sql_path("010_mission_bounty_foundation.sql"))
