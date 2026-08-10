@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ item.display_name or item.classname }} - Catalog Admin{% endblock %}
+{% block content %}
+<section class="panel">
+  <p><a href="/catalog/admin">&larr; Back to catalog admin</a></p>
+  <h1 class="page-title">Catalog Curation: {{ item.display_name or item.classname }}</h1>
+  <p class="notice-banner notice-neutral">{{ auth_notice }}</p>
+  <div class="state-stack">
+    <span class="status-pill {{ 'status-warn' if item.review_required else 'status-neutral' }}">{{ 'review required' if item.review_required else 'review cleared' }}</span>
+    {% if item.has_source_warning %}
+    <span class="status-pill status-warn">source warning</span>
+    {% endif %}
+    <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-neutral' }}">{{ 'catalog enabled' if item.is_enabled else 'disabled' }}</span>
+  </div>
+  {% if admin_message %}
+  <p class="notice-banner notice-ok">{{ admin_message }}</p>
+  {% endif %}
+  {% for error in admin_errors %}
+  <p class="notice-banner notice-error">{{ error }}</p>
+  {% endfor %}
+</section>
+
+<section class="detail-grid">
+  <div class="panel">
+    <h2>Imported Evidence and Provenance</h2>
+    <img
+      class="thumb js-fallback-img"
+      src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt="{{ item.classname }}"
+    >
+    <div class="row"><span class="label">Classname</span><span class="val"><code>{{ item.classname }}</code></span></div>
+    <div class="row"><span class="label">Imported display label</span><span class="val">{{ item.import_meta.get('display_name') if item.import_meta else '-' }}</span></div>
+    <div class="row"><span class="label">Imported categories</span><span class="val">{{ item.imported_categories|join(', ') if item.imported_categories else '-' }}</span></div>
+    <div class="row"><span class="label">Imported usages</span><span class="val">{{ item.imported_usages|join(', ') if item.imported_usages else '-' }}</span></div>
+    <div class="row"><span class="label">Imported values</span><span class="val">{{ item.imported_values|join(', ') if item.imported_values else '-' }}</span></div>
+    <div class="row"><span class="label">Nominal</span><span class="val">{{ item.imported_numeric_values.nominal if item.imported_numeric_values.nominal is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Lifetime</span><span class="val">{{ item.imported_numeric_values.lifetime if item.imported_numeric_values.lifetime is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Restock</span><span class="val">{{ item.imported_numeric_values.restock if item.imported_numeric_values.restock is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Min</span><span class="val">{{ item.imported_numeric_values.min if item.imported_numeric_values.min is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Quant min / max</span><span class="val">{{ item.imported_numeric_values.quantmin if item.imported_numeric_values.quantmin is not none else 'unset' }} / {{ item.imported_numeric_values.quantmax if item.imported_numeric_values.quantmax is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Cost</span><span class="val">{{ item.imported_numeric_values.cost if item.imported_numeric_values.cost is not none else 'unset' }}</span></div>
+    <div class="row"><span class="label">Flags</span><span class="val note-block">{% if item.imported_flags %}{% for key, value in item.imported_flags.items() %}{{ key }}={{ value }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</span></div>
+    <div class="row"><span class="label">Source basename</span><span class="val">{{ item.source_basename or '-' }}</span></div>
+    <div class="row"><span class="label">Source hash</span><span class="val break-all">{{ item.source_sha256 or '-' }}</span></div>
+    <div class="row"><span class="label">Evidence locator</span><span class="val break-all">{{ item.evidence_locator or '-' }}</span></div>
+    <div class="row"><span class="label">Import timestamp</span><span class="val">{{ item.imported_at_utc or '-' }}</span></div>
+    <div class="row"><span class="label">Malformed field warnings</span><span class="val">{{ item.malformed_fields|join(', ') if item.malformed_fields else 'none' }}</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Manual Curation</h2>
+    <p class="notice-banner notice-warn">Future eligibility flags are administrative labels only. They do not activate sales, delivery, rentals, bundles, or events.</p>
+    <form method="post" action="/catalog/admin/{{ item.classname }}" class="curation-form">
+      {% set values = item.form_values if item.form_values is defined else {} %}
+      <div class="form-grid">
+        <label>
+          <span>Display name</span>
+          <input type="text" name="display_name" value="{{ values.get('display_name', item.manual_meta.get('display_name') or item.display_name or '') }}">
+        </label>
+        <label>
+          <span>Curated category</span>
+          <input type="text" name="curated_category" value="{{ values.get('curated_category', item.manual_meta.get('category') or item.category or '') }}">
+        </label>
+        <label>
+          <span>Curated subcategory</span>
+          <input type="text" name="curated_subcategory" value="{{ values.get('curated_subcategory', item.manual_meta.get('subcategory') or item.subcategory or '') }}">
+        </label>
+        <label>
+          <span>Buy price</span>
+          <input type="text" name="buy_price" value="{{ values.get('buy_price', '' if item.buy_price is none else item.buy_price) }}">
+        </label>
+        <label>
+          <span>Sell price</span>
+          <input type="text" name="sell_price" value="{{ values.get('sell_price', '' if item.sell_price is none else item.sell_price) }}">
+        </label>
+        <label>
+          <span>Local-only thumbnail override</span>
+          <input type="text" name="thumbnail_override" value="{{ values.get('thumbnail_override', item.manual_thumbnail_override or '') }}" placeholder="/static/catalog_items/example.webp">
+          <small class="muted">Must resolve to an existing local asset under web/static/catalog_items or web/static/items.</small>
+        </label>
+      </div>
+
+      <div class="checkbox-grid">
+        <label class="checkbox-inline"><input type="hidden" name="catalog_enabled" value="0"><input type="checkbox" name="catalog_enabled" value="1" {{ 'checked' if values.get('catalog_enabled', item.is_enabled) else '' }}> Catalog enabled</label>
+        <label class="checkbox-inline"><input type="hidden" name="review_required" value="0"><input type="checkbox" name="review_required" value="1" {{ 'checked' if values.get('review_required', item.review_required) else '' }}> Review required</label>
+      </div>
+
+      <h3>Future Eligibility Labels</h3>
+      <div class="checkbox-grid">
+        {% for flag_key, flag_label in future_flag_labels.items() %}
+        <label class="checkbox-inline"><input type="hidden" name="{{ flag_key }}" value="0"><input type="checkbox" name="{{ flag_key }}" value="1" {{ 'checked' if values.get(flag_key, item.future_flags[flag_key]) else '' }}> {{ flag_label }}</label>
+        {% endfor %}
+      </div>
+
+      <h3>Admin Notes</h3>
+      <div class="note-log">
+        {% for note in item.admin_notes %}
+        <div class="note-entry">
+          <div class="muted">{{ note.created_at_utc or 'undated note' }}</div>
+          <div>{{ note.note }}</div>
+        </div>
+        {% else %}
+        <div class="muted">No admin notes recorded yet.</div>
+        {% endfor %}
+      </div>
+      <label>
+        <span>Append admin note</span>
+        <textarea name="admin_note_append" rows="5" placeholder="Append a concise local admin note without erasing prior notes.">{{ values.get('admin_note_append', '') }}</textarea>
+      </label>
+
+      {% if item.last_change_note %}
+      <p class="muted">Last save note: {{ item.last_change_note }}</p>
+      {% endif %}
+
+      <button type="submit">Save catalog curation</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

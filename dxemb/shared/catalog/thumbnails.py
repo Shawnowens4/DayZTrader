@@ -53,8 +53,10 @@ def _local_asset_url(path_or_url: str) -> str | None:
             if exact.exists() and exact.is_file():
                 return _static_url(exact)
             if option.name:
-                for found in directory.rglob(option.name):
-                    if found.is_file():
+                indexed = _dir_index(str(directory)).get(option.name.lower())
+                if indexed:
+                    found = directory / indexed
+                    if found.exists() and found.is_file():
                         return _static_url(found)
 
     return None
@@ -140,6 +142,20 @@ def _load_thumbnail_map() -> dict[str, str]:
         value = str(raw_value).strip()
         if key and value:
             out[key] = value
+    return out
+
+
+@lru_cache(maxsize=8)
+def _dir_index(directory: str) -> dict[str, str]:
+    root = Path(directory)
+    if not root.exists() or not root.is_dir():
+        return {}
+
+    out: dict[str, str] = {}
+    for entry in root.rglob("*"):
+        if not entry.is_file():
+            continue
+        out.setdefault(entry.name.lower(), entry.relative_to(root).as_posix())
     return out
 
 

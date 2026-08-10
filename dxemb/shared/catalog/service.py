@@ -4,16 +4,31 @@ import json
 from datetime import UTC
 from datetime import datetime
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from shared.db import DATABASE_URL
 from shared.db import get_pool
 
 from .models import CatalogItem
+from .thumbnails import _local_asset_url
 from .thumbnails import mapped_thumbnail_url
 from .thumbnails import resolve_thumbnail
 from .types_xml import parse_types_xml_for_import
 from .types_xml import parse_types_xml
+
+ADMIN_FUTURE_FLAG_KEYS = {
+    "auto_trader_candidate": "Auto Trader candidate",
+    "direct_purchase_candidate": "Direct-purchase candidate",
+    "rental_candidate": "Rental candidate",
+    "bundle_candidate": "Bundle/bag candidate",
+    "horde_event_candidate": "Horde/event candidate",
+}
+
+CATALOG_ADMIN_DEFAULT_LIMIT = 25
+CATALOG_ADMIN_MAX_LIMIT = 50
+
+_WEB_STATIC_ROOT = Path(__file__).resolve().parents[2] / "web" / "static"
 
 
 def import_types_xml_sync(path: str | None = None) -> dict[str, Any]:
@@ -387,23 +402,7 @@ def search_catalog_sync(
 
     out = []
     for row in rows:
-        thumb = resolve_thumbnail(row[0], row[7])
-        out.append(
-            {
-            "classname": row[0],
-            "display_name": row[1],
-            "category": row[2],
-            "subcategory": row[3],
-            "buy_price": row[4],
-            "sell_price": row[5],
-            "is_enabled": row[6],
-            "thumbnail_url": row[7],
-            "resolved_thumbnail_url": thumb["thumbnail_url"],
-            "thumbnail_status": thumb["thumbnail_status"],
-            "thumbnail_source": thumb["thumbnail_source"],
-            "notes": row[8],
-        }
-        )
+        out.append(_expand_catalog_row(_row_to_item_dict(row)))
     return out
 
 
@@ -469,11 +468,7 @@ def get_catalog_item_sync(classname: str) -> dict[str, Any] | None:
         "thumbnail_url": row[7],
         "notes": row[8],
     }
-    thumb = resolve_thumbnail(item["classname"], item["thumbnail_url"])
-    item["resolved_thumbnail_url"] = thumb["thumbnail_url"]
-    item["thumbnail_status"] = thumb["thumbnail_status"]
-    item["thumbnail_source"] = thumb["thumbnail_source"]
-    return item
+    return _expand_catalog_row(item)
 
 
 def set_catalog_item_enabled_sync(classname: str, enabled: bool) -> bool:
@@ -551,12 +546,7 @@ async def search_catalog_async(
 
     out = []
     for row in rows:
-        item = dict(row)
-        thumb = resolve_thumbnail(item["classname"], item["thumbnail_url"])
-        item["resolved_thumbnail_url"] = thumb["thumbnail_url"]
-        item["thumbnail_status"] = thumb["thumbnail_status"]
-        item["thumbnail_source"] = thumb["thumbnail_source"]
-        out.append(item)
+        out.append(_expand_catalog_row(dict(row)))
     return out
 
 
@@ -605,12 +595,271 @@ async def get_catalog_item_async(classname: str) -> dict[str, Any] | None:
     if not row:
         return None
 
-    item = dict(row)
-    thumb = resolve_thumbnail(item["classname"], item["thumbnail_url"])
-    item["resolved_thumbnail_url"] = thumb["thumbnail_url"]
-    item["thumbnail_status"] = thumb["thumbnail_status"]
-    item["thumbnail_source"] = thumb["thumbnail_source"]
+    return _expand_catalog_row(dict(row))
+
+
+def search_catalog_admin_sync(
+    *,
+    query: str = "",
+    imported_state: str = "all",
+    review_state: str = "all",
+    enabled_state: str = "all",
+    image_state: str = "all",
+    warning_state: str = "all",
+    imported_category: str = "",
+    imported_usage: str = "",
+    auto_trader_candidate: str = "all",
+    direct_purchase_candidate: str = "all",
+    rental_candidate: str = "all",
+    bundle_candidate: str = "all",
+    horde_event_candidate: str = "all",
+    page: int = 1,
+    limit: int = CATALOG_ADMIN_DEFAULT_LIMIT,
+) -> dict[str, Any]:
+    rows = _fetch_all_catalog_rows_sync()
+    expanded = [_expand_catalog_row(row) for row in rows]
+
+    filters = {
+        "query": query.strip(),
+        "imported_state": imported_state,
+        "review_state": review_state,
+        "enabled_state": enabled_state,
+        "image_state": image_state,
+        "warning_state": warning_state,
+        "imported_category": imported_category.strip(),
+        "imported_usage": imported_usage.strip(),
+        "auto_trader_candidate": auto_trader_candidate,
+        "direct_purchase_candidate": direct_purchase_candidate,
+        "rental_candidate": rental_candidate,
+        "bundle_candidate": bundle_candidate,
+        "horde_event_candidate": horde_event_candidate,
+    }
+
+    filtered = _filter_catalog_admin_rows(expanded, filters)
+    safe_limit = max(1, min(limit, CATALOG_ADMIN_MAX_LIMIT))
+    safe_page = max(1, page)
+    start = (safe_page - 1) * safe_limit
+    end = start + safe_limit
+    visible = filtered[start:end]
+
+    return {
+        "items": visible,
+        "page": safe_page,
+        "limit": safe_limit,
+        "total_count": len(filtered),
+        "has_next": end < len(filtered),
+        "filters": filters,
+        "available_imported_categories": sorted({row["primary_imported_category"] for row in expanded if row["primary_imported_category"]}),
+        "available_imported_usages": sorted({usage for row in expanded for usage in row["imported_usages"] if usage}),
+    }
+
+
+def get_catalog_admin_item_sync(classname: str) -> dict[str, Any] | None:
+    item = get_catalog_item_sync(classname)
+    if item is None:
+        return None
     return item
+
+
+def update_catalog_admin_item_sync(
+    classname: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    existing = _get_catalog_row_by_classname_sync(classname)
+    if existing is None:
+        return {"ok": False, "status_code": 404, "errors": ["catalog item not found"]}
+
+    item = _expand_catalog_row(existing)
+    errors: list[str] = []
+
+    display_name = _normalized_optional_text(payload.get("display_name"))
+    category = _normalized_optional_text(payload.get("curated_category"))
+    subcategory = _normalized_optional_text(payload.get("curated_subcategory"))
+    buy_price = _parse_optional_non_negative_int(payload.get("buy_price"), "buy price", errors)
+    sell_price = _parse_optional_non_negative_int(payload.get("sell_price"), "sell price", errors)
+    review_required = _parse_bool_field(payload.get("review_required"), "review required", errors)
+    catalog_enabled = _parse_bool_field(payload.get("catalog_enabled"), "catalog enabled", errors)
+    thumbnail_override = _normalized_optional_text(payload.get("thumbnail_override"))
+    note_append = _normalized_optional_text(payload.get("admin_note_append"))
+
+    future_flags = {
+        key: _parse_bool_field(payload.get(key), ADMIN_FUTURE_FLAG_KEYS[key], errors)
+        for key in ADMIN_FUTURE_FLAG_KEYS
+    }
+
+    resolved_thumbnail_override = None
+    if thumbnail_override:
+        resolved_thumbnail_override = _validate_local_thumbnail_override(thumbnail_override, errors)
+
+    if buy_price is not None and sell_price is not None and sell_price > buy_price:
+        errors.append("sell price cannot exceed buy price")
+
+    if errors:
+        failed = dict(item)
+        failed["form_values"] = {
+            "display_name": display_name or "",
+            "curated_category": category or "",
+            "curated_subcategory": subcategory or "",
+            "buy_price": "" if buy_price is None else str(buy_price),
+            "sell_price": "" if sell_price is None else str(sell_price),
+            "thumbnail_override": thumbnail_override or "",
+            "review_required": review_required,
+            "catalog_enabled": catalog_enabled,
+            "admin_note_append": note_append or "",
+            **future_flags,
+        }
+        return {"ok": False, "status_code": 400, "errors": errors, "item": failed}
+
+    notes = _safe_notes_dict(existing.get("notes"))
+    manual = _safe_manual_dict(notes)
+    manual["display_name"] = display_name
+    manual["category"] = category
+    manual["subcategory"] = subcategory
+    manual["review_required"] = review_required
+    manual["thumbnail_override"] = resolved_thumbnail_override
+    manual["future_flags"] = future_flags
+    manual["last_saved_at_utc"] = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    if note_append:
+        notes_list = _normalized_admin_notes_list(manual.get("admin_notes"))
+        notes_list.append(
+            {
+                "created_at_utc": manual["last_saved_at_utc"],
+                "note": note_append,
+            }
+        )
+        manual["admin_notes"] = notes_list
+
+    manual["last_change_note"] = (
+        f"Saved local admin curation fields at {manual['last_saved_at_utc']}"
+    )
+
+    notes["manual"] = manual
+
+    import psycopg2
+
+    statement = """
+        UPDATE item
+        SET buy_price = %s,
+            sell_price = %s,
+            is_enabled = %s,
+            notes = %s,
+            updated_at = NOW()
+        WHERE classname = %s;
+    """
+
+    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                statement,
+                (
+                    buy_price,
+                    sell_price,
+                    catalog_enabled,
+                    _notes_json(notes),
+                    classname,
+                ),
+            )
+
+    updated = get_catalog_admin_item_sync(classname)
+    return {"ok": True, "status_code": 200, "item": updated}
+
+
+def bulk_set_catalog_review_required_sync(
+    *,
+    desired_review_required: bool,
+    confirmation: str,
+    filters: dict[str, Any],
+    selected_classnames: list[str],
+    apply_to_filtered: bool,
+) -> dict[str, Any]:
+    workspace = search_catalog_admin_sync(
+        query=str(filters.get("query", "")),
+        imported_state=str(filters.get("imported_state", "all")),
+        review_state=str(filters.get("review_state", "all")),
+        enabled_state=str(filters.get("enabled_state", "all")),
+        image_state=str(filters.get("image_state", "all")),
+        warning_state=str(filters.get("warning_state", "all")),
+        imported_category=str(filters.get("imported_category", "")),
+        imported_usage=str(filters.get("imported_usage", "")),
+        auto_trader_candidate=str(filters.get("auto_trader_candidate", "all")),
+        direct_purchase_candidate=str(filters.get("direct_purchase_candidate", "all")),
+        rental_candidate=str(filters.get("rental_candidate", "all")),
+        bundle_candidate=str(filters.get("bundle_candidate", "all")),
+        horde_event_candidate=str(filters.get("horde_event_candidate", "all")),
+        page=1,
+        limit=CATALOG_ADMIN_MAX_LIMIT,
+    )
+
+    filtered_rows = workspace["items"] if workspace["total_count"] <= CATALOG_ADMIN_MAX_LIMIT else _filter_catalog_admin_rows(
+        [_expand_catalog_row(row) for row in _fetch_all_catalog_rows_sync()],
+        workspace["filters"],
+    )
+
+    if apply_to_filtered:
+        active_filter_values = [
+            str(filters.get("query", "")).strip(),
+            str(filters.get("imported_state", "all")),
+            str(filters.get("review_state", "all")),
+            str(filters.get("enabled_state", "all")),
+            str(filters.get("image_state", "all")),
+            str(filters.get("warning_state", "all")),
+            str(filters.get("imported_category", "")).strip(),
+            str(filters.get("imported_usage", "")).strip(),
+            str(filters.get("auto_trader_candidate", "all")),
+            str(filters.get("direct_purchase_candidate", "all")),
+            str(filters.get("rental_candidate", "all")),
+            str(filters.get("bundle_candidate", "all")),
+            str(filters.get("horde_event_candidate", "all")),
+        ]
+        if all(value in {"", "all"} for value in active_filter_values):
+            return {"ok": False, "status_code": 400, "errors": ["bulk review updates require at least one active filter or explicit selections"]}
+        target_rows = filtered_rows
+    else:
+        selected = {value.strip() for value in selected_classnames if value.strip()}
+        if not selected:
+            return {"ok": False, "status_code": 400, "errors": ["bulk review updates require explicit selected classnames or apply-to-filtered"]}
+        target_rows = [row for row in filtered_rows if row["classname"] in selected]
+        if len(target_rows) != len(selected):
+            return {"ok": False, "status_code": 400, "errors": ["selected classnames must match the current filtered result set"]}
+
+    affected_count = len(target_rows)
+    if affected_count <= 0:
+        return {"ok": False, "status_code": 400, "errors": ["no catalog items matched this bulk request"]}
+
+    expected = f"{'ENABLE' if desired_review_required else 'DISABLE'} {affected_count}"
+    if confirmation.strip() != expected:
+        return {"ok": False, "status_code": 400, "errors": [f"confirmation token must exactly match {expected}"]}
+
+    import psycopg2
+
+    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+        with conn.cursor() as cur:
+            for row in target_rows:
+                notes = _safe_notes_dict(row.get("notes"))
+                manual = _safe_manual_dict(notes)
+                manual["review_required"] = desired_review_required
+                manual["last_saved_at_utc"] = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+                manual["last_change_note"] = (
+                    f"Bulk review state set to {'required' if desired_review_required else 'not required'} at {manual['last_saved_at_utc']}"
+                )
+                notes["manual"] = manual
+                cur.execute(
+                    """
+                    UPDATE item
+                    SET notes = %s,
+                        updated_at = NOW()
+                    WHERE classname = %s
+                    """,
+                    (_notes_json(notes), row["classname"]),
+                )
+
+    return {
+        "ok": True,
+        "status_code": 200,
+        "affected_count": affected_count,
+        "resulting_review_required": desired_review_required,
+    }
 
 
 def _item_params(item: CatalogItem) -> tuple[Any, ...]:
@@ -740,6 +989,9 @@ def _merge_import_notes(
         "source_sha256": source_sha256,
         "imported_at_utc": imported_at_utc,
         "evidence_locator": record.evidence_locator,
+        "display_name": record.display_name,
+        "category": record.category,
+        "subcategory": record.subcategory,
         "review_required": bool(record.malformed_fields),
         "malformed_fields": list(record.malformed_fields),
         "types_xml": {
@@ -777,3 +1029,322 @@ def _merge_import_notes(
 
 def _notes_json(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
+
+
+def _fetch_all_catalog_rows_sync() -> list[dict[str, Any]]:
+    import psycopg2
+
+    statement = """
+        SELECT
+            classname,
+            display_name,
+            category,
+            subcategory,
+            buy_price,
+            sell_price,
+            is_enabled,
+            thumbnail_url,
+            notes
+        FROM item
+        ORDER BY classname ASC;
+    """
+
+    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+        with conn.cursor() as cur:
+            cur.execute(statement)
+            rows = cur.fetchall()
+
+    return [_row_to_item_dict(row) for row in rows]
+
+
+def _get_catalog_row_by_classname_sync(classname: str) -> dict[str, Any] | None:
+    import psycopg2
+
+    statement = """
+        SELECT
+            classname,
+            display_name,
+            category,
+            subcategory,
+            buy_price,
+            sell_price,
+            is_enabled,
+            thumbnail_url,
+            notes
+        FROM item
+        WHERE classname = %s
+        LIMIT 1;
+    """
+
+    with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+        with conn.cursor() as cur:
+            cur.execute(statement, (classname,))
+            row = cur.fetchone()
+
+    return _row_to_item_dict(row) if row else None
+
+
+def _row_to_item_dict(row: Any) -> dict[str, Any]:
+    return {
+        "classname": row[0],
+        "display_name": row[1],
+        "category": row[2],
+        "subcategory": row[3],
+        "buy_price": row[4],
+        "sell_price": row[5],
+        "is_enabled": row[6],
+        "thumbnail_url": row[7],
+        "notes": row[8],
+    }
+
+
+def _expand_catalog_row(item: dict[str, Any]) -> dict[str, Any]:
+    expanded = dict(item)
+    notes = _safe_notes_dict(item.get("notes"))
+    import_meta = notes.get("import") if isinstance(notes.get("import"), dict) else {}
+    manual = _safe_manual_dict(notes)
+    imported_types = import_meta.get("types_xml") if isinstance(import_meta.get("types_xml"), dict) else {}
+    future_flags = _normalized_future_flags(manual.get("future_flags"))
+
+    effective_display_name = _normalized_optional_text(manual.get("display_name")) or item.get("display_name")
+    effective_category = _normalized_optional_text(manual.get("category")) or item.get("category")
+    effective_subcategory = _normalized_optional_text(manual.get("subcategory")) or item.get("subcategory")
+    review_required = (
+        bool(manual.get("review_required"))
+        if "review_required" in manual
+        else bool(import_meta)
+    )
+
+    effective_thumbnail_input = _normalized_optional_text(manual.get("thumbnail_override")) or item.get("thumbnail_url")
+    thumb = resolve_thumbnail(item["classname"], effective_thumbnail_input)
+    image_state = _classify_image_state(item.get("thumbnail_url"), manual.get("thumbnail_override"), thumb)
+
+    expanded["display_name"] = effective_display_name
+    expanded["category"] = effective_category
+    expanded["subcategory"] = effective_subcategory
+    expanded["resolved_thumbnail_url"] = thumb["thumbnail_url"]
+    expanded["thumbnail_status"] = thumb["thumbnail_status"]
+    expanded["thumbnail_source"] = thumb["thumbnail_source"]
+    expanded["notes"] = notes
+    expanded["import_meta"] = import_meta
+    expanded["manual_meta"] = manual
+    expanded["imported_categories"] = _safe_string_list(imported_types.get("categories"))
+    expanded["imported_usages"] = _safe_string_list(imported_types.get("usages"))
+    expanded["imported_values"] = _safe_string_list(imported_types.get("values"))
+    expanded["imported_flags"] = imported_types.get("flags") if isinstance(imported_types.get("flags"), dict) else {}
+    expanded["imported_numeric_values"] = {
+        "nominal": imported_types.get("nominal"),
+        "lifetime": imported_types.get("lifetime"),
+        "restock": imported_types.get("restock"),
+        "min": imported_types.get("min"),
+        "quantmin": imported_types.get("quantmin"),
+        "quantmax": imported_types.get("quantmax"),
+        "cost": imported_types.get("cost"),
+    }
+    expanded["source_basename"] = import_meta.get("source_basename")
+    expanded["source_sha256"] = import_meta.get("source_sha256")
+    expanded["source_label"] = import_meta.get("source_label")
+    expanded["imported_at_utc"] = import_meta.get("imported_at_utc")
+    expanded["evidence_locator"] = import_meta.get("evidence_locator")
+    expanded["malformed_fields"] = _safe_string_list(import_meta.get("malformed_fields"))
+    expanded["has_source_warning"] = bool(expanded["malformed_fields"])
+    expanded["review_required"] = review_required
+    expanded["is_imported"] = bool(import_meta)
+    expanded["image_state"] = image_state
+    expanded["future_flags"] = future_flags
+    expanded["admin_notes"] = _normalized_admin_notes_list(manual.get("admin_notes"))
+    expanded["last_change_note"] = manual.get("last_change_note") if isinstance(manual.get("last_change_note"), str) else None
+    expanded["manual_thumbnail_override"] = _normalized_optional_text(manual.get("thumbnail_override"))
+    expanded["primary_imported_category"] = expanded["imported_categories"][0] if expanded["imported_categories"] else ""
+    expanded["primary_imported_usage"] = expanded["imported_usages"][0] if expanded["imported_usages"] else ""
+    expanded["is_curated"] = _is_curated_row(expanded)
+    return expanded
+
+
+def _filter_catalog_admin_rows(rows: list[dict[str, Any]], filters: dict[str, Any]) -> list[dict[str, Any]]:
+    query = str(filters.get("query", "")).strip().lower()
+    imported_state = str(filters.get("imported_state", "all")).strip().lower()
+    review_state = str(filters.get("review_state", "all")).strip().lower()
+    enabled_state = str(filters.get("enabled_state", "all")).strip().lower()
+    image_state = str(filters.get("image_state", "all")).strip().lower()
+    warning_state = str(filters.get("warning_state", "all")).strip().lower()
+    imported_category = str(filters.get("imported_category", "")).strip().lower()
+    imported_usage = str(filters.get("imported_usage", "")).strip().lower()
+
+    flag_filters = {
+        key: str(filters.get(key, "all")).strip().lower()
+        for key in ADMIN_FUTURE_FLAG_KEYS
+    }
+
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if query:
+            display_name = str(row.get("display_name") or "").lower()
+            if query not in row["classname"].lower() and query not in display_name:
+                continue
+
+        if imported_state == "imported" and not row["is_imported"]:
+            continue
+        if imported_state == "legacy_or_unknown" and row["is_imported"]:
+            continue
+
+        if review_state == "yes" and not row["review_required"]:
+            continue
+        if review_state == "no" and row["review_required"]:
+            continue
+
+        if enabled_state == "enabled" and not row["is_enabled"]:
+            continue
+        if enabled_state == "disabled" and row["is_enabled"]:
+            continue
+
+        if image_state != "all" and row["image_state"] != image_state:
+            continue
+
+        if warning_state == "yes" and not row["has_source_warning"]:
+            continue
+        if warning_state == "no" and row["has_source_warning"]:
+            continue
+
+        if imported_category and imported_category not in {value.lower() for value in row["imported_categories"]}:
+            continue
+        if imported_usage and imported_usage not in {value.lower() for value in row["imported_usages"]}:
+            continue
+
+        flag_mismatch = False
+        for key, mode in flag_filters.items():
+            value = bool(row["future_flags"].get(key))
+            if mode == "yes" and not value:
+                flag_mismatch = True
+                break
+            if mode == "no" and value:
+                flag_mismatch = True
+                break
+        if flag_mismatch:
+            continue
+
+        out.append(row)
+
+    return out
+
+
+def _normalized_future_flags(raw: Any) -> dict[str, bool]:
+    out = {key: False for key in ADMIN_FUTURE_FLAG_KEYS}
+    if not isinstance(raw, dict):
+        return out
+    for key in out:
+        out[key] = bool(raw.get(key, False))
+    return out
+
+
+def _safe_manual_dict(notes: dict[str, Any]) -> dict[str, Any]:
+    manual = notes.get("manual") if isinstance(notes.get("manual"), dict) else {}
+    return dict(manual)
+
+
+def _safe_string_list(raw: Any) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    return [str(value).strip() for value in raw if str(value).strip()]
+
+
+def _normalized_admin_notes_list(raw: Any) -> list[dict[str, str]]:
+    if isinstance(raw, list):
+        out: list[dict[str, str]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            note = str(item.get("note") or "").strip()
+            if not note:
+                continue
+            out.append(
+                {
+                    "created_at_utc": str(item.get("created_at_utc") or "").strip(),
+                    "note": note,
+                }
+            )
+        return out
+    if isinstance(raw, str) and raw.strip():
+        return [{"created_at_utc": "", "note": raw.strip()}]
+    return []
+
+
+def _normalized_optional_text(raw: Any) -> str | None:
+    value = str(raw or "").strip()
+    return value or None
+
+
+def _parse_optional_non_negative_int(raw: Any, field_label: str, errors: list[str]) -> int | None:
+    value = str(raw or "").strip()
+    if not value:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        errors.append(f"{field_label} must be a whole number")
+        return None
+    if parsed < 0:
+        errors.append(f"{field_label} must be zero or greater")
+        return None
+    return parsed
+
+
+def _coerce_bool(raw: Any) -> bool:
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_bool_field(raw: Any, field_label: str, errors: list[str]) -> bool:
+    normalized = str(raw or "").strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off", ""}:
+        return False
+    errors.append(f"{field_label} must be a boolean form value")
+    return False
+
+
+def _validate_local_thumbnail_override(raw: str, errors: list[str]) -> str | None:
+    candidate = raw.strip()
+    lowered = candidate.lower()
+    if lowered.startswith("http://") or lowered.startswith("https://"):
+        errors.append("thumbnail override must be a local-only asset reference")
+        return None
+
+    local_url = _local_asset_url(candidate)
+    if not local_url:
+        errors.append("thumbnail override must resolve to an existing local asset under web/static/catalog_items or web/static/items")
+        return None
+
+    static_path = _WEB_STATIC_ROOT / local_url.removeprefix("/static/")
+    if not static_path.exists() or not static_path.is_file():
+        errors.append("thumbnail override must resolve to an existing local file")
+        return None
+
+    return local_url
+
+
+def _classify_image_state(stored_thumbnail_url: Any, manual_thumbnail_override: Any, thumb: dict[str, str]) -> str:
+    if thumb.get("thumbnail_status") == "override":
+        return "local"
+    if thumb.get("thumbnail_status") == "mapped":
+        return "mapped"
+    if _normalized_optional_text(manual_thumbnail_override) or _normalized_optional_text(stored_thumbnail_url):
+        return "fallback"
+    return "missing"
+
+
+def _is_curated_row(row: dict[str, Any]) -> bool:
+    manual = row.get("manual_meta") if isinstance(row.get("manual_meta"), dict) else {}
+    return any(
+        [
+            bool(_normalized_optional_text(manual.get("display_name"))),
+            bool(_normalized_optional_text(manual.get("category"))),
+            bool(_normalized_optional_text(manual.get("subcategory"))),
+            bool(_normalized_optional_text(manual.get("thumbnail_override"))),
+            bool(row.get("buy_price") is not None),
+            bool(row.get("sell_price") is not None),
+            any(bool(value) for value in row.get("future_flags", {}).values()),
+            bool(row.get("admin_notes")),
+            "review_required" in manual,
+        ]
+    )

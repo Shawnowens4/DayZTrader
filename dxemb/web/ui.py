@@ -150,6 +150,7 @@ def ui_nav_links() -> list[dict[str, str]]:
     return [
         {"href": "/", "label": "Status"},
         {"href": "/catalog", "label": "Catalog"},
+        {"href": "/catalog/admin", "label": "Catalog Admin"},
         {"href": "/vehicles", "label": "Vehicles"},
     ]
 

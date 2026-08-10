@@ -23,6 +23,10 @@
 
 - Completed and validated: local-first `types.xml` importer foundation with secure malformed-XML rejection, dry-run/apply reporting, idempotent `classname` upsert, curated storefront field protection (`buy_price`, `sell_price`, `is_enabled`, `thumbnail_url`), review-required defaults for newly imported items, and source provenance (`source_sha256`, evidence locator) persisted in item notes; validated by `tests.test_types_xml_import_foundation`, `tests.test_schema_contracts`, in-container importer dry-run/apply/idempotency checks, and HTTP 200 route checks for `/catalog`, `/vehicles`, and `/vehicles/Hatchback02`.
 
+## 2026-08-10 Completed Milestone — Run 4 catalog admin curation workspace
+
+- Completed and validated: local admin catalog curation workspace at `/catalog/admin` with read-only imported provenance/evidence, manual curation stored separately from importer-owned data, bounded review-state bulk actions with confirmation tokens, future eligibility labels defaulting false, local-only thumbnail validation, and preserved `/catalog` plus `/vehicles` behavior; validated by focused admin/importer/catalog/web tests and live HTTP checks for `/`, `/catalog`, `/catalog/admin`, `/catalog/AKM`, `/catalog/admin/AKM`, `/catalog/admin/CivilianSedan`, and `/vehicles`.
+
 ---
 
 ## 2026-08-09 Full Product + Design Audit Build Plan

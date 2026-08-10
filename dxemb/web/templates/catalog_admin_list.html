@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Catalog Admin Workspace{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="page-title">Catalog Admin Curation Workspace</h1>
+  <p class="page-subtitle">Local admin tooling for reviewing imported types.xml evidence and applying manual catalog curation. No production authentication is implemented here.</p>
+  <p class="notice-banner notice-neutral">{{ auth_notice }}</p>
+  {% if admin_message %}
+  <p class="notice-banner notice-ok">{{ admin_message }}</p>
+  {% endif %}
+  {% for error in admin_errors %}
+  <p class="notice-banner notice-error">{{ error }}</p>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <form method="get" action="/catalog/admin" class="admin-filter-grid" aria-label="Catalog admin filters">
+    <input type="text" name="q" value="{{ filters.query }}" placeholder="Search classname or display name" aria-label="Search classname or display name">
+    <select name="imported_state" aria-label="Imported source state">
+      <option value="all" {{ 'selected' if filters.imported_state == 'all' else '' }}>All source states</option>
+      <option value="imported" {{ 'selected' if filters.imported_state == 'imported' else '' }}>Imported evidence</option>
+      <option value="legacy_or_unknown" {{ 'selected' if filters.imported_state == 'legacy_or_unknown' else '' }}>Legacy or unknown</option>
+    </select>
+    <select name="review_state" aria-label="Review required state">
+      <option value="all" {{ 'selected' if filters.review_state == 'all' else '' }}>All review states</option>
+      <option value="yes" {{ 'selected' if filters.review_state == 'yes' else '' }}>Review required</option>
+      <option value="no" {{ 'selected' if filters.review_state == 'no' else '' }}>Review cleared</option>
+    </select>
+    <select name="enabled_state" aria-label="Catalog enabled state">
+      <option value="all" {{ 'selected' if filters.enabled_state == 'all' else '' }}>All catalog states</option>
+      <option value="enabled" {{ 'selected' if filters.enabled_state == 'enabled' else '' }}>Catalog enabled</option>
+      <option value="disabled" {{ 'selected' if filters.enabled_state == 'disabled' else '' }}>Catalog disabled</option>
+    </select>
+    <select name="image_state" aria-label="Image state">
+      <option value="all" {{ 'selected' if filters.image_state == 'all' else '' }}>All image states</option>
+      <option value="local" {{ 'selected' if filters.image_state == 'local' else '' }}>Local override</option>
+      <option value="mapped" {{ 'selected' if filters.image_state == 'mapped' else '' }}>Mapped local</option>
+      <option value="fallback" {{ 'selected' if filters.image_state == 'fallback' else '' }}>Fallback</option>
+      <option value="missing" {{ 'selected' if filters.image_state == 'missing' else '' }}>Missing</option>
+    </select>
+    <select name="warning_state" aria-label="Malformed source warning state">
+      <option value="all" {{ 'selected' if filters.warning_state == 'all' else '' }}>All warning states</option>
+      <option value="yes" {{ 'selected' if filters.warning_state == 'yes' else '' }}>Source warning</option>
+      <option value="no" {{ 'selected' if filters.warning_state == 'no' else '' }}>No source warning</option>
+    </select>
+    <select name="imported_category" aria-label="Imported category">
+      <option value="">All imported categories</option>
+      {% for cat in available_imported_categories %}
+      <option value="{{ cat }}" {{ 'selected' if filters.imported_category == cat else '' }}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <select name="imported_usage" aria-label="Imported usage">
+      <option value="">All imported usages</option>
+      {% for usage in available_imported_usages %}
+      <option value="{{ usage }}" {{ 'selected' if filters.imported_usage == usage else '' }}>{{ usage }}</option>
+      {% endfor %}
+    </select>
+    {% for flag_key, flag_label in future_flag_labels.items() %}
+    <select name="{{ flag_key }}" aria-label="{{ flag_label }}">
+      <option value="all" {{ 'selected' if filters[flag_key] == 'all' else '' }}>{{ flag_label }}: all</option>
+      <option value="yes" {{ 'selected' if filters[flag_key] == 'yes' else '' }}>{{ flag_label }}: yes</option>
+      <option value="no" {{ 'selected' if filters[flag_key] == 'no' else '' }}>{{ flag_label }}: no</option>
+    </select>
+    {% endfor %}
+    <select name="limit" aria-label="Row limit">
+      <option value="25" {{ 'selected' if limit == 25 else '' }}>25 rows</option>
+      <option value="50" {{ 'selected' if limit == 50 else '' }}>50 rows</option>
+    </select>
+    <button type="submit">Apply filters</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="admin-summary-bar">
+    <div><span class="label">Filtered results</span> <span class="val">{{ total_count }}</span></div>
+    <div><span class="label">Visible page</span> <span class="val">{{ page }}</span></div>
+    <div><span class="label">Page limit</span> <span class="val">{{ limit }}</span></div>
+  </div>
+  <form method="post" action="/catalog/admin/bulk-review">
+    <input type="hidden" name="query" value="{{ filters.query }}">
+    <input type="hidden" name="imported_state" value="{{ filters.imported_state }}">
+    <input type="hidden" name="review_state" value="{{ filters.review_state }}">
+    <input type="hidden" name="enabled_state" value="{{ filters.enabled_state }}">
+    <input type="hidden" name="image_state" value="{{ filters.image_state }}">
+    <input type="hidden" name="warning_state" value="{{ filters.warning_state }}">
+    <input type="hidden" name="imported_category" value="{{ filters.imported_category }}">
+    <input type="hidden" name="imported_usage" value="{{ filters.imported_usage }}">
+    <input type="hidden" name="auto_trader_candidate" value="{{ filters.auto_trader_candidate }}">
+    <input type="hidden" name="direct_purchase_candidate" value="{{ filters.direct_purchase_candidate }}">
+    <input type="hidden" name="rental_candidate" value="{{ filters.rental_candidate }}">
+    <input type="hidden" name="bundle_candidate" value="{{ filters.bundle_candidate }}">
+    <input type="hidden" name="horde_event_candidate" value="{{ filters.horde_event_candidate }}">
+    <input type="hidden" name="limit" value="{{ limit }}">
+
+    <div class="table-wrap">
+      <table class="data-table admin-table">
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>Item</th>
+            <th>Imported evidence</th>
+            <th>Current state</th>
+            <th>Eligibility labels</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td data-label="Select">
+              <input type="checkbox" name="selected_classnames" value="{{ item.classname }}" aria-label="Select {{ item.classname }}">
+            </td>
+            <td data-label="Item">
+              <img
+                class="item-thumb js-fallback-img"
+                src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
+                data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+                alt="{{ item.display_name or item.classname }} thumbnail"
+                loading="lazy"
+              >
+              <div><strong>{{ item.display_name or item.classname }}</strong></div>
+              <div class="muted"><code>{{ item.classname }}</code></div>
+              <div class="muted">Current category: {{ item.category or '-' }} / {{ item.subcategory or '-' }}</div>
+            </td>
+            <td data-label="Imported evidence">
+              <div class="state-stack">
+                <span class="status-pill {{ 'status-ok' if item.is_imported else 'status-neutral' }}">{{ 'imported evidence' if item.is_imported else 'legacy/unknown' }}</span>
+                {% if item.primary_imported_category %}
+                <span class="status-pill status-neutral">{{ item.primary_imported_category }}</span>
+                {% endif %}
+                {% if item.primary_imported_usage %}
+                <span class="status-pill status-neutral">{{ item.primary_imported_usage }}</span>
+                {% endif %}
+                {% if item.has_source_warning %}
+                <span class="status-pill status-warn">source warning</span>
+                {% endif %}
+                <span class="status-pill {{ 'status-warn' if item.review_required else 'status-neutral' }}">{{ 'review required' if item.review_required else 'review cleared' }}</span>
+              </div>
+              <div class="muted">{{ item.source_basename or 'no import provenance' }}</div>
+              <div class="muted">{{ item.evidence_locator or '-' }}</div>
+            </td>
+            <td data-label="Current state">
+              <div class="state-stack">
+                <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-neutral' }}">{{ 'catalog enabled' if item.is_enabled else 'disabled' }}</span>
+                <span class="status-pill {{ 'status-ok' if item.image_state == 'local' or item.image_state == 'mapped' else 'status-warn' if item.image_state == 'fallback' else 'status-neutral' }}">image {{ item.image_state }}</span>
+                {% if item.is_curated %}
+                <span class="status-pill status-ok">curated</span>
+                {% endif %}
+              </div>
+              {% if item.malformed_fields %}
+              <div class="muted">Warnings: {{ item.malformed_fields|join(', ') }}</div>
+              {% endif %}
+            </td>
+            <td data-label="Eligibility labels">
+              <div class="state-stack">
+                {% for flag_key, flag_label in future_flag_labels.items() %}
+                <span class="status-pill {{ 'status-ok' if item.future_flags[flag_key] else 'status-neutral' }}">{{ flag_label }}: {{ 'yes' if item.future_flags[flag_key] else 'no' }}</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td data-label="Action">
+              <a class="action-link" href="/catalog/admin/{{ item.classname }}">Review item</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6">No catalog items matched the current filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bulk-panel">
+      <h2>Bounded Bulk Review State</h2>
+      <p class="muted">This run supports only review-state enable/disable. Prices, thumbnails, notes, and future eligibility labels cannot be bulk-edited here.</p>
+      <p class="muted">Current filtered result count: {{ total_count }}. Use <code>ENABLE {{ total_count }}</code> or <code>DISABLE {{ total_count }}</code> when applying to the filtered result set.</p>
+      <div class="bulk-grid">
+        <select name="bulk_action" aria-label="Bulk review action">
+          <option value="enable">Enable review-required</option>
+          <option value="disable">Disable review-required</option>
+        </select>
+        <label class="checkbox-inline"><input type="checkbox" name="apply_to_filtered" value="1"> Apply to current filtered results</label>
+        <input type="text" name="confirmation" value="" placeholder="ENABLE {{ total_count }}" aria-label="Bulk confirmation token">
+        <button type="submit">Run bounded bulk update</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="inline-nav" aria-label="Pagination">
+    {% if page > 1 %}
+      <a href="?q={{ filters.query }}&imported_state={{ filters.imported_state }}&review_state={{ filters.review_state }}&enabled_state={{ filters.enabled_state }}&image_state={{ filters.image_state }}&warning_state={{ filters.warning_state }}&imported_category={{ filters.imported_category }}&imported_usage={{ filters.imported_usage }}&auto_trader_candidate={{ filters.auto_trader_candidate }}&direct_purchase_candidate={{ filters.direct_purchase_candidate }}&rental_candidate={{ filters.rental_candidate }}&bundle_candidate={{ filters.bundle_candidate }}&horde_event_candidate={{ filters.horde_event_candidate }}&limit={{ limit }}&page={{ page - 1 }}">Prev</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?q={{ filters.query }}&imported_state={{ filters.imported_state }}&review_state={{ filters.review_state }}&enabled_state={{ filters.enabled_state }}&image_state={{ filters.image_state }}&warning_state={{ filters.warning_state }}&imported_category={{ filters.imported_category }}&imported_usage={{ filters.imported_usage }}&auto_trader_candidate={{ filters.auto_trader_candidate }}&direct_purchase_candidate={{ filters.direct_purchase_candidate }}&rental_candidate={{ filters.rental_candidate }}&bundle_candidate={{ filters.bundle_candidate }}&horde_event_candidate={{ filters.horde_event_candidate }}&limit={{ limit }}&page={{ page + 1 }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
