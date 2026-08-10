@@ -4,6 +4,11 @@
 <section class="panel">
   <h1 class="page-title">DXEMB Admin Panel</h1>
   <p class="page-subtitle">DayZ Xbox Trader status dashboard</p>
+  <p>
+    Demo mode is local-safe: admin roles and the demo player are explicit URL
+    hints, wallet credits are virtual, and map/operations actions are previews
+    or evidence views rather than live provider changes.
+  </p>
 </section>
 
 <section class="panel">
@@ -45,14 +50,30 @@
 {% endif %}
 
 <section class="panel">
-  <h2>Admin</h2>
+  <h2>Browser Demo</h2>
   <div class="data-row row">
-    <span class="label">Catalog management</span>
-    <a class="val" href="/catalog" aria-label="Open catalog management">Open /catalog</a>
+    <span class="label">Catalog</span>
+    <a class="val" href="/catalog">Browse items</a>
   </div>
   <div class="data-row row">
     <span class="label">Vehicle builder</span>
-    <a class="val" href="/vehicles" aria-label="Open vehicle builder">Open /vehicles</a>
+    <a class="val" href="/vehicles?as_role=admin">Open builder</a>
+  </div>
+  <div class="data-row row">
+    <span class="label">Player wallet</span>
+    <a class="val" href="/wallet/me?discord_user_id=demo-player">Open demo wallet</a>
+  </div>
+  <div class="data-row row">
+    <span class="label">Wallet operations</span>
+    <a class="val" href="/wallet/admin?as_role=admin">Open admin wallet</a>
+  </div>
+  <div class="data-row row">
+    <span class="label">Operations evidence</span>
+    <a class="val" href="/admin/operations?as_role=admin">Open operations</a>
+  </div>
+  <div class="data-row row">
+    <span class="label">Map preview</span>
+    <a class="val" href="/admin/map?as_role=admin">Open map</a>
   </div>
 </section>
 {% endblock %}

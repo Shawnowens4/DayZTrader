@@ -148,14 +148,14 @@ def catalog_thumbnail_src(classname: str | None, source_url: str | None) -> str:
 
 def ui_nav_links() -> list[dict[str, str]]:
     return [
-        {"href": "/", "label": "Status"},
+        {"href": "/", "label": "Dashboard"},
         {"href": "/admin/operations?as_role=admin", "label": "Ops Admin"},
         {"href": "/admin/map?as_role=admin", "label": "Map Admin"},
         {"href": "/catalog", "label": "Catalog"},
-        {"href": "/wallet/me", "label": "My Wallet"},
+        {"href": "/wallet/me?discord_user_id=demo-player", "label": "My Wallet"},
         {"href": "/catalog/admin", "label": "Catalog Admin"},
-        {"href": "/wallet/admin", "label": "Wallet Admin"},
-        {"href": "/vehicles", "label": "Vehicles"},
+        {"href": "/wallet/admin?as_role=admin", "label": "Wallet Admin"},
+        {"href": "/vehicles?as_role=admin", "label": "Vehicles"},
     ]
 
 

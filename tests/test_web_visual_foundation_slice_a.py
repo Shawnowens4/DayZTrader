@@ -130,6 +130,22 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
             detail = self._get_admin(f"/vehicles/{classname}")
             self.assertLess(detail.status_code, 500)
 
+    def test_dashboard_exposes_demo_safe_main_flows(self) -> None:
+        response = self.client.get("/")
+        body = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Demo mode is local-safe", body)
+        for href in [
+            "/catalog",
+            "/vehicles?as_role=admin",
+            "/wallet/me?discord_user_id=demo-player",
+            "/wallet/admin?as_role=admin",
+            "/admin/operations?as_role=admin",
+            "/admin/map?as_role=admin",
+        ]:
+            self.assertIn(f'href="{href}"', body)
+
     def test_get_pages_do_not_mutate_state(self) -> None:
         before = self._table_counts()
 
