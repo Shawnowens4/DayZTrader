@@ -31,6 +31,11 @@ except ModuleNotFoundError:
     from catalog_admin import catalog_bp
 
 try:
+    from web.wallet_admin import wallet_admin_bp
+except ModuleNotFoundError:
+    from wallet_admin import wallet_admin_bp
+
+try:
     from web.vehicle_admin import vehicle_bp
 except ModuleNotFoundError:
     from vehicle_admin import vehicle_bp
@@ -43,6 +48,7 @@ except ModuleNotFoundError:
 app = Flask(__name__)
 register_ui_helpers(app)
 app.register_blueprint(catalog_bp)
+app.register_blueprint(wallet_admin_bp)
 app.register_blueprint(vehicle_bp)
 
 TABLES = ["player", "item", "escrow_transaction"]

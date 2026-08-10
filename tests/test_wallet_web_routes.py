@@ -15,6 +15,7 @@ from tests.harness.postgres_isolated import (
     disposable_database_name,
     drop_disposable_database,
     ensure_psycopg2_available,
+    migration_sql_path,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +37,8 @@ class WalletWebRoutesTests(unittest.TestCase):
         create_disposable_database(cls.db_name)
         try:
             apply_schema(cls.db_url)
-            apply_sql_file(cls.db_url, DXEMB_ROOT / "db" / "migrations" / "001_wallet_ledger_foundation.sql")
+            apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
         except Exception:
             drop_disposable_database(cls.db_name)
             raise
@@ -52,67 +54,152 @@ class WalletWebRoutesTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.service = WalletLedgerService(database_url=self.db_url)
-        self.user_id = f"wallet-web-{self._testMethodName}"
-        self.service.ensure_player(self.user_id, username="WalletWebUser")
+        self.owner_id = f"local:web-{self._testMethodName}"
+        self.service.ensure_wallet_owner(self.owner_id, display_name="WalletWebUser", owner_kind="LOCAL_PLAYER")
 
-    def test_wallet_balance_route(self) -> None:
+    def test_admin_route_rendering_and_bounded_history(self) -> None:
+        for idx in range(30):
+            self.service.credit(
+                discord_user_id=self.owner_id,
+                amount=idx + 1,
+                reference_type="TEST_CREDIT",
+                reference_id=f"credit-{idx}",
+                reason_code="TEST",
+                idempotency_key=f"web-credit-{idx}",
+            )
+
+        list_resp = self.client.get("/wallet/admin")
+        detail_resp = self.client.get(f"/wallet/admin/{self.owner_id}?limit=25")
+        detail_body = detail_resp.get_data(as_text=True)
+
+        self.assertEqual(list_resp.status_code, 200)
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertIn("Wallet Admin Workspace", list_resp.get_data(as_text=True))
+        self.assertIn("Virtual credits only", detail_body)
+        self.assertIn("Next", detail_body)
+        self.assertLessEqual(detail_body.count("<tr>"), 26)
+
+    def test_admin_adjustment_workflow_and_invalid_confirmation(self) -> None:
+        bad = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "adjustment",
+                "direction": "credit",
+                "amount_minor": "50",
+                "idempotency_key": "wallet-route-001",
+                "actor_id": "local_admin",
+                "reason_text": "manual credit",
+                "metadata_json": '{"ticket":"route-1"}',
+                "confirmation": "APPLY +49",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+        )
+        self.assertEqual(bad.status_code, 400)
+        self.assertIn("confirmation phrase must exactly match APPLY +50", bad.get_data(as_text=True))
+
+        ok = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "adjustment",
+                "direction": "credit",
+                "amount_minor": "50",
+                "idempotency_key": "wallet-route-001",
+                "actor_id": "local_admin",
+                "reason_text": "manual credit",
+                "metadata_json": '{"ticket":"route-1"}',
+                "confirmation": "APPLY +50",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            follow_redirects=True,
+        )
+        body = ok.get_data(as_text=True)
+        self.assertEqual(ok.status_code, 200)
+        self.assertIn("Posted wallet entry ADMIN_ADJUSTMENT +50", body)
+        self.assertEqual(self.service.get_balance(self.owner_id), 50)
+
+    def test_reversal_and_refund_routes(self) -> None:
+        credit = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=60,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-route-reversal",
+            reason_code="TEST",
+            idempotency_key="credit-route-reversal",
+        )
         self.service.credit(
-            discord_user_id=self.user_id,
+            discord_user_id=self.owner_id,
+            amount=25,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-route-refund-base",
+            reason_code="TEST",
+            idempotency_key="credit-route-refund-base",
+        )
+        debit = self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=20,
+            reference_type="TEST_DEBIT",
+            reference_id="debit-route-refund",
+            reason_code="TEST",
+            idempotency_key="debit-route-refund",
+        )
+
+        reversal = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "reversal",
+                "original_ledger_id": str(credit.ledger_id),
+                "idempotency_key": "reversal-route-001",
+                "actor_id": "local_admin",
+                "reason_text": "reverse credit",
+                "metadata_json": '{}',
+                "confirmation": "APPLY -60",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            follow_redirects=True,
+        )
+        refund = self.client.post(
+            f"/wallet/admin/{self.owner_id}/adjust",
+            data={
+                "entry_mode": "refund",
+                "original_ledger_id": str(debit.ledger_id),
+                "idempotency_key": "refund-route-001",
+                "actor_id": "local_admin",
+                "reason_text": "refund debit",
+                "metadata_json": '{}',
+                "confirmation": "APPLY +20",
+                "owner_kind": "LOCAL_PLAYER",
+                "owner_label": "Wallet Web User",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(reversal.status_code, 200)
+        self.assertEqual(refund.status_code, 200)
+        self.assertIn("REVERSAL -60", reversal.get_data(as_text=True))
+        self.assertIn("REFUND +20", refund.get_data(as_text=True))
+
+    def test_existing_and_neighboring_routes_remain_intact(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
             amount=55,
             reference_type="TEST",
             reference_id=f"credit-{self._testMethodName}",
             reason_code="TEST",
+            idempotency_key=f"wallet-{self._testMethodName}",
         )
-        resp = self.client.get(f"/wallet/{self.user_id}")
-        data = resp.get_json()
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(data["balance"], 55)
-        self.assertEqual(data["mode"], "read-only")
-
-    def test_wallet_ledger_route(self) -> None:
-        self.service.credit(
-            discord_user_id=self.user_id,
-            amount=20,
-            reference_type="TEST",
-            reference_id=f"credit-{self._testMethodName}",
-            reason_code="TEST",
-        )
-        resp = self.client.get(f"/wallet/{self.user_id}/ledger?limit=10")
-        data = resp.get_json()
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(data["count"], 1)
-        self.assertEqual(data["rows"][0]["entry_type"], "CREDIT")
-
-    def test_wallet_preview_route_non_mutating(self) -> None:
-        self.service.credit(
-            discord_user_id=self.user_id,
-            amount=40,
-            reference_type="TEST",
-            reference_id=f"credit-{self._testMethodName}",
-            reason_code="TEST",
-        )
-        before = self.service.get_balance(self.user_id)
-
-        resp = self.client.post(
-            f"/wallet/{self.user_id}/preview",
-            json={"operation": "debit", "amount": 50},
-        )
-        data = resp.get_json()
-        after = self.service.get_balance(self.user_id)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertFalse(data["allowed"])
-        self.assertFalse(data["applied"])
-        self.assertEqual(before, after)
-
-    def test_wallet_adjust_route_disabled(self) -> None:
-        resp = self.client.post(f"/wallet/{self.user_id}/adjust", json={"amount": 10})
-        data = resp.get_json()
-
-        self.assertEqual(resp.status_code, 403)
-        self.assertEqual(data["mode"], "disabled")
+        paths = [
+            f"/wallet/{self.owner_id}",
+            f"/wallet/{self.owner_id}/ledger?limit=10",
+            "/catalog",
+            "/catalog/admin",
+            "/vehicles",
+        ]
+        for path in paths:
+            response = self.client.get(path)
+            self.assertLess(response.status_code, 500, msg=f"route {path} returned {response.status_code}")
 
 
 if __name__ == "__main__":

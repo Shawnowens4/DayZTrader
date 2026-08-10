@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Wallet Admin{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="page-title">Wallet Admin Workspace</h1>
+  <p class="page-subtitle">Local admin inspection for virtual-credit balances and append-only ledger history.</p>
+  <p class="notice-banner notice-neutral">{{ auth_notice }}</p>
+  <p class="notice-banner notice-neutral">{{ capability_notice }}</p>
+  {% if admin_message %}
+  <p class="notice-banner notice-ok">{{ admin_message }}</p>
+  {% endif %}
+  {% for error in admin_errors %}
+  <p class="notice-banner notice-error">{{ error }}</p>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <form method="get" action="/wallet/admin" class="filters" aria-label="Wallet owner filters">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search owner id or label" aria-label="Search owner id or label">
+    <select name="limit" aria-label="Wallet owner row limit">
+      <option value="25" {{ 'selected' if limit == 25 else '' }}>25 rows</option>
+      <option value="50" {{ 'selected' if limit == 50 else '' }}>50 rows</option>
+    </select>
+    <button type="submit">Apply</button>
+  </form>
+  <p class="muted">To create a new local wallet owner, post the first confirmed adjustment to a chosen owner route such as <code>/wallet/admin/local:test-wallet</code>.</p>
+</section>
+
+<section class="panel">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Owner</th>
+        <th>Kind</th>
+        <th>Balance</th>
+        <th>Transactions</th>
+        <th>Latest activity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for owner in owners %}
+      <tr>
+        <td>
+          <strong>{{ owner.owner_label or owner.owner_id }}</strong><br>
+          <span class="muted"><code>{{ owner.owner_id }}</code></span>
+        </td>
+        <td><span class="status-pill status-neutral">{{ owner.owner_kind }}</span></td>
+        <td><span class="status-pill {{ 'status-ok' if owner.balance_minor >= 0 else 'status-error' }}">{{ owner.balance_minor }}</span></td>
+        <td>{{ owner.transaction_count }}</td>
+        <td>{{ owner.latest_activity or 'none' }}</td>
+        <td><a class="action-link" href="/wallet/admin/{{ owner.owner_id }}">Open wallet</a></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6">No wallet owners matched the current filter.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="inline-nav" aria-label="Wallet owner pagination">
+    {% if page > 1 %}
+      <a href="?q={{ query }}&limit={{ limit }}&page={{ page - 1 }}">Prev</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?q={{ query }}&limit={{ limit }}&page={{ page + 1 }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

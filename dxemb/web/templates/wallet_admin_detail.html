@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}{{ owner.owner_label or owner.owner_id }} - Wallet Admin{% endblock %}
+{% block content %}
+{% set values = form_values if form_values is defined else {} %}
+<section class="panel">
+  <p><a href="/wallet/admin">&larr; Back to wallet admin</a></p>
+  <h1 class="page-title">Wallet Owner: {{ owner.owner_label or owner.owner_id }}</h1>
+  <p class="notice-banner notice-neutral">{{ auth_notice }}</p>
+  <p class="notice-banner notice-neutral">{{ capability_notice }}</p>
+  {% if admin_message %}
+  <p class="notice-banner notice-ok">{{ admin_message }}</p>
+  {% endif %}
+  {% for error in admin_errors %}
+  <p class="notice-banner notice-error">{{ error }}</p>
+  {% endfor %}
+</section>
+
+<section class="detail-grid">
+  <div class="panel">
+    <h2>Wallet Summary</h2>
+    <div class="row"><span class="label">Owner id</span><span class="val"><code>{{ owner.owner_id }}</code></span></div>
+    <div class="row"><span class="label">Owner kind</span><span class="val">{{ owner.owner_kind }}</span></div>
+    <div class="row"><span class="label">Display label</span><span class="val">{{ owner.owner_label or '-' }}</span></div>
+    <div class="row"><span class="label">Balance minor</span><span class="val">{{ owner.balance_minor }}</span></div>
+    <div class="row"><span class="label">Transaction count</span><span class="val">{{ owner.transaction_count }}</span></div>
+    <div class="row"><span class="label">Latest activity</span><span class="val">{{ owner.latest_activity or 'none' }}</span></div>
+    <div class="row"><span class="label">Reconciliation</span><span class="val">{{ 'match' if reconciliation.matches else 'mismatch' }}</span></div>
+    <div class="row"><span class="label">Ledger total minor</span><span class="val">{{ reconciliation.ledger_total_minor }}</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Local Admin Adjustment</h2>
+    <p class="muted">Adjustments create new append-only ledger entries only. Existing ledger rows are never edited or deleted.</p>
+    <form method="post" action="/wallet/admin/{{ owner.owner_id }}/adjust" class="curation-form">
+      <input type="hidden" name="page" value="{{ page }}">
+      <input type="hidden" name="limit" value="{{ limit }}">
+      <div class="form-grid">
+        <label>
+          <span>Entry mode</span>
+          <select name="entry_mode">
+            <option value="adjustment" {{ 'selected' if values.get('entry_mode', 'adjustment') == 'adjustment' else '' }}>Admin adjustment</option>
+            <option value="refund" {{ 'selected' if values.get('entry_mode') == 'refund' else '' }}>Refund</option>
+            <option value="reversal" {{ 'selected' if values.get('entry_mode') == 'reversal' else '' }}>Reversal</option>
+          </select>
+        </label>
+        <label>
+          <span>Direction</span>
+          <select name="direction">
+            <option value="credit" {{ 'selected' if values.get('direction', 'credit') == 'credit' else '' }}>Credit (+)</option>
+            <option value="debit" {{ 'selected' if values.get('direction') == 'debit' else '' }}>Debit (-)</option>
+          </select>
+        </label>
+        <label>
+          <span>Amount minor</span>
+          <input type="text" name="amount_minor" value="{{ values.get('amount_minor', '') }}" placeholder="1500">
+        </label>
+        <label>
+          <span>Original ledger id</span>
+          <input type="text" name="original_ledger_id" value="{{ values.get('original_ledger_id', '') }}" placeholder="Required for refund/reversal">
+        </label>
+        <label>
+          <span>Idempotency key</span>
+          <input type="text" name="idempotency_key" value="{{ values.get('idempotency_key', '') }}" placeholder="local-admin-owner-001">
+        </label>
+        <label>
+          <span>Actor id</span>
+          <input type="text" name="actor_id" value="{{ values.get('actor_id', 'local_admin') }}">
+        </label>
+        <label>
+          <span>Owner label</span>
+          <input type="text" name="owner_label" value="{{ values.get('owner_label', owner.owner_label or '') }}" placeholder="Optional label for first-time owner creation">
+        </label>
+        <label>
+          <span>Owner kind</span>
+          <select name="owner_kind">
+            {% set owner_kind_value = values.get('owner_kind', owner.owner_kind or 'LOCAL_PLAYER') %}
+            <option value="LOCAL_PLAYER" {{ 'selected' if owner_kind_value == 'LOCAL_PLAYER' else '' }}>LOCAL_PLAYER</option>
+            <option value="LOCAL_ADMIN" {{ 'selected' if owner_kind_value == 'LOCAL_ADMIN' else '' }}>LOCAL_ADMIN</option>
+            <option value="SYSTEM" {{ 'selected' if owner_kind_value == 'SYSTEM' else '' }}>SYSTEM</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span>Reason text</span>
+        <textarea name="reason_text" rows="3" placeholder="Required reason for this local admin wallet mutation.">{{ values.get('reason_text', '') }}</textarea>
+      </label>
+      <label>
+        <span>Safe metadata JSON object</span>
+        <textarea name="metadata_json" rows="4" placeholder='{"ticket":"local-001"}'>{{ values.get('metadata_json', '') }}</textarea>
+      </label>
+      <label>
+        <span>Confirmation phrase</span>
+        <input type="text" name="confirmation" value="{{ values.get('confirmation', '') }}" placeholder="APPLY +1500">
+      </label>
+      <p class="muted">Use <code>APPLY +amount</code> for positive adjustments and <code>APPLY -amount</code> for debits. Refunds/reversals derive the signed amount from the referenced ledger entry.</p>
+      <button type="submit">Post wallet entry</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Ledger History</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Balance after</th>
+        <th>Reason</th>
+        <th>Actor</th>
+        <th>Metadata</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in history %}
+      <tr>
+        <td><code>{{ row.id }}</code></td>
+        <td>
+          <span class="status-pill {{ 'status-ok' if row.signed_amount > 0 else 'status-error' if row.signed_amount < 0 else 'status-neutral' }}">{{ row.entry_type }}</span>
+          {% if row.entry_type == 'ADMIN_ADJUSTMENT' %}
+          <div class="muted">{{ 'credit' if row.signed_amount > 0 else 'debit' }}</div>
+          {% endif %}
+        </td>
+        <td>{{ row.signed_amount }}</td>
+        <td>{{ row.balance_after_minor }}</td>
+        <td>{{ row.reason_text }}</td>
+        <td>{{ row.actor_discord_id or 'system:local' }}<div class="muted">{{ row.actor_source }}</div></td>
+        <td><span class="break-all">{{ row.metadata }}</span></td>
+        <td>{{ row.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8">No ledger entries recorded for this wallet owner.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="inline-nav" aria-label="Wallet history pagination">
+    {% if page > 1 %}
+      <a href="?page={{ page - 1 }}&limit={{ limit }}">Prev</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="?page={{ page + 1 }}&limit={{ limit }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

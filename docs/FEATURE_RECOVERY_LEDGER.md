@@ -27,6 +27,10 @@
 
 - Completed and validated: local admin catalog curation workspace at `/catalog/admin` with read-only imported provenance/evidence, manual curation stored separately from importer-owned data, bounded review-state bulk actions with confirmation tokens, future eligibility labels defaulting false, local-only thumbnail validation, and preserved `/catalog` plus `/vehicles` behavior; validated by focused admin/importer/catalog/web tests and live HTTP checks for `/`, `/catalog`, `/catalog/admin`, `/catalog/AKM`, `/catalog/admin/AKM`, `/catalog/admin/CivilianSedan`, and `/vehicles`.
 
+## 2026-08-10 Completed Milestone — Run 5 virtual wallet and transaction-ledger foundation
+
+- Completed and validated: local-safe virtual wallet foundation with integer minor-unit accounting, append-only ledger immutability, owner-scoped idempotency keys, transactional balance updates with reconciliation, local admin wallet inspection at `/wallet/admin`, confirmed admin adjustments/refunds/reversals, and preserved `/catalog`, `/catalog/admin`, and `/vehicles` behavior; validated by focused wallet schema/service/web tests, neighboring schema/catalog/vehicle regressions, runtime HTTP checks, and live local-admin wallet workflow verification.
+
 ---
 
 ## 2026-08-09 Full Product + Design Audit Build Plan

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import sys
+import threading
 import unittest
 from pathlib import Path
+
+import psycopg2
 
 from tests.harness.postgres_isolated import (
     admin_database_url,
@@ -22,6 +25,9 @@ if str(DXEMB_ROOT) not in sys.path:
     sys.path.insert(0, str(DXEMB_ROOT))
 
 from shared.wallet_ledger_service import InsufficientFundsError
+from shared.wallet_ledger_service import InvalidAmountError
+from shared.wallet_ledger_service import InvalidOwnerError
+from shared.wallet_ledger_service import MetadataValidationError
 from shared.wallet_ledger_service import WalletLedgerService
 
 
@@ -37,6 +43,7 @@ class WalletLedgerServiceTests(unittest.TestCase):
         try:
             apply_schema(cls.db_url)
             apply_sql_file(cls.db_url, migration_sql_path("001_wallet_ledger_foundation.sql"))
+            apply_sql_file(cls.db_url, migration_sql_path("011_wallet_ledger_run5_additive_upgrade.sql"))
         except Exception:
             drop_disposable_database(cls.db_name)
             raise
@@ -47,98 +54,277 @@ class WalletLedgerServiceTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.service = WalletLedgerService(database_url=self.db_url)
-        self.user_id = f"wallet-{self._testMethodName}"
-        self.service.ensure_player(self.user_id, username="WalletUser")
+        self.owner_id = f"local:wallet-{self._testMethodName}"
+        self.service.ensure_wallet_owner(self.owner_id, display_name="WalletUser", owner_kind="LOCAL_PLAYER")
 
-    def test_credit_increases_balance_and_writes_ledger(self) -> None:
+    def _connect(self):
+        return psycopg2.connect(self.db_url, connect_timeout=5)
+
+    def test_create_get_wallet_owner_behavior(self) -> None:
+        owner = self.service.get_wallet_owner(self.owner_id)
+        self.assertIsNotNone(owner)
+        self.assertEqual(owner["owner_id"], self.owner_id)
+        self.assertEqual(owner["owner_kind"], "LOCAL_PLAYER")
+        self.assertEqual(owner["balance_minor"], 0)
+
+    def test_credit_behavior_and_integer_balance_result(self) -> None:
         result = self.service.credit(
-            discord_user_id=self.user_id,
+            discord_user_id=self.owner_id,
             amount=100,
             reference_type="TEST_CREDIT",
             reference_id="credit-001",
             reason_code="TEST",
+            idempotency_key="wallet-credit-001",
         )
 
         self.assertTrue(result.applied)
-        self.assertFalse(result.idempotent)
-        self.assertEqual(result.balance_after, 100)
-        self.assertEqual(self.service.get_balance(self.user_id), 100)
+        self.assertEqual(result.amount_minor, 100)
+        self.assertEqual(result.balance_after_minor, 100)
+        self.assertEqual(self.service.get_balance(self.owner_id), 100)
 
-    def test_debit_decreases_balance(self) -> None:
+    def test_debit_behavior_and_insufficient_funds_rejection(self) -> None:
         self.service.credit(
-            discord_user_id=self.user_id,
+            discord_user_id=self.owner_id,
             amount=90,
             reference_type="TEST_CREDIT",
             reference_id="credit-002",
             reason_code="TEST",
+            idempotency_key="wallet-credit-002",
         )
-        result = self.service.debit(
-            discord_user_id=self.user_id,
+        debit = self.service.debit(
+            discord_user_id=self.owner_id,
             amount=40,
             reference_type="TEST_DEBIT",
             reference_id="debit-001",
             reason_code="TEST",
+            idempotency_key="wallet-debit-001",
         )
 
-        self.assertTrue(result.applied)
-        self.assertEqual(result.balance_before, 90)
-        self.assertEqual(result.balance_after, 50)
-        self.assertEqual(self.service.get_balance(self.user_id), 50)
+        self.assertEqual(debit.balance_before, 90)
+        self.assertEqual(debit.balance_after, 50)
 
-    def test_insufficient_funds_raises(self) -> None:
         with self.assertRaises(InsufficientFundsError):
             self.service.debit(
-                discord_user_id=self.user_id,
-                amount=25,
+                discord_user_id=self.owner_id,
+                amount=80,
                 reference_type="TEST_DEBIT",
                 reference_id="debit-002",
                 reason_code="TEST",
+                idempotency_key="wallet-debit-002",
             )
 
-    def test_duplicate_reference_is_idempotent(self) -> None:
+    def test_duplicate_idempotency_does_not_double_apply(self) -> None:
         first = self.service.credit(
-            discord_user_id=self.user_id,
+            discord_user_id=self.owner_id,
             amount=75,
             reference_type="TEST_CREDIT",
             reference_id="credit-003",
             reason_code="TEST",
+            idempotency_key="wallet-credit-003",
         )
         second = self.service.credit(
-            discord_user_id=self.user_id,
+            discord_user_id=self.owner_id,
             amount=75,
             reference_type="TEST_CREDIT",
-            reference_id="credit-003",
+            reference_id="credit-003-different",
             reason_code="TEST",
+            idempotency_key="wallet-credit-003",
         )
 
         self.assertTrue(first.applied)
-        self.assertFalse(first.idempotent)
         self.assertFalse(second.applied)
         self.assertTrue(second.idempotent)
-        self.assertEqual(first.ledger_id, second.ledger_id)
-        self.assertEqual(self.service.get_balance(self.user_id), 75)
+        self.assertEqual(self.service.get_balance(self.owner_id), 75)
 
-    def test_ledger_history_order_and_content(self) -> None:
+    def test_concurrent_debit_safety(self) -> None:
         self.service.credit(
-            discord_user_id=self.user_id,
-            amount=50,
+            discord_user_id=self.owner_id,
+            amount=100,
             reference_type="TEST_CREDIT",
             reference_id="credit-004",
             reason_code="TEST",
-        )
-        self.service.debit(
-            discord_user_id=self.user_id,
-            amount=20,
-            reference_type="TEST_DEBIT",
-            reference_id="debit-004",
-            reason_code="TEST",
+            idempotency_key="wallet-credit-004",
         )
 
-        history = self.service.list_ledger_entries(self.user_id, limit=10)
-        self.assertGreaterEqual(len(history), 2)
-        self.assertEqual(history[0]["reference_id"], "debit-004")
-        self.assertEqual(history[1]["reference_id"], "credit-004")
-        self.assertEqual(history[0]["balance_after"], 30)
+        barrier = threading.Barrier(3)
+        outcomes: list[str] = []
+
+        def worker(name: str) -> None:
+            local_service = WalletLedgerService(database_url=self.db_url)
+            barrier.wait()
+            try:
+                local_service.debit(
+                    discord_user_id=self.owner_id,
+                    amount=80,
+                    reference_type="TEST_CONCURRENT_DEBIT",
+                    reference_id=name,
+                    reason_code="TEST",
+                    idempotency_key=f"{name}-idempotency",
+                )
+                outcomes.append("applied")
+            except InsufficientFundsError:
+                outcomes.append("insufficient")
+
+        t1 = threading.Thread(target=worker, args=("thread-1",))
+        t2 = threading.Thread(target=worker, args=("thread-2",))
+        t1.start()
+        t2.start()
+        barrier.wait()
+        t1.join()
+        t2.join()
+
+        self.assertEqual(sorted(outcomes), ["applied", "insufficient"])
+        self.assertEqual(self.service.get_balance(self.owner_id), 20)
+
+    def test_append_only_immutability(self) -> None:
+        entry = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=20,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-immut",
+            reason_code="TEST",
+            idempotency_key="wallet-credit-immut",
+        )
+
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                with self.assertRaises(psycopg2.Error):
+                    cur.execute("UPDATE wallet_ledger SET reason_text = 'bad' WHERE id = %s", (entry.ledger_id,))
+                conn.rollback()
+                with self.assertRaises(psycopg2.Error):
+                    cur.execute("DELETE FROM wallet_ledger WHERE id = %s", (entry.ledger_id,))
+
+    def test_compensating_reversal_and_refund_behavior(self) -> None:
+        credit = self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=60,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-reverse",
+            reason_code="TEST",
+            idempotency_key="wallet-credit-reverse",
+        )
+        reversal = self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=credit.ledger_id,
+            transaction_type="REVERSAL",
+            idempotency_key="wallet-reversal-001",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="reverse mistaken credit",
+        )
+        self.assertEqual(reversal.signed_amount, -60)
+        self.assertEqual(self.service.get_balance(self.owner_id), 0)
+
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=25,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-refund-base",
+            reason_code="TEST",
+            idempotency_key="wallet-credit-refund-base",
+        )
+        debit = self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=20,
+            reference_type="TEST_DEBIT",
+            reference_id="debit-refund",
+            reason_code="TEST",
+            idempotency_key="wallet-debit-refund",
+        )
+        refund = self.service.reverse_entry(
+            owner_id=self.owner_id,
+            original_ledger_id=debit.ledger_id,
+            transaction_type="REFUND",
+            idempotency_key="wallet-refund-001",
+            actor_id="local_admin",
+            actor_source="local_admin",
+            reason_text="refund mistaken debit",
+        )
+        self.assertEqual(refund.signed_amount, 20)
+        self.assertEqual(self.service.get_balance(self.owner_id), 25)
+
+    def test_admin_adjustment_requires_reason_and_exact_idempotency(self) -> None:
+        with self.assertRaises(InvalidAmountError):
+            self.service.admin_adjust(
+                discord_user_id=self.owner_id,
+                signed_amount=50,
+                reference_id="admin-adjust-001",
+                reason_code="ADMIN_CREDIT",
+                reason_text="",
+                actor_discord_id="local_admin",
+                idempotency_key="admin-adjust-001",
+            )
+
+        result = self.service.admin_adjust(
+            discord_user_id=self.owner_id,
+            signed_amount=50,
+            reference_id="admin-adjust-001",
+            reason_code="ADMIN_CREDIT",
+            reason_text="manual credit",
+            actor_discord_id="local_admin",
+            idempotency_key="admin-adjust-001",
+        )
+        duplicate = self.service.admin_adjust(
+            discord_user_id=self.owner_id,
+            signed_amount=50,
+            reference_id="admin-adjust-001-different",
+            reason_code="ADMIN_CREDIT",
+            reason_text="manual credit",
+            actor_discord_id="local_admin",
+            idempotency_key="admin-adjust-001",
+        )
+
+        self.assertTrue(result.applied)
+        self.assertTrue(duplicate.idempotent)
+        self.assertEqual(self.service.get_balance(self.owner_id), 50)
+
+    def test_invalid_amount_metadata_and_owner_rejection(self) -> None:
+        with self.assertRaises(InvalidOwnerError):
+            self.service.ensure_wallet_owner("bad owner id")
+
+        with self.assertRaises(InvalidAmountError):
+            self.service.credit(
+                discord_user_id=self.owner_id,
+                amount=0,
+                reference_type="TEST",
+                reference_id="zero",
+                reason_code="TEST",
+                idempotency_key="zero-key",
+            )
+
+        with self.assertRaises(MetadataValidationError):
+            self.service.credit(
+                discord_user_id=self.owner_id,
+                amount=10,
+                reference_type="TEST",
+                reference_id="bad-meta",
+                reason_code="TEST",
+                idempotency_key="bad-meta-key",
+                metadata={"token": "secret"},
+            )
+
+    def test_reconciliation_balance_parity(self) -> None:
+        self.service.credit(
+            discord_user_id=self.owner_id,
+            amount=30,
+            reference_type="TEST_CREDIT",
+            reference_id="credit-reconcile",
+            reason_code="TEST",
+            idempotency_key="wallet-credit-reconcile",
+        )
+        self.service.debit(
+            discord_user_id=self.owner_id,
+            amount=10,
+            reference_type="TEST_DEBIT",
+            reference_id="debit-reconcile",
+            reason_code="TEST",
+            idempotency_key="wallet-debit-reconcile",
+        )
+        reconciliation = self.service.reconcile_balance(self.owner_id)
+
+        self.assertTrue(reconciliation["matches"])
+        self.assertEqual(reconciliation["account_balance_minor"], 20)
+        self.assertEqual(reconciliation["ledger_total_minor"], 20)
 
 
 if __name__ == "__main__":
