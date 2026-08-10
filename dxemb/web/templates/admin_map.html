@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Admin - Map Workspace{% endblock %}
+{% block content %}
+<section class="panel">
+  <p><a href="/">&larr; Back to dashboard</a> | <a href="/admin/operations?as_role={{ as_role|urlencode }}">Operations workspace</a></p>
+  <h1 class="page-title">Map Admin Workspace</h1>
+  <p class="page-subtitle">Local-safe map utilities for coordinate normalization and dry-run marker/region previews.</p>
+  <p class="notice-banner notice-neutral">No live game-map integration or server-side map writes are performed in this workspace.</p>
+</section>
+
+<section class="panel">
+  <h2>Current Map Slice Status</h2>
+  <div class="row"><span class="label">Progress item</span><span class="val">{{ progress_hint.id }} - {{ progress_hint.title }}</span></div>
+  <div class="row"><span class="label">Status</span><span class="val"><span class="status-pill status-neutral">{{ progress_hint.status }}</span></span></div>
+  <div class="row"><span class="label">Blocker</span><span class="val">{{ progress_hint.blocker or '-' }}</span></div>
+  <div class="row"><span class="label">Next step</span><span class="val">{{ progress_hint.next_step or '-' }}</span></div>
+</section>
+
+<section class="panel">
+  <h2>Local-Safe Coordinate Utilities</h2>
+  <form method="get" class="admin-filter-grid" aria-label="Map admin coordinate tools">
+    <input type="hidden" name="as_role" value="{{ as_role or 'admin' }}">
+    <label>
+      Tool mode
+      <select name="tool">
+        <option value="point" {% if tool == 'point' %}selected{% endif %}>Point preview</option>
+        <option value="region" {% if tool == 'region' %}selected{% endif %}>Region preview</option>
+      </select>
+    </label>
+    <label>
+      Coordinate mode
+      <select name="coord_mode">
+        <option value="world" {% if coord_mode == 'world' %}selected{% endif %}>World coordinates</option>
+        <option value="normalized" {% if coord_mode == 'normalized' %}selected{% endif %}>Normalized (0..1)</option>
+      </select>
+    </label>
+    <label>
+      Bounds min X
+      <input type="text" name="min_x" value="{{ min_x }}">
+    </label>
+    <label>
+      Bounds max X
+      <input type="text" name="max_x" value="{{ max_x }}">
+    </label>
+    <label>
+      Bounds min Z
+      <input type="text" name="min_z" value="{{ min_z }}">
+    </label>
+    <label>
+      Bounds max Z
+      <input type="text" name="max_z" value="{{ max_z }}">
+    </label>
+    <label>
+      Point A - X
+      <input type="text" name="x" value="{{ raw_x }}" placeholder="x">
+    </label>
+    <label>
+      Point A - Z
+      <input type="text" name="z" value="{{ raw_z }}" placeholder="z">
+    </label>
+    <label>
+      Point B - X (region)
+      <input type="text" name="x2" value="{{ raw_x2 }}" placeholder="x2">
+    </label>
+    <label>
+      Point B - Z (region)
+      <input type="text" name="z2" value="{{ raw_z2 }}" placeholder="z2">
+    </label>
+    <div>
+      <button type="submit">Apply dry-run preview</button>
+    </div>
+  </form>
+
+  {% if errors %}
+  <div class="notice-banner notice-error">
+    {% for err in errors %}<div>{{ err }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if applied_preview and not errors %}
+  <p class="notice-banner notice-ok">Applied preview only. No persistence, provider calls, or game-server side effects.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Dry-Run Markers</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>World X</th>
+          <th>World Z</th>
+          <th>Normalized X</th>
+          <th>Normalized Z</th>
+          <th>Percent</th>
+          <th>Quadrant</th>
+          <th>Grid key</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in marker_rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{{ row.world_x }}</td>
+          <td>{{ row.world_z }}</td>
+          <td>{{ row.normalized_x }}</td>
+          <td>{{ row.normalized_z }}</td>
+          <td>{{ row.percent_x }}% / {{ row.percent_z }}%</td>
+          <td>{{ row.quadrant }}</td>
+          <td><code>{{ row.grid_key }}</code></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="muted">No marker preview yet. Provide Point A values and apply preview.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Dry-Run Region Summary</h2>
+  {% if region_preview %}
+  <div class="detail-grid">
+    <div>
+      <div class="row"><span class="label">Region min</span><span class="val">X={{ region_preview.min_x }}, Z={{ region_preview.min_z }}</span></div>
+      <div class="row"><span class="label">Region max</span><span class="val">X={{ region_preview.max_x }}, Z={{ region_preview.max_z }}</span></div>
+      <div class="row"><span class="label">Region width</span><span class="val">{{ region_preview.width }}</span></div>
+      <div class="row"><span class="label">Region height</span><span class="val">{{ region_preview.height }}</span></div>
+      <div class="row"><span class="label">Region center</span><span class="val">X={{ region_preview.center_x }}, Z={{ region_preview.center_z }}</span></div>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">Region summary appears after running region mode with both Point A and Point B.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -7,6 +7,7 @@
 # =============================================================
 import sys
 import os
+import json
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -85,10 +86,18 @@ OPS_ALLOWED_DELIVERY_STATES = {
     "delivered",
     "cancelled",
 }
+MAP_ALLOWED_TOOLS = {"point", "region"}
+MAP_ALLOWED_COORD_MODES = {"world", "normalized"}
+MAP_PREVIEW_DEFAULT_MIN = 0.0
+MAP_PREVIEW_DEFAULT_MAX = 10000.0
 
 
 def _request_role_hint() -> str:
     return get_request_role_hint()
+
+
+def _is_admin_actor() -> bool:
+    return has_role(get_resolved_identity(), "admin")
 
 
 def _ops_database_url() -> str:
@@ -138,9 +147,69 @@ def _parse_bounded_int(raw_value: str | None, *, default: int, minimum: int, max
     return max(minimum, min(parsed, maximum))
 
 
+def _parse_bounded_float(raw_value: str | None, *, default: float, minimum: float, maximum: float) -> float:
+    try:
+        parsed = float((raw_value or "").strip() or str(default))
+    except ValueError:
+        return default
+    return max(minimum, min(parsed, maximum))
+
+
 def _normalize_choice(raw_value: str | None, *, allowed: set[str], default: str) -> str:
     candidate = (raw_value or "").strip()
     return candidate if candidate in allowed else default
+
+
+def _map_workspace_progress_hint() -> dict[str, str]:
+    out = {
+        "id": "9",
+        "title": "Local map preview slice",
+        "status": "unknown",
+        "blocker": "no local map progress data found",
+        "next_step": "add map slice progress source entry",
+    }
+    source_path = ROOT_DIR / "shared" / "catalog" / "data" / "project_progress.json"
+    try:
+        payload = json.loads(source_path.read_text(encoding="utf-8"))
+        for item in payload.get("items", []):
+            if str(item.get("id")) == "9":
+                out["title"] = str(item.get("title") or out["title"])
+                out["status"] = str(item.get("status") or out["status"])
+                out["blocker"] = str(item.get("blocker") or "")
+                out["next_step"] = str(item.get("next_step") or "")
+                return out
+    except Exception as exc:
+        out["blocker"] = f"map progress data could not be read: {exc}"
+    return out
+
+
+def _map_normalize(value: float, *, minimum: float, maximum: float) -> float:
+    span = maximum - minimum
+    if span <= 0:
+        return 0.0
+    raw = (value - minimum) / span
+    return max(0.0, min(raw, 1.0))
+
+
+def _map_quadrant(*, normalized_x: float, normalized_z: float) -> str:
+    top = "north" if normalized_z <= 0.5 else "south"
+    side = "west" if normalized_x <= 0.5 else "east"
+    return f"{top}-{side}"
+
+
+def _map_parse_optional_pair(raw_x: str, raw_z: str, *, label: str, errors: list[str]) -> tuple[float, float] | None:
+    x_value = raw_x.strip()
+    z_value = raw_z.strip()
+    if not x_value and not z_value:
+        return None
+    if not x_value or not z_value:
+        errors.append(f"{label} requires both X and Z values")
+        return None
+    try:
+        return float(x_value), float(z_value)
+    except ValueError:
+        errors.append(f"{label} values must be numeric")
+        return None
 
 
 def _wallet_auth_error_response(message: str, status_code: int):
@@ -991,7 +1060,6 @@ def autotrader_order_detail(order_id: int):
 
 
 @app.get("/autotrader/orders/<int:order_id>/history")
-@moderator_or_higher(message="moderator role is required for scheduler workspace")
 def autotrader_order_history(order_id: int):
     service = _autotrader_service()
     events = service.list_order_events(order_id)
@@ -1028,6 +1096,7 @@ def autotrader_scheduler_requests():
 
 
 @app.get("/autotrader/scheduler/orders/<int:order_id>/status")
+@moderator_or_higher(message="moderator role is required for scheduler workspace")
 def autotrader_scheduler_order_status(order_id: int):
     service = _scheduler_service()
     request_row = service.get_request_for_order(order_id)
@@ -1195,6 +1264,142 @@ def mission_progress(discord_user_id: str):
             "mode": "read-only",
             "domain": "missions",
         }
+    )
+
+
+@app.get("/admin/map")
+@admin_or_higher(message="admin role is required for map admin workspace")
+def admin_map_workspace():
+    tool = _normalize_choice(
+        request.args.get("tool"),
+        allowed=MAP_ALLOWED_TOOLS,
+        default="point",
+    )
+    coord_mode = _normalize_choice(
+        request.args.get("coord_mode"),
+        allowed=MAP_ALLOWED_COORD_MODES,
+        default="world",
+    )
+    as_role = _request_role_hint() or "admin"
+
+    min_x = _parse_bounded_float(
+        request.args.get("min_x"),
+        default=MAP_PREVIEW_DEFAULT_MIN,
+        minimum=-1000000.0,
+        maximum=1000000.0,
+    )
+    max_x = _parse_bounded_float(
+        request.args.get("max_x"),
+        default=MAP_PREVIEW_DEFAULT_MAX,
+        minimum=-1000000.0,
+        maximum=1000000.0,
+    )
+    min_z = _parse_bounded_float(
+        request.args.get("min_z"),
+        default=MAP_PREVIEW_DEFAULT_MIN,
+        minimum=-1000000.0,
+        maximum=1000000.0,
+    )
+    max_z = _parse_bounded_float(
+        request.args.get("max_z"),
+        default=MAP_PREVIEW_DEFAULT_MAX,
+        minimum=-1000000.0,
+        maximum=1000000.0,
+    )
+
+    errors: list[str] = []
+    if max_x <= min_x:
+        errors.append("max_x must be greater than min_x")
+        max_x = min_x + 1.0
+    if max_z <= min_z:
+        errors.append("max_z must be greater than min_z")
+        max_z = min_z + 1.0
+
+    raw_x = request.args.get("x", "")
+    raw_z = request.args.get("z", "")
+    raw_x2 = request.args.get("x2", "")
+    raw_z2 = request.args.get("z2", "")
+
+    point_input = _map_parse_optional_pair(raw_x, raw_z, label="Primary point", errors=errors)
+    secondary_input = _map_parse_optional_pair(raw_x2, raw_z2, label="Secondary point", errors=errors)
+
+    marker_rows: list[dict[str, object]] = []
+    region_preview: dict[str, object] | None = None
+    applied_preview = False
+
+    def to_world_pair(pair: tuple[float, float]) -> tuple[float, float]:
+        if coord_mode == "normalized":
+            x_norm = max(0.0, min(pair[0], 1.0))
+            z_norm = max(0.0, min(pair[1], 1.0))
+            return (min_x + (max_x - min_x) * x_norm, min_z + (max_z - min_z) * z_norm)
+        return pair
+
+    def append_marker(label: str, world_x: float, world_z: float) -> None:
+        normalized_x = _map_normalize(world_x, minimum=min_x, maximum=max_x)
+        normalized_z = _map_normalize(world_z, minimum=min_z, maximum=max_z)
+        marker_rows.append(
+            {
+                "label": label,
+                "world_x": round(world_x, 3),
+                "world_z": round(world_z, 3),
+                "normalized_x": round(normalized_x, 6),
+                "normalized_z": round(normalized_z, 6),
+                "percent_x": round(normalized_x * 100.0, 2),
+                "percent_z": round(normalized_z * 100.0, 2),
+                "quadrant": _map_quadrant(normalized_x=normalized_x, normalized_z=normalized_z),
+                "grid_key": f"{int(normalized_x * 10)}:{int(normalized_z * 10)}",
+            }
+        )
+
+    if point_input is not None and not errors:
+        point_world = to_world_pair(point_input)
+        append_marker("Point A", point_world[0], point_world[1])
+        applied_preview = True
+
+    if tool == "region" and secondary_input is not None and not errors:
+        if point_input is None:
+            errors.append("Region preview requires Primary point values")
+        else:
+            secondary_world = to_world_pair(secondary_input)
+            append_marker("Point B", secondary_world[0], secondary_world[1])
+            first = marker_rows[0]
+            second = marker_rows[1]
+            x1 = float(first["world_x"])
+            z1 = float(first["world_z"])
+            x2 = float(second["world_x"])
+            z2 = float(second["world_z"])
+            region_preview = {
+                "min_x": round(min(x1, x2), 3),
+                "max_x": round(max(x1, x2), 3),
+                "min_z": round(min(z1, z2), 3),
+                "max_z": round(max(z1, z2), 3),
+                "width": round(abs(x2 - x1), 3),
+                "height": round(abs(z2 - z1), 3),
+                "center_x": round((x1 + x2) / 2.0, 3),
+                "center_z": round((z1 + z2) / 2.0, 3),
+            }
+            applied_preview = True
+
+    progress_hint = _map_workspace_progress_hint()
+    return render_template(
+        "admin_map.html",
+        as_role=as_role,
+        auth_error="",
+        tool=tool,
+        coord_mode=coord_mode,
+        min_x=min_x,
+        max_x=max_x,
+        min_z=min_z,
+        max_z=max_z,
+        raw_x=raw_x,
+        raw_z=raw_z,
+        raw_x2=raw_x2,
+        raw_z2=raw_z2,
+        marker_rows=marker_rows,
+        region_preview=region_preview,
+        applied_preview=applied_preview,
+        errors=errors,
+        progress_hint=progress_hint,
     )
 
 
