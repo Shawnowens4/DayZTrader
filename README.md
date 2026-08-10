@@ -1,52 +1,82 @@
 ﻿# DXEMB - DayZ Xbox Escrow Marketplace Bot
 
-## Current Local Baseline
+## Browser Demo and Hosting
 
 DXEMB currently supports a local Docker-based web baseline with PostgreSQL and
 the Flask admin surface. The least invasive supported Phase 1 startup path is
 to run the database and web services only.
 
-### Required environment variables
+### Local browser demo
 
-Copy `.env.example` to `.env`.
+Windows PowerShell with Docker Desktop in Linux-container mode:
 
-Required for the local web baseline:
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
-- `DATABASE_URL`
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --build db web
+.\scripts\web_smoke.ps1
+```
 
-Optional for the Phase 1 web-only run:
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_REDIRECT_URI`
+Open `http://localhost:5000/`. The dashboard and top navigation link directly
+to the catalog, vehicles, demo player wallet, admin wallet, operations evidence,
+and map preview. The query-string identities are deliberately local-safe demo
+hints, not production authentication. Stop with `docker compose down`.
 
-### Supported local startup (Phase 1)
+The bot is not required for the browser demo.
 
-Windows 11, Docker Desktop, Linux containers mode:
+### Hosted browser demo
 
-1. Copy `.env.example` to `.env`.
-2. Start the local web baseline:
-   `docker compose up -d db web`
-3. Verify service state:
-   `docker compose ps`
-4. Open the primary pages:
-   - `http://localhost:5000/`
-   - `http://localhost:5000/catalog`
-   - `http://localhost:5000/vehicles`
-   - `http://localhost:5000/health`
-5. Stop the local stack when finished:
-   `docker compose down`
+On a Docker host, create the server environment and validate it before startup:
 
-### Verified Phase 1 route results
+```powershell
+Copy-Item .env.host.example .env.host
+# Edit .env.host and replace every CHANGE_ME value.
+.\scripts\host_preflight.ps1
+docker compose --env-file .env.host -f docker-compose.host.yml up -d --build
+docker compose --env-file .env.host -f docker-compose.host.yml ps
+.\scripts\web_smoke.ps1 -BaseUrl http://127.0.0.1:5000
+```
 
-Latest verified local web baseline:
-- `/` -> HTTP 200
-- `/catalog` -> HTTP 200
-- `/vehicles` -> HTTP 200
+The host Compose file starts only PostgreSQL and the browser-facing web app. It
+does not publish PostgreSQL, does not mount source code into the web container,
+and binds the web port to `127.0.0.1:5000` by default for a same-host reverse
+proxy. Data persists in the `dxemb_host_db_data` volume. Normal
+`docker compose ... down` does not delete that volume.
 
-Relevant local validation commands:
-- `python -m unittest tests.test_web_visual_foundation_slice_a tests.test_catalog_thumbnail_workflow_slice_b`
-- `git diff --check`
+Required values are in `.env.host`:
+
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`
+- `DATABASE_URL`, using the same credentials and `db` as the hostname
+- `WEB_BIND_ADDRESS` and `WEB_PORT` for the reverse-proxy upstream
+
+Do not commit `.env.host`. If the password contains URL-special characters,
+URL-encode it only in `DATABASE_URL`.
+
+### `tz420.ninja` reverse proxy
+
+Point the DNS `A`/`AAAA` record for `tz420.ninja` (or a demo subdomain) at the
+server. Terminate HTTPS in Caddy, Nginx, or the existing host proxy and forward
+to `http://127.0.0.1:5000`. Keep port 5000 and PostgreSQL closed externally;
+publish only ports 80/443 through the proxy.
+
+Minimal Caddy site block:
+
+```caddyfile
+tz420.ninja {
+    reverse_proxy 127.0.0.1:5000
+}
+```
+
+After DNS and TLS are active:
+
+```powershell
+.\scripts\web_smoke.ps1 -BaseUrl https://tz420.ninja
+```
+
+### Verification
+
+`.\scripts\web_smoke.ps1` verifies the health endpoint and every main browser
+demo page. `.\scripts\host_preflight.ps1` validates placeholders and hosted
+Compose without changing containers.
 
 ### Local release acceptance gate
 
@@ -57,10 +87,12 @@ and runs the broad web regression suite. It exits nonzero on any failure and
 leaves the database service running for inspection; use `docker compose down`
 when finished.
 
-### Notes
+### Safety notes
 
 - This Phase 1 baseline does not change vehicle compatibility approvals.
 - Blocked/review-required compatibility records remain blocked.
-- The bot service is not required to verify the primary Phase 1 web pages.
+- Role and player query hints are local demo conveniences, not production auth.
+- Put the site behind access control at the reverse proxy if it is reachable
+  from the public internet.
 
 See `docs/TODO_ROADMAP.md` for the current local-release roadmap.

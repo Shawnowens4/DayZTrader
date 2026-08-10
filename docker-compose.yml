@@ -34,25 +34,19 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: dxemb
-      POSTGRES_PASSWORD: dxemb_dev_password
-      POSTGRES_DB: dxemb
+      POSTGRES_USER: ${POSTGRES_USER:-dxemb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dxemb_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-dxemb}
     volumes:
       - dxemb_db_data:/var/lib/postgresql/data
       - ./dxemb/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dxemb"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
   dxemb_db_data:
-
-# Commands to apply:
-# 1) Replace your project docker-compose.yml with this file.
-# 2) docker compose up -d --no-deps --build --force-recreate bot web
-# 3) docker compose exec bot sh -c "wc -c /app/dxemb/shared/catalog/data/classname_displayname_map.seed.json"
-# 4) docker compose exec bot sh -c "cd /app/dxemb && python -m shared.catalog.tools.build_thumbnail_map"
