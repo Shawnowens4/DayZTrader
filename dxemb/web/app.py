@@ -8,6 +8,7 @@
 import sys
 import os
 from pathlib import Path
+from urllib.parse import urlencode
 
 from flask import Flask, jsonify, render_template, request
 
@@ -68,6 +69,30 @@ app.register_blueprint(wallet_admin_bp)
 app.register_blueprint(vehicle_bp)
 
 TABLES = ["player", "item", "escrow_transaction"]
+OPS_PAGE_SIZE = 20
+OPS_MAX_PAGE_SIZE = 50
+OPS_ALLOWED_MODERATION_ACTIONS = {"", "WARN", "STATUS_QUERY", "DRY_RUN_PREVIEW"}
+OPS_ALLOWED_TICKET_STATUS = {"", "OPEN", "ASSIGNED", "CLOSED"}
+OPS_ALLOWED_DELIVERY_STATES = {
+    "",
+    "queued_for_delivery",
+    "awaiting_restart_window",
+    "prepare_pending",
+    "eligible_to_write",
+    "retry_later",
+    "failed",
+    "refund_eligible",
+    "delivered",
+    "cancelled",
+}
+
+
+def _request_role_hint() -> str:
+    return get_request_role_hint()
+
+
+def _ops_database_url() -> str:
+    return os.getenv("DATABASE_URL", "postgresql://dxemb:dxemb@db:5432/dxemb")
 
 
 def _wallet_service() -> WalletLedgerService:
@@ -137,6 +162,368 @@ def _wallet_auth_error_response(message: str, status_code: int):
         ),
         status_code,
     )
+
+
+def _ops_env_presence_rows() -> list[dict[str, object]]:
+    env_items = [
+        ("DATABASE_URL", "Database connection"),
+        ("DISCORD_TOKEN", "Discord bot runtime"),
+        ("GUILD_IDS", "Slash command scoping"),
+        ("SLASH_SYNC", "Slash sync mode"),
+        ("NITRADO_API_TOKEN", "Nitrado provider token"),
+        ("NITRADO_SERVER_ID", "Nitrado target server"),
+    ]
+    rows: list[dict[str, object]] = []
+    for key, label in env_items:
+        value = (os.getenv(key) or "").strip()
+        rows.append(
+            {
+                "key": key,
+                "label": label,
+                "present": bool(value),
+                "hint": "set" if value else "missing",
+            }
+        )
+    return rows
+
+
+def _ops_feature_flags() -> dict[str, object]:
+    out: dict[str, object] = {"game": [], "mission": [], "errors": []}
+    try:
+        import psycopg2
+
+        with psycopg2.connect(_ops_database_url(), connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT game_code, is_enabled, allow_live_payout, min_wager, max_wager, updated_at
+                    FROM game_feature_flag
+                    ORDER BY game_code ASC
+                    """
+                )
+                for row in cur.fetchall():
+                    out["game"].append(
+                        {
+                            "feature_code": row[0],
+                            "is_enabled": bool(row[1]),
+                            "mode_hint": "live" if bool(row[2]) else "dry-run",
+                            "min_value": int(row[3]),
+                            "max_value": int(row[4]),
+                            "updated_at": row[5],
+                        }
+                    )
+
+                cur.execute(
+                    """
+                    SELECT feature_code, is_enabled, allow_reward_settlement, updated_at
+                    FROM mission_feature_flag
+                    ORDER BY feature_code ASC
+                    """
+                )
+                for row in cur.fetchall():
+                    out["mission"].append(
+                        {
+                            "feature_code": row[0],
+                            "is_enabled": bool(row[1]),
+                            "mode_hint": "live" if bool(row[2]) else "dry-run",
+                            "updated_at": row[3],
+                        }
+                    )
+    except Exception as exc:
+        out["errors"].append(str(exc))
+    return out
+
+
+def _ops_fetch_summary_counts() -> dict[str, object]:
+    summary = {
+        "moderation_action_count": 0,
+        "open_ticket_count": 0,
+        "assigned_ticket_count": 0,
+        "scheduler_request_count": 0,
+        "scheduler_open_alert_count": 0,
+        "errors": [],
+    }
+    try:
+        import psycopg2
+
+        with psycopg2.connect(_ops_database_url(), connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM moderation_action")
+                summary["moderation_action_count"] = int(cur.fetchone()[0])
+
+                cur.execute("SELECT COUNT(*) FROM support_ticket WHERE status = 'OPEN'")
+                summary["open_ticket_count"] = int(cur.fetchone()[0])
+
+                cur.execute("SELECT COUNT(*) FROM support_ticket WHERE status = 'ASSIGNED'")
+                summary["assigned_ticket_count"] = int(cur.fetchone()[0])
+
+                cur.execute("SELECT COUNT(*) FROM trader_delivery_request")
+                summary["scheduler_request_count"] = int(cur.fetchone()[0])
+
+                cur.execute("SELECT COUNT(*) FROM trader_delivery_alert WHERE acknowledged_at IS NULL")
+                summary["scheduler_open_alert_count"] = int(cur.fetchone()[0])
+    except Exception as exc:
+        summary["errors"].append(str(exc))
+    return summary
+
+
+def _ops_fetch_moderation_rows(
+    *,
+    target_discord_id: str,
+    moderation_action: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[dict[str, object]], bool, str | None]:
+    where_clauses = []
+    params: list[object] = []
+    if target_discord_id:
+        where_clauses.append("target_discord_id = %s")
+        params.append(target_discord_id)
+    if moderation_action:
+        where_clauses.append("action_type = %s")
+        params.append(moderation_action)
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    query = f"""
+        SELECT
+            m.id,
+            m.action_type,
+            m.actor_discord_id,
+            m.target_discord_id,
+            m.reason,
+            m.reference_id,
+            m.created_at,
+            COALESCE(target_stats.total_actions, 0) AS target_total_actions,
+            COALESCE(target_stats.warn_actions, 0) AS target_warn_actions
+        FROM moderation_action m
+        LEFT JOIN LATERAL (
+            SELECT
+                COUNT(*) AS total_actions,
+                COUNT(*) FILTER (WHERE action_type = 'WARN') AS warn_actions
+            FROM moderation_action mx
+            WHERE mx.target_discord_id = m.target_discord_id
+        ) target_stats ON TRUE
+        {where_sql}
+        ORDER BY m.created_at DESC, m.id DESC
+        LIMIT %s OFFSET %s
+    """
+
+    rows: list[dict[str, object]] = []
+    try:
+        import psycopg2
+
+        with psycopg2.connect(_ops_database_url(), connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, tuple([*params, limit + 1, offset]))
+                for row in cur.fetchall():
+                    target_id = row[3]
+                    rows.append(
+                        {
+                            "id": int(row[0]),
+                            "action_type": row[1],
+                            "actor_discord_id": row[2],
+                            "target_discord_id": target_id,
+                            "reason": row[4],
+                            "reference_id": row[5],
+                            "created_at": row[6],
+                            "target_total_actions": int(row[7]),
+                            "target_warn_actions": int(row[8]),
+                            "target_wallet_link": f"/wallet/admin/{target_id}?as_role=admin" if target_id else "",
+                            "detail_marker": "Foundation exists; moderation detail workspace pending",
+                        }
+                    )
+    except Exception as exc:
+        return [], False, str(exc)
+
+    has_next = len(rows) > limit
+    return rows[:limit], has_next, None
+
+
+def _ops_fetch_ticket_rows(
+    *,
+    ticket_status: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[dict[str, object]], bool, str | None]:
+    where_sql = "WHERE t.status = %s" if ticket_status else ""
+    query = f"""
+        SELECT
+            t.id,
+            t.external_ref,
+            t.requester_discord_id,
+            t.assignee_discord_id,
+            t.subject,
+            t.details,
+            t.status,
+            t.opened_at,
+            t.closed_at,
+            t.updated_at,
+            ev.event_type,
+            ev.actor_discord_id,
+            ev.note,
+            ev.created_at,
+            COALESCE(ev_count.event_count, 0) AS event_count
+        FROM support_ticket t
+        LEFT JOIN LATERAL (
+            SELECT event_type, actor_discord_id, note, created_at
+            FROM support_ticket_event
+            WHERE ticket_id = t.id
+            ORDER BY id DESC
+            LIMIT 1
+        ) ev ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT COUNT(*) AS event_count
+            FROM support_ticket_event te
+            WHERE te.ticket_id = t.id
+        ) ev_count ON TRUE
+        {where_sql}
+        ORDER BY t.updated_at DESC, t.id DESC
+        LIMIT %s OFFSET %s
+    """
+
+    params: list[object] = []
+    if ticket_status:
+        params.append(ticket_status)
+    rows: list[dict[str, object]] = []
+
+    try:
+        import psycopg2
+
+        with psycopg2.connect(_ops_database_url(), connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, tuple([*params, limit + 1, offset]))
+                for row in cur.fetchall():
+                    rows.append(
+                        {
+                            "id": int(row[0]),
+                            "external_ref": row[1],
+                            "requester_discord_id": row[2],
+                            "assignee_discord_id": row[3],
+                            "subject": row[4],
+                            "details": row[5],
+                            "status": row[6],
+                            "opened_at": row[7],
+                            "closed_at": row[8],
+                            "updated_at": row[9],
+                            "last_event_type": row[10],
+                            "last_event_actor": row[11],
+                            "last_event_note": row[12],
+                            "last_event_at": row[13],
+                            "event_count": int(row[14]),
+                            "requester_wallet_link": f"/wallet/admin/{row[2]}?as_role=admin" if row[2] else "",
+                            "assignee_wallet_link": f"/wallet/admin/{row[3]}?as_role=admin" if row[3] else "",
+                            "detail_marker": "Foundation exists; ticket detail workspace pending",
+                        }
+                    )
+    except Exception as exc:
+        return [], False, str(exc)
+
+    has_next = len(rows) > limit
+    return rows[:limit], has_next, None
+
+
+def _ops_fetch_scheduler_rows(
+    *,
+    delivery_state: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[dict[str, object]], bool, str | None]:
+    where_sql = "WHERE r.state = %s" if delivery_state else ""
+    query = f"""
+        SELECT
+            r.id,
+            r.order_id,
+            r.state,
+            r.enqueue_at,
+            r.blocked_reason,
+            COALESCE(a.attempt_count, 0) AS attempt_count,
+            a.last_attempt_at,
+            COALESCE(al.open_alert_count, 0) AS open_alert_count,
+            la.decision AS latest_decision,
+            la.decision_reason AS latest_decision_reason
+        FROM trader_delivery_request r
+        LEFT JOIN (
+            SELECT trader_delivery_request_id, COUNT(*) AS attempt_count, MAX(attempted_at) AS last_attempt_at
+            FROM trader_delivery_attempt
+            GROUP BY trader_delivery_request_id
+        ) a ON a.trader_delivery_request_id = r.id
+        LEFT JOIN (
+            SELECT trader_delivery_request_id, COUNT(*) AS open_alert_count
+            FROM trader_delivery_alert
+            WHERE acknowledged_at IS NULL
+            GROUP BY trader_delivery_request_id
+        ) al ON al.trader_delivery_request_id = r.id
+        LEFT JOIN LATERAL (
+            SELECT decision, decision_reason, attempted_at
+            FROM trader_delivery_attempt da
+            WHERE da.trader_delivery_request_id = r.id
+            ORDER BY da.attempted_at DESC, da.id DESC
+            LIMIT 1
+        ) la ON TRUE
+        {where_sql}
+        ORDER BY r.enqueue_at DESC, r.id DESC
+        LIMIT %s OFFSET %s
+    """
+
+    params: list[object] = []
+    if delivery_state:
+        params.append(delivery_state)
+    rows: list[dict[str, object]] = []
+
+    try:
+        import psycopg2
+
+        with psycopg2.connect(_ops_database_url(), connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, tuple([*params, limit + 1, offset]))
+                for row in cur.fetchall():
+                    rows.append(
+                        {
+                            "id": int(row[0]),
+                            "order_id": int(row[1]),
+                            "state": row[2],
+                            "enqueue_at": row[3],
+                            "blocked_reason": row[4],
+                            "attempt_count": int(row[5]),
+                            "last_attempt_at": row[6],
+                            "open_alert_count": int(row[7]),
+                            "latest_decision": row[8],
+                            "latest_decision_reason": row[9],
+                            "request_status_link": f"/autotrader/scheduler/orders/{int(row[1])}/status?as_role=moderator",
+                            "order_detail_link": f"/autotrader/orders/{int(row[1])}",
+                            "order_history_link": f"/autotrader/orders/{int(row[1])}/history",
+                        }
+                    )
+    except Exception as exc:
+        return [], False, str(exc)
+
+    has_next = len(rows) > limit
+    return rows[:limit], has_next, None
+
+
+def _ops_build_url(base: dict[str, object], **overrides: object) -> str:
+    merged: dict[str, object] = dict(base)
+    merged.update(overrides)
+    filtered = {
+        key: value
+        for key, value in merged.items()
+        if value is not None and value != ""
+    }
+    return f"/admin/operations?{urlencode(filtered)}"
+
+
+def _ops_section_summary(*, shown: int, page: int, limit: int, has_prev: bool, has_next: bool, error: str | None, row_label: str) -> dict[str, object]:
+    start_row = 0 if shown == 0 else ((page - 1) * limit) + 1
+    end_row = ((page - 1) * limit) + shown
+    return {
+        "shown": shown,
+        "page": page,
+        "limit": limit,
+        "has_prev": has_prev,
+        "has_next": has_next,
+        "error": error,
+        "window_label": f"{row_label}: {start_row}-{end_row}" if shown > 0 else f"{row_label}: none",
+    }
 
 
 # ------------------------------------------------------------------
@@ -808,6 +1195,141 @@ def mission_progress(discord_user_id: str):
             "mode": "read-only",
             "domain": "missions",
         }
+    )
+
+
+@app.get("/admin/operations")
+@admin_or_higher(message="admin role is required for operations workspace")
+def admin_operations_workspace():
+    limit = _parse_bounded_int(request.args.get("limit"), default=OPS_PAGE_SIZE, minimum=1, maximum=OPS_MAX_PAGE_SIZE)
+    moderation_page = _parse_bounded_int(request.args.get("moderation_page"), default=1, minimum=1, maximum=100000)
+    ticket_page = _parse_bounded_int(request.args.get("ticket_page"), default=1, minimum=1, maximum=100000)
+    scheduler_page = _parse_bounded_int(request.args.get("scheduler_page"), default=1, minimum=1, maximum=100000)
+
+    target_discord_id = (request.args.get("target_discord_id") or "").strip()
+    moderation_action = _normalize_choice(
+        request.args.get("moderation_action"),
+        allowed=OPS_ALLOWED_MODERATION_ACTIONS,
+        default="",
+    )
+    ticket_status = _normalize_choice(
+        request.args.get("ticket_status"),
+        allowed=OPS_ALLOWED_TICKET_STATUS,
+        default="",
+    )
+    delivery_state = _normalize_choice(
+        request.args.get("delivery_state"),
+        allowed=OPS_ALLOWED_DELIVERY_STATES,
+        default="",
+    )
+
+    moderation_rows, moderation_has_next, moderation_error = _ops_fetch_moderation_rows(
+        target_discord_id=target_discord_id,
+        moderation_action=moderation_action,
+        limit=limit,
+        offset=(moderation_page - 1) * limit,
+    )
+    ticket_rows, ticket_has_next, ticket_error = _ops_fetch_ticket_rows(
+        ticket_status=ticket_status,
+        limit=limit,
+        offset=(ticket_page - 1) * limit,
+    )
+    scheduler_rows, scheduler_has_next, scheduler_error = _ops_fetch_scheduler_rows(
+        delivery_state=delivery_state,
+        limit=limit,
+        offset=(scheduler_page - 1) * limit,
+    )
+
+    summary = _ops_fetch_summary_counts()
+    feature_flags = _ops_feature_flags()
+    as_role = _request_role_hint() or "admin"
+    moderation_has_prev = moderation_page > 1
+    ticket_has_prev = ticket_page > 1
+    scheduler_has_prev = scheduler_page > 1
+
+    base_query = {
+        "as_role": as_role,
+        "limit": limit,
+        "target_discord_id": target_discord_id,
+        "moderation_action": moderation_action,
+        "ticket_status": ticket_status,
+        "delivery_state": delivery_state,
+        "moderation_page": moderation_page,
+        "ticket_page": ticket_page,
+        "scheduler_page": scheduler_page,
+    }
+
+    moderation_summary = _ops_section_summary(
+        shown=len(moderation_rows),
+        page=moderation_page,
+        limit=limit,
+        has_prev=moderation_has_prev,
+        has_next=moderation_has_next,
+        error=moderation_error,
+        row_label="Moderation rows",
+    )
+    ticket_summary = _ops_section_summary(
+        shown=len(ticket_rows),
+        page=ticket_page,
+        limit=limit,
+        has_prev=ticket_has_prev,
+        has_next=ticket_has_next,
+        error=ticket_error,
+        row_label="Ticket rows",
+    )
+    scheduler_summary = _ops_section_summary(
+        shown=len(scheduler_rows),
+        page=scheduler_page,
+        limit=limit,
+        has_prev=scheduler_has_prev,
+        has_next=scheduler_has_next,
+        error=scheduler_error,
+        row_label="Scheduler rows",
+    )
+
+    return render_template(
+        "admin_operations.html",
+        is_admin_actor=True,
+        as_role=as_role,
+        auth_error="",
+        active_filters={
+            "target_discord_id": bool(target_discord_id),
+            "moderation_action": bool(moderation_action),
+            "ticket_status": bool(ticket_status),
+            "delivery_state": bool(delivery_state),
+        },
+        summary=summary,
+        env_rows=_ops_env_presence_rows(),
+        feature_flags=feature_flags,
+        moderation_summary=moderation_summary,
+        moderation_rows=moderation_rows,
+        moderation_error=moderation_error,
+        moderation_has_prev=moderation_has_prev,
+        moderation_has_next=moderation_has_next,
+        moderation_prev_url=_ops_build_url(base_query, moderation_page=moderation_page - 1),
+        moderation_next_url=_ops_build_url(base_query, moderation_page=moderation_page + 1),
+        ticket_summary=ticket_summary,
+        ticket_rows=ticket_rows,
+        ticket_error=ticket_error,
+        ticket_has_prev=ticket_has_prev,
+        ticket_has_next=ticket_has_next,
+        ticket_prev_url=_ops_build_url(base_query, ticket_page=ticket_page - 1),
+        ticket_next_url=_ops_build_url(base_query, ticket_page=ticket_page + 1),
+        scheduler_summary=scheduler_summary,
+        scheduler_rows=scheduler_rows,
+        scheduler_error=scheduler_error,
+        scheduler_has_prev=scheduler_has_prev,
+        scheduler_has_next=scheduler_has_next,
+        scheduler_prev_url=_ops_build_url(base_query, scheduler_page=scheduler_page - 1),
+        scheduler_next_url=_ops_build_url(base_query, scheduler_page=scheduler_page + 1),
+        limit=limit,
+        target_discord_id=target_discord_id,
+        moderation_action=moderation_action,
+        ticket_status=ticket_status,
+        delivery_state=delivery_state,
+        moderation_page=moderation_page,
+        ticket_page=ticket_page,
+        scheduler_page=scheduler_page,
     )
 
 

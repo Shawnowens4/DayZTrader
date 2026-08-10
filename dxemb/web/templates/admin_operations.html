@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}DXEMB Admin - Operations{% endblock %}
+{% block content %}
+<section class="panel">
+  <p><a href="/">&larr; Back to dashboard</a></p>
+  <h1 class="page-title">Admin Operations Workspace</h1>
+  <p class="page-subtitle">Read-only evidence and configuration view across moderation, tickets, scheduler, and feature flags.</p>
+
+  {% if auth_error %}
+  <div class="notice-banner notice-error">{{ auth_error }}</div>
+  {% else %}
+  <div class="notice-banner notice-neutral">
+    Local admin view only. This page does not execute Discord mutations, file writes, or provider actions.
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Workspace Filters</h2>
+  <form method="get" class="admin-filter-grid">
+    <input type="hidden" name="as_role" value="{{ as_role or 'admin' }}">
+    <label>
+      Limit per section
+      <input type="number" name="limit" min="1" max="50" value="{{ limit }}">
+    </label>
+    <label>
+      Target Discord ID
+      <input type="text" name="target_discord_id" value="{{ target_discord_id }}" placeholder="optional target filter">
+    </label>
+    <label>
+      Moderation action
+      <select name="moderation_action">
+        <option value="" {% if not moderation_action %}selected{% endif %}>All</option>
+        <option value="WARN" {% if moderation_action == 'WARN' %}selected{% endif %}>WARN</option>
+        <option value="STATUS_QUERY" {% if moderation_action == 'STATUS_QUERY' %}selected{% endif %}>STATUS_QUERY</option>
+        <option value="DRY_RUN_PREVIEW" {% if moderation_action == 'DRY_RUN_PREVIEW' %}selected{% endif %}>DRY_RUN_PREVIEW</option>
+      </select>
+    </label>
+    <label>
+      Ticket status
+      <select name="ticket_status">
+        <option value="" {% if not ticket_status %}selected{% endif %}>All</option>
+        <option value="OPEN" {% if ticket_status == 'OPEN' %}selected{% endif %}>OPEN</option>
+        <option value="ASSIGNED" {% if ticket_status == 'ASSIGNED' %}selected{% endif %}>ASSIGNED</option>
+        <option value="CLOSED" {% if ticket_status == 'CLOSED' %}selected{% endif %}>CLOSED</option>
+      </select>
+    </label>
+    <label>
+      Scheduler delivery state
+      <select name="delivery_state">
+        <option value="" {% if not delivery_state %}selected{% endif %}>All</option>
+        <option value="queued_for_delivery" {% if delivery_state == 'queued_for_delivery' %}selected{% endif %}>queued_for_delivery</option>
+        <option value="awaiting_restart_window" {% if delivery_state == 'awaiting_restart_window' %}selected{% endif %}>awaiting_restart_window</option>
+        <option value="prepare_pending" {% if delivery_state == 'prepare_pending' %}selected{% endif %}>prepare_pending</option>
+        <option value="eligible_to_write" {% if delivery_state == 'eligible_to_write' %}selected{% endif %}>eligible_to_write</option>
+        <option value="retry_later" {% if delivery_state == 'retry_later' %}selected{% endif %}>retry_later</option>
+        <option value="failed" {% if delivery_state == 'failed' %}selected{% endif %}>failed</option>
+        <option value="refund_eligible" {% if delivery_state == 'refund_eligible' %}selected{% endif %}>refund_eligible</option>
+        <option value="delivered" {% if delivery_state == 'delivered' %}selected{% endif %}>delivered</option>
+        <option value="cancelled" {% if delivery_state == 'cancelled' %}selected{% endif %}>cancelled</option>
+      </select>
+    </label>
+    <input type="hidden" name="moderation_page" value="1">
+    <input type="hidden" name="ticket_page" value="1">
+    <input type="hidden" name="scheduler_page" value="1">
+    <div>
+      <button type="submit">Apply Filters</button>
+    </div>
+  </form>
+  <div class="inline-nav">
+    {% if active_filters.target_discord_id or active_filters.moderation_action or active_filters.ticket_status or active_filters.delivery_state %}
+    <span class="status-pill status-neutral">Filters active</span>
+    {% else %}
+    <span class="status-pill status-neutral">No section filters</span>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Evidence Summary</h2>
+  {% if summary.errors %}
+  <div class="notice-banner notice-error">
+    {% for err in summary.errors %}<div>{{ err }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="admin-summary-bar">
+    <span class="status-pill status-neutral">Moderation actions: {{ summary.moderation_action_count }}</span>
+    <span class="status-pill status-neutral">Open tickets: {{ summary.open_ticket_count }}</span>
+    <span class="status-pill status-neutral">Assigned tickets: {{ summary.assigned_ticket_count }}</span>
+    <span class="status-pill status-neutral">Scheduler requests: {{ summary.scheduler_request_count }}</span>
+    <span class="status-pill status-neutral">Open scheduler alerts: {{ summary.scheduler_open_alert_count }}</span>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Server Configuration Snapshot</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Config key</th>
+          <th>Purpose</th>
+          <th>Presence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in env_rows %}
+        <tr>
+          <td><code>{{ row.key }}</code></td>
+          <td>{{ row.label }}</td>
+          <td>
+            <span class="status-pill {{ 'status-ok' if row.present else 'status-warn' }}">
+              {{ row.hint }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Feature Flags</h2>
+  {% if feature_flags.errors %}
+  <div class="notice-banner notice-error">
+    {% for err in feature_flags.errors %}<div>{{ err }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="detail-grid">
+    <div>
+      <h3>Game flags</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Game code</th>
+              <th>Enabled</th>
+              <th>Settlement</th>
+              <th>Range</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in feature_flags.game %}
+            <tr>
+              <td><code>{{ row.feature_code }}</code></td>
+              <td><span class="status-pill {{ 'status-ok' if row.is_enabled else 'status-warn' }}">{{ 'enabled' if row.is_enabled else 'disabled' }}</span></td>
+              <td><span class="status-pill {{ 'status-ok' if row.mode_hint == 'live' else 'status-neutral' }}">{{ row.mode_hint }}</span></td>
+              <td>{{ row.min_value }} - {{ row.max_value }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="muted">No game flags found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>Mission flags</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Enabled</th>
+              <th>Settlement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in feature_flags.mission %}
+            <tr>
+              <td><code>{{ row.feature_code }}</code></td>
+              <td><span class="status-pill {{ 'status-ok' if row.is_enabled else 'status-warn' }}">{{ 'enabled' if row.is_enabled else 'disabled' }}</span></td>
+              <td><span class="status-pill {{ 'status-ok' if row.mode_hint == 'live' else 'status-neutral' }}">{{ row.mode_hint }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="muted">No mission flags found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Moderation Evidence</h2>
+  <p class="muted">{{ moderation_summary.window_label }}{% if moderation_summary.has_next %} (more available){% endif %}</p>
+  {% if moderation_error %}
+  <div class="notice-banner notice-error">{{ moderation_error }}</div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Action</th>
+          <th>Actor</th>
+          <th>Target</th>
+          <th>Reason</th>
+          <th>Reference</th>
+          <th>At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in moderation_rows %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td><code>{{ row.action_type }}</code></td>
+          <td>{{ row.actor_discord_id }}</td>
+          <td>
+            {% if row.target_wallet_link %}
+            <a href="{{ row.target_wallet_link }}">{{ row.target_discord_id }}</a>
+            {% else %}
+            {{ row.target_discord_id }}
+            {% endif %}
+            <div class="muted">{{ row.target_total_actions }} actions / {{ row.target_warn_actions }} warns</div>
+          </td>
+          <td>{{ row.reason or '-' }}</td>
+          <td><code>{{ row.reference_id }}</code></td>
+          <td>{{ row.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted">No moderation rows for current filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="inline-nav">
+    {% if moderation_has_prev %}<a href="{{ moderation_prev_url }}">Moderation Previous</a>{% endif %}
+    {% if moderation_has_next %}<a href="{{ moderation_next_url }}">Moderation Next</a>{% endif %}
+  </div>
+  <p class="muted">{{ moderation_rows[0].detail_marker if moderation_rows else 'Foundation exists; moderation detail workspace pending' }}</p>
+</section>
+
+<section class="panel">
+  <h2>Ticket Evidence</h2>
+  <p class="muted">{{ ticket_summary.window_label }}{% if ticket_summary.has_next %} (more available){% endif %}</p>
+  {% if ticket_error %}
+  <div class="notice-banner notice-error">{{ ticket_error }}</div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>External ref</th>
+          <th>Status</th>
+          <th>Requester</th>
+          <th>Assignee</th>
+          <th>Subject</th>
+          <th>Latest event</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in ticket_rows %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td><code>{{ row.external_ref }}</code></td>
+          <td><span class="status-pill status-neutral">{{ row.status }}</span></td>
+          <td>
+            {% if row.requester_wallet_link %}
+            <a href="{{ row.requester_wallet_link }}">{{ row.requester_discord_id }}</a>
+            {% else %}
+            {{ row.requester_discord_id }}
+            {% endif %}
+          </td>
+          <td>
+            {% if row.assignee_wallet_link and row.assignee_discord_id %}
+            <a href="{{ row.assignee_wallet_link }}">{{ row.assignee_discord_id }}</a>
+            {% else %}
+            {{ row.assignee_discord_id or '-' }}
+            {% endif %}
+          </td>
+          <td>{{ row.subject }}</td>
+          <td>
+            <code>{{ row.last_event_type or '-' }}</code>
+            {% if row.event_count %}
+            <div class="muted">events: {{ row.event_count }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted">No ticket rows for current filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="inline-nav">
+    {% if ticket_has_prev %}<a href="{{ ticket_prev_url }}">Tickets Previous</a>{% endif %}
+    {% if ticket_has_next %}<a href="{{ ticket_next_url }}">Tickets Next</a>{% endif %}
+  </div>
+  <p class="muted">{{ ticket_rows[0].detail_marker if ticket_rows else 'Foundation exists; ticket detail workspace pending' }}</p>
+</section>
+
+<section class="panel">
+  <h2>Scheduler Evidence</h2>
+  <p class="muted">{{ scheduler_summary.window_label }}{% if scheduler_summary.has_next %} (more available){% endif %}</p>
+  {% if scheduler_error %}
+  <div class="notice-banner notice-error">{{ scheduler_error }}</div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Request</th>
+          <th>Order</th>
+          <th>State</th>
+          <th>Attempts</th>
+          <th>Open alerts</th>
+          <th>Blocked reason</th>
+          <th>Status detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in scheduler_rows %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td>{{ row.order_id }}</td>
+          <td><code>{{ row.state }}</code></td>
+          <td>{{ row.attempt_count }}</td>
+          <td>{{ row.open_alert_count }}</td>
+          <td>{{ row.blocked_reason or '-' }}</td>
+          <td>
+            <a href="{{ row.request_status_link }}">status</a>
+            <span class="muted">|</span>
+            <a href="{{ row.order_detail_link }}">order</a>
+            <span class="muted">|</span>
+            <a href="{{ row.order_history_link }}">history</a>
+            {% if row.latest_decision %}
+            <div class="muted"><code>{{ row.latest_decision }}</code>{% if row.latest_decision_reason %}: {{ row.latest_decision_reason }}{% endif %}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted">No scheduler rows for current filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="inline-nav">
+    {% if scheduler_has_prev %}<a href="{{ scheduler_prev_url }}">Scheduler Previous</a>{% endif %}
+    {% if scheduler_has_next %}<a href="{{ scheduler_next_url }}">Scheduler Next</a>{% endif %}
+  </div>
+</section>
+{% endblock %}
