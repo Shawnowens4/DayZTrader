@@ -3,7 +3,7 @@
 > Authoritative AI-resume document. Read this file before planning, editing, testing, or proposing work.
 > Code baseline anchor: `f9425cd` on branch `PERM`.
 > Documentation checkpoint before this update: `f8ac338` on branch `PERM`.
-> Last updated: 2026-08-08.
+> Last updated: 2026-08-10.
 
 ---
 
@@ -227,6 +227,64 @@ git log -1 --oneline
 ---
 
 ## Changelog
+
+### 2026-08-10 — Admin Operations + Evidence Workspace (Cross-Project Safe Slice)
+- Added read-only admin operations workspace with explicit admin-role guardrail:
+  - route: `GET /admin/operations` in `dxemb/web/app.py`
+  - template: `dxemb/web/templates/admin_operations.html`
+  - nav wiring: `dxemb/web/ui.py`
+- Workspace provides cross-system visibility without mutation behavior:
+  - moderation-action evidence table (`moderation_action`)
+  - support-ticket evidence table (`support_ticket` + latest `support_ticket_event`)
+  - scheduler evidence table (`trader_delivery_request` + attempts/alerts rollups)
+  - environment-presence snapshot (key-only, no secret values rendered)
+  - game/mission feature-flag snapshot (`game_feature_flag`, `mission_feature_flag`)
+- Added/updated validation coverage:
+  - new suite `tests/test_admin_operations_web_routes.py`
+  - migration-contract alignment for wallet additive schema in web suites:
+    - `tests/test_nitrado_delivery_web_routes.py`
+    - `tests/test_games_tasks_missions_web_routes.py`
+    - `tests/test_market_web_routes.py`
+    - each now applies `011_wallet_ledger_run5_additive_upgrade.sql`
+  - catalog sync DB URL resolution hardened in `dxemb/shared/catalog/service.py` to read env at call-time and prevent cross-suite stale-connection leakage
+- Validation after changes:
+  - `c:/tz420/clone/DayZTrader/.venv/Scripts/python.exe -m pytest tests/test_admin_operations_web_routes.py tests/test_nitrado_delivery_web_routes.py tests/test_wallet_web_routes.py tests/test_games_tasks_missions_web_routes.py tests/test_market_web_routes.py tests/test_auto_trader_web_routes.py -q` (pass, 30 tests)
+  - `c:/tz420/clone/DayZTrader/.venv/Scripts/python.exe -m pytest tests/test_wallet_schema_contracts.py tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py tests/test_wallet_bot_adapter.py tests/test_auto_trader_wallet_bridge.py tests/test_admin_operations_web_routes.py tests/test_nitrado_delivery_web_routes.py tests/test_market_web_routes.py tests/test_games_tasks_missions_web_routes.py -q` (pass, 51 tests)
+  - `git diff --check` clean (line-ending warnings only on existing docs files)
+  - `git diff --stat`, `git status --short` captured
+- Scope boundary maintained:
+  - no migration-history rewrites
+  - no destructive schema changes
+  - no live provider/network/file-transport writes
+  - no wallet/payment monetization expansion
+  - no commit/push/reset/clean/stash actions
+
+### 2026-08-10 — Wallet Operator Hardening + Investigation Ergonomics
+- Preserved prior uncommitted Run 5 wallet work by running baseline checks before changes:
+  - `git status --short`
+  - `git diff --stat`
+  - `git diff --check`
+  - `.venv/Scripts/python.exe -m pytest tests/test_wallet_schema_contracts.py tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py tests/test_wallet_bot_adapter.py tests/test_auto_trader_wallet_bridge.py -q` (pass, 32 tests)
+- Added additive wallet safety/ergonomics improvements:
+  - bounded parsing fallback for numeric wallet query/form inputs in `dxemb/web/app.py` and `dxemb/web/wallet_admin.py`
+  - explicit non-integer rejection for `/wallet/<discord_user_id>/preview` amount input
+  - admin POST redirect filter-state preservation (`direction`, `status`, `entry_type`, `reference_query`, `created_after`, `created_before`)
+  - actor identity consistency guard (`actor_id` must match `X-DXEMB-ACTOR-ID` when header is provided)
+  - wallet pagination URL encoding for player/admin templates
+  - reconciliation mismatch visual emphasis in wallet admin detail
+  - reversal/refund lineage metadata fix in `dxemb/shared/wallet_ledger_service.py` (`original_reference_type` / `original_reference_id` mapping)
+- Added regression coverage:
+  - `tests/test_wallet_ledger_service.py`: reversal metadata lineage assertions
+  - `tests/test_wallet_web_routes.py`: invalid numeric fallback, preview integer validation, filter-preserving redirects, and actor-header mismatch rejection
+- Validation after changes:
+  - `.venv/Scripts/python.exe -m pytest tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py -q` (pass, 29 tests)
+  - `.venv/Scripts/python.exe -m pytest tests/test_wallet_schema_contracts.py tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py tests/test_wallet_bot_adapter.py tests/test_auto_trader_wallet_bridge.py -q` (pass, 37 tests)
+  - `git diff --check` clean
+- Scope boundary maintained:
+  - no migration-history rewrites
+  - no destructive schema changes
+  - no business/payment/paywall/subscription features
+  - no commit/push/reset/clean/stash actions
 
 ### 2026-08-08 — Fake-Provider Delivery Scheduler Foundation Sprint (Slices A-D)
 - Slice A completed: additive scheduler schema migration `dxemb/db/migrations/007_nitrado_delivery_scheduler_foundation.sql` added:

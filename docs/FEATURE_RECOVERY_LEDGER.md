@@ -31,6 +31,31 @@
 
 - Completed and validated: local-safe virtual wallet foundation with integer minor-unit accounting, append-only ledger immutability, owner-scoped idempotency keys, transactional balance updates with reconciliation, local admin wallet inspection at `/wallet/admin`, confirmed admin adjustments/refunds/reversals, and preserved `/catalog`, `/catalog/admin`, and `/vehicles` behavior; validated by focused wallet schema/service/web tests, neighboring schema/catalog/vehicle regressions, runtime HTTP checks, and live local-admin wallet workflow verification.
 
+## 2026-08-10 Completed Milestone — Run 5 wallet operator hardening and investigation ergonomics
+
+- Completed and validated: additive wallet hardening for local-safe operator workflows including bounded numeric parsing fallbacks on wallet routes, player/admin history pagination query encoding, admin POST redirect filter preservation, actor-header consistency guardrails, correction lineage metadata accuracy for reversal/refund traces, and reconciliation visibility styling in admin detail views.
+- Validation evidence:
+  - `.venv/Scripts/python.exe -m pytest tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py -q` -> `29 passed`
+  - `.venv/Scripts/python.exe -m pytest tests/test_wallet_schema_contracts.py tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py tests/test_wallet_bot_adapter.py tests/test_auto_trader_wallet_bridge.py -q` -> `37 passed`
+  - `git diff --check` -> clean
+- Scope boundary confirmed: no migration history edits, no destructive schema changes, no payment/billing/Stripe/subscription behavior added, no commit/push/reset/clean actions performed.
+
+## 2026-08-10 Completed Milestone — Run 6 admin operations and evidence workspace
+
+- Completed and validated: read-only admin operations workspace at `/admin/operations` with admin-role guardrail, cross-system evidence tables (moderation actions, ticket lifecycle, scheduler requests), environment-presence config snapshot, game/mission feature-flag visibility, and section-local pagination/filter links.
+- Added route and navigation wiring:
+  - `dxemb/web/app.py` (`GET /admin/operations`)
+  - `dxemb/web/templates/admin_operations.html`
+  - `dxemb/web/ui.py` (navigation entry)
+- Added regression coverage and compatibility alignment:
+  - new suite `tests/test_admin_operations_web_routes.py`
+  - additive migration-contract updates in web-route suites: `tests/test_nitrado_delivery_web_routes.py`, `tests/test_games_tasks_missions_web_routes.py`, `tests/test_market_web_routes.py` now apply `011_wallet_ledger_run5_additive_upgrade.sql`
+  - catalog sync DB URL resolution now reads environment at call-time in `dxemb/shared/catalog/service.py` to prevent cross-suite stale-DSN coupling
+- Validation evidence:
+  - `c:/tz420/clone/DayZTrader/.venv/Scripts/python.exe -m pytest tests/test_admin_operations_web_routes.py tests/test_nitrado_delivery_web_routes.py tests/test_wallet_web_routes.py tests/test_games_tasks_missions_web_routes.py tests/test_market_web_routes.py tests/test_auto_trader_web_routes.py -q` -> `30 passed`
+  - `c:/tz420/clone/DayZTrader/.venv/Scripts/python.exe -m pytest tests/test_wallet_schema_contracts.py tests/test_wallet_ledger_service.py tests/test_wallet_web_routes.py tests/test_wallet_bot_adapter.py tests/test_auto_trader_wallet_bridge.py tests/test_admin_operations_web_routes.py tests/test_nitrado_delivery_web_routes.py tests/test_market_web_routes.py tests/test_games_tasks_missions_web_routes.py -q` -> `51 passed`
+  - `git diff --check` -> clean (line-ending warnings only on existing docs files)
+
 ---
 
 ## 2026-08-09 Full Product + Design Audit Build Plan
