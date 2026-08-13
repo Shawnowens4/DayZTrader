@@ -3,7 +3,7 @@
 {% block content %}
 <section class="panel">
   <h1 class="page-title">DXEMB Admin Panel</h1>
-  <p class="page-subtitle">DayZ Xbox Trader status dashboard</p>
+  <p class="page-subtitle">DayZ Xbox Trader — status dashboard</p>
   <p>
     Demo mode is local-safe: admin roles and the demo player are explicit URL
     hints, wallet credits are virtual, and map/operations actions are previews
@@ -50,30 +50,45 @@
 {% endif %}
 
 <section class="panel">
-  <h2>Browser Demo</h2>
-  <div class="data-row row">
-    <span class="label">Catalog</span>
-    <a class="val" href="/catalog">Browse items</a>
-  </div>
-  <div class="data-row row">
-    <span class="label">Vehicle builder</span>
-    <a class="val" href="/vehicles?as_role=admin">Open builder</a>
-  </div>
-  <div class="data-row row">
-    <span class="label">Player wallet</span>
-    <a class="val" href="/wallet/me?discord_user_id=demo-player">Open demo wallet</a>
-  </div>
-  <div class="data-row row">
-    <span class="label">Wallet operations</span>
-    <a class="val" href="/wallet/admin?as_role=admin">Open admin wallet</a>
-  </div>
-  <div class="data-row row">
-    <span class="label">Operations evidence</span>
-    <a class="val" href="/admin/operations?as_role=admin">Open operations</a>
-  </div>
-  <div class="data-row row">
-    <span class="label">Map preview</span>
-    <a class="val" href="/admin/map?as_role=admin">Open map</a>
+  <h2>Quick Links</h2>
+  <div class="nav-card-grid">
+
+    <a class="nav-card" href="/catalog">
+      <span class="nav-card-icon">📦</span>
+      <span class="nav-card-label">Catalog</span>
+      <span class="nav-card-desc">Browse trader items</span>
+    </a>
+
+    <a class="nav-card" href="/vehicles?as_role=admin">
+      <span class="nav-card-icon">🚗</span>
+      <span class="nav-card-label">Vehicle Builder</span>
+      <span class="nav-card-desc">Build and configure vehicle presets</span>
+    </a>
+
+    <a class="nav-card" href="/wallet/me?discord_user_id=demo-player">
+      <span class="nav-card-icon">💰</span>
+      <span class="nav-card-label">Player Wallet</span>
+      <span class="nav-card-desc">Open demo player wallet</span>
+    </a>
+
+    <a class="nav-card" href="/wallet/admin?as_role=admin">
+      <span class="nav-card-icon">🗂</span>
+      <span class="nav-card-label">Wallet Admin</span>
+      <span class="nav-card-desc">Manage all player balances</span>
+    </a>
+
+    <a class="nav-card" href="/admin/operations?as_role=admin">
+      <span class="nav-card-icon">🔧</span>
+      <span class="nav-card-label">Operations</span>
+      <span class="nav-card-desc">Evidence and moderation tools</span>
+    </a>
+
+    <a class="nav-card" href="/admin/map?as_role=admin">
+      <span class="nav-card-icon">🗺</span>
+      <span class="nav-card-label">Map Preview</span>
+      <span class="nav-card-desc">Coordinate and region tools</span>
+    </a>
+
   </div>
 </section>
 {% endblock %}
