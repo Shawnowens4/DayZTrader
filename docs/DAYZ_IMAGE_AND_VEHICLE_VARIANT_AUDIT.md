@@ -14,19 +14,19 @@ Scope: Xbox/PlayStation vanilla console only. No PC/mod/Arma/workshop/future con
 - vehicle families (variant manifest): 8
 - vehicle families (resolver final): 3
 - vehicle variants (variant manifest): 16
-- repository local images: 4
+- repository local images: 2039
 - reference corpus images (C:/DXEMB/items): 2035
-- exact_local_image: 0
+- exact_local_image: 8
 - family_fallback_only: 0
-- generic_fallback_only: 13
-- missing: 3
-- evidence owner_confirmation_needed: 13
+- generic_fallback_only: 8
+- missing: 0
+- evidence owner_confirmation_needed: 16
 - evidence internally_consistent_no_console_provenance: 0
 - evidence direct_console_proof_available: 0
-- evidence unknown_or_missing: 3
-- part_only images (repo): 0
+- evidence unknown_or_missing: 0
+- part_only images (repo): 147
 - part_only images (reference corpus): 147
-- excluded images (repo): 0
+- excluded images (repo): 4
 - excluded images (reference corpus): 4
 
 ## Source Paths
@@ -44,21 +44,21 @@ Scope: Xbox/PlayStation vanilla console only. No PC/mod/Arma/workshop/future con
 | Family | Variant | Coverage | Evidence State | Body Candidates | Evidence Paths |
 |---|---|---|---|---|---|
 | civiliansedan | black | generic_fallback_only | owner_confirmation_needed | civiliansedan_black.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| civiliansedan | default | generic_fallback_only | owner_confirmation_needed | civiliansedan.webp, olga_24.webp | dxemb/shared/catalog/data/dayzidb_map.json |
+| civiliansedan | default | exact_local_image | owner_confirmation_needed | civiliansedan.webp, olga_24.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
 | civiliansedan | wine | generic_fallback_only | owner_confirmation_needed | civiliansedan_wine.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| hatchback_02 | default | generic_fallback_only | owner_confirmation_needed | ada_4_4.webp, hatchback_02.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| landrover | default | missing | unknown_or_missing | land_rover_range_rover_classic.webp | - |
-| m1025 | default | missing | unknown_or_missing | m1025.webp | - |
-| offroad_02 | default | generic_fallback_only | owner_confirmation_needed | gunter_2.webp, offroad_02.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| sedan_02 | default | generic_fallback_only | owner_confirmation_needed | sarka_120.webp, sedan_02.webp | dxemb/shared/catalog/data/dayzidb_map.json |
+| hatchback_02 | default | exact_local_image | owner_confirmation_needed | ada_4_4.webp, hatchback_02.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
+| landrover | default | exact_local_image | owner_confirmation_needed | land_rover_range_rover_classic.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
+| m1025 | default | exact_local_image | owner_confirmation_needed | m1025.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
+| offroad_02 | default | exact_local_image | owner_confirmation_needed | gunter_2.webp, offroad_02.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
+| sedan_02 | default | exact_local_image | owner_confirmation_needed | sarka_120.webp, sedan_02.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
 | truck_01 | blue | generic_fallback_only | owner_confirmation_needed | truck_01_door_1_1_blue.webp, truck_01_door_1_1_bluerust.webp, truck_01_door_2_1_blue.webp, truck_01_door_2_1_bluerust.webp | dxemb/shared/catalog/data/dayzidb_map.json |
 | truck_01 | default | generic_fallback_only | owner_confirmation_needed | truck_01_door_1_1.webp, truck_01_door_2_1.webp | dxemb/shared/catalog/data/dayzidb_map.json |
 | truck_01 | green | generic_fallback_only | owner_confirmation_needed | truck_01_door_1_1_greenrust.webp, truck_01_door_2_1_greenrust.webp | dxemb/shared/catalog/data/dayzidb_map.json |
 | truck_01 | orange | generic_fallback_only | owner_confirmation_needed | truck_01_door_1_1_orange.webp, truck_01_door_1_1_orangerust.webp, truck_01_door_2_1_orange.webp, truck_01_door_2_1_orangerust.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| truck_01 | red | generic_fallback_only | owner_confirmation_needed | m3s_covered.webp, truck_01_covered.webp | dxemb/shared/catalog/data/dayzidb_map.json |
+| truck_01 | red | exact_local_image | owner_confirmation_needed | m3s_covered.webp, truck_01_covered.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
 | truck_01 | red+blue | generic_fallback_only | owner_confirmation_needed | truck_01_covered_blue.webp | dxemb/shared/catalog/data/dayzidb_map.json |
 | truck_01 | red+orange | generic_fallback_only | owner_confirmation_needed | truck_01_covered_orange.webp | dxemb/shared/catalog/data/dayzidb_map.json |
-| uaz_452 | default | missing | unknown_or_missing | uaz-452.webp, uaz_452.webp | - |
+| uaz_452 | default | exact_local_image | owner_confirmation_needed | uaz-452.webp, uaz_452.webp | dxemb/web/static/catalog_items, dxemb/web/static/ui |
 
 ## Wrong/Mixed/Missing Color Mapping Findings
 
@@ -82,5 +82,5 @@ Scope: Xbox/PlayStation vanilla console only. No PC/mod/Arma/workshop/future con
 
 ## Review Queue Totals
 
-- grouped checklist rows: 66
-- raw unresolved rows: 112
+- grouped checklist rows: 60
+- raw unresolved rows: 104

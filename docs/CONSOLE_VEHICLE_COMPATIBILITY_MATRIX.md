@@ -7,8 +7,8 @@ Fail-closed policy: selection is blocked unless vehicle + slot + variant mapping
 - approved: 0
 - owner_review_required: 10
 - excluded: 1
-- review_rows_grouped: 66
-- review_rows_raw: 112
+- review_rows_grouped: 60
+- review_rows_raw: 104
 
 ## Vehicle Family Matrix
 

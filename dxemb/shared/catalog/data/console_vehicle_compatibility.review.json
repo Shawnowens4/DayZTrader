@@ -33,8 +33,8 @@
     "approved_total": 0,
     "owner_review_required_total": 10,
     "excluded_total": 1,
-    "review_rows_raw": 112,
-    "review_rows_grouped": 66
+    "review_rows_raw": 104,
+    "review_rows_grouped": 60
   },
   "vehicles": [
     {
@@ -165,7 +165,7 @@
           "console_classname": "civiliansedan",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "generic_fallback_only",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
           "confidence": "owner_confirmation_needed",
           "evidence_records": [
@@ -448,7 +448,7 @@
           "console_classname": "hatchback_02",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "generic_fallback_only",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
           "confidence": "owner_confirmation_needed",
           "evidence_records": [
@@ -676,9 +676,9 @@
           "console_classname": "landrover",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "missing",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
-          "confidence": "unknown_or_missing",
+          "confidence": "owner_confirmation_needed",
           "evidence_records": [
             {
               "source_type": "project_manifest",
@@ -828,9 +828,9 @@
           "console_classname": "m1025",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "missing",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
-          "confidence": "unknown_or_missing",
+          "confidence": "owner_confirmation_needed",
           "evidence_records": [
             {
               "source_type": "project_manifest",
@@ -1020,7 +1020,7 @@
           "console_classname": "offroad_02",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "generic_fallback_only",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
           "confidence": "owner_confirmation_needed",
           "evidence_records": [
@@ -1305,7 +1305,7 @@
           "console_classname": "sedan_02",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "generic_fallback_only",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
           "confidence": "owner_confirmation_needed",
           "evidence_records": [
@@ -1591,7 +1591,7 @@
           "console_classname": "truck_01",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "generic_fallback_only",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "missing",
           "confidence": "owner_confirmation_needed",
           "evidence_records": [
@@ -1809,118 +1809,6 @@
                 "review_status": "internally_consistent_no_console_provenance"
               }
             ]
-          },
-          {
-            "slot": "codriver_door",
-            "variant": "blue",
-            "part_classname": "truck_01_door_2_1_blue",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:Truck_01_Door_2_1_Blue",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
-          },
-          {
-            "slot": "driver_door",
-            "variant": "blue",
-            "part_classname": "truck_01_door_1_1_blue",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:Truck_01_Door_1_1_Blue",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
-          },
-          {
-            "slot": "codriver_door",
-            "variant": "orange",
-            "part_classname": "truck_01_door_2_1_orange",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:Truck_01_Door_2_1_Orange",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
-          },
-          {
-            "slot": "driver_door",
-            "variant": "orange",
-            "part_classname": "truck_01_door_1_1_orange",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:Truck_01_Door_1_1_Orange",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
-          }
-        ],
-        "battery": [
-          {
-            "slot": "battery",
-            "variant": "default",
-            "part_classname": "truckbattery",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:TruckBattery",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
-          }
-        ],
-        "headlights": [
-          {
-            "slot": "headlight",
-            "variant": "default",
-            "part_classname": "headlighth7",
-            "approved_status": "owner_review_required",
-            "selection_state": "blocked",
-            "confidence": "direct_console_proof_available",
-            "evidence_records": [
-              {
-                "source_type": "owner_local_console_reference",
-                "source_path": "local_console_reference/cfgspawnabletypes.xml",
-                "source_vehicle_type": "truck_01",
-                "evidence_excerpt_locator": "type:HeadlightH7",
-                "reviewed_by": "",
-                "review_status": "direct_console_proof_available"
-              }
-            ]
           }
         ],
         "wheels": [
@@ -2057,9 +1945,9 @@
           "console_classname": "uaz_452",
           "approved_status": "owner_review_required",
           "selection_state": "blocked",
-          "body_image_coverage": "missing",
+          "body_image_coverage": "exact_local_image",
           "part_image_coverage": "part_only",
-          "confidence": "unknown_or_missing",
+          "confidence": "owner_confirmation_needed",
           "evidence_records": [
             {
               "source_type": "project_manifest",
@@ -2571,11 +2459,9 @@
         "relationship": "body_image",
         "variants": [
           "black",
-          "default",
           "wine"
         ],
         "unresolved_classnames": [
-          "civiliansedan, olga_24",
           "civiliansedan_black",
           "civiliansedan_wine"
         ],
@@ -2762,33 +2648,6 @@
         ]
       },
       {
-        "vehicle_family": "hatchback_02",
-        "vehicle": "Ada 4x4",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "ada_4_4, hatchback_02"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "owner_confirmation_needed"
-        ],
-        "evidence_paths": [
-          "dxemb/shared/catalog/data/dayzidb_map.json"
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "landrover",
         "vehicle": "Land Rover",
         "review_stage": "whole_vehicle",
@@ -2803,7 +2662,7 @@
           "variant exists in project manifest but console source files are not attached"
         ],
         "evidence_states": [
-          "unknown_or_missing"
+          "owner_confirmation_needed"
         ],
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
@@ -2951,31 +2810,6 @@
         ]
       },
       {
-        "vehicle_family": "landrover",
-        "vehicle": "Land Rover",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "land_rover_range_rover_classic"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "unknown_or_missing"
-        ],
-        "evidence_paths": [],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "m1025",
         "vehicle": "Humvee",
         "review_stage": "whole_vehicle",
@@ -2990,7 +2824,7 @@
           "variant exists in project manifest but console source files are not attached"
         ],
         "evidence_states": [
-          "unknown_or_missing"
+          "owner_confirmation_needed"
         ],
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
@@ -3184,31 +3018,6 @@
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
         ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "m1025",
-        "vehicle": "Humvee",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "m1025"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "unknown_or_missing"
-        ],
-        "evidence_paths": [],
         "choices": [
           "approve",
           "correct",
@@ -3437,33 +3246,6 @@
         ]
       },
       {
-        "vehicle_family": "offroad_02",
-        "vehicle": "Gunter",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "gunter_2, offroad_02"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "owner_confirmation_needed"
-        ],
-        "evidence_paths": [
-          "dxemb/shared/catalog/data/dayzidb_map.json"
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "offroadhatchback",
         "vehicle": "OffroadHatchback (resolver placeholder)",
         "review_stage": "whole_vehicle",
@@ -3669,33 +3451,6 @@
         ],
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "sedan_02",
-        "vehicle": "Sarka",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "sarka_120, sedan_02"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "owner_confirmation_needed"
-        ],
-        "evidence_paths": [
-          "dxemb/shared/catalog/data/dayzidb_map.json"
         ],
         "choices": [
           "approve",
@@ -3943,12 +3698,10 @@
           "default",
           "green",
           "orange",
-          "red",
           "red+blue",
           "red+orange"
         ],
         "unresolved_classnames": [
-          "m3s_covered, truck_01_covered",
           "truck_01_covered_blue",
           "truck_01_covered_orange",
           "truck_01_door_1_1, truck_01_door_2_1",
@@ -3987,7 +3740,7 @@
           "variant exists in project manifest but console source files are not attached"
         ],
         "evidence_states": [
-          "unknown_or_missing"
+          "owner_confirmation_needed"
         ],
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
@@ -4106,31 +3859,6 @@
         "evidence_paths": [
           "dxemb/shared/catalog/data/vehicle_variant_manifest.json"
         ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "uaz_452",
-        "vehicle": "UAZ-452",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "variants": [
-          "default"
-        ],
-        "unresolved_classnames": [
-          "uaz-452, uaz_452"
-        ],
-        "root_causes": [
-          "body image is fallback-only until owner supplies console provenance and approved local image"
-        ],
-        "evidence_states": [
-          "unknown_or_missing"
-        ],
-        "evidence_paths": [],
         "choices": [
           "approve",
           "correct",
@@ -4611,32 +4339,6 @@
       {
         "vehicle_family": "civiliansedan",
         "vehicle": "Olga",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "civiliansedan, olga_24",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "owner_confirmation_needed",
-        "evidence_records": [
-          {
-            "source_type": "project_artifact",
-            "source_path": "dxemb/shared/catalog/data/dayzidb_map.json",
-            "source_vehicle_type": "civiliansedan",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "owner_confirmation_needed"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "civiliansedan",
-        "vehicle": "Olga",
         "variant": "wine",
         "review_stage": "whole_vehicle",
         "relationship": "variant_eligibility",
@@ -4947,32 +4649,6 @@
         ]
       },
       {
-        "vehicle_family": "hatchback_02",
-        "vehicle": "Ada 4x4",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "ada_4_4, hatchback_02",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "owner_confirmation_needed",
-        "evidence_records": [
-          {
-            "source_type": "project_artifact",
-            "source_path": "dxemb/shared/catalog/data/dayzidb_map.json",
-            "source_vehicle_type": "hatchback_02",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "owner_confirmation_needed"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "landrover",
         "vehicle": "Land Rover",
         "variant": "default",
@@ -4980,7 +4656,7 @@
         "relationship": "variant_eligibility",
         "observed_classname": "landrover",
         "root_cause": "variant exists in project manifest but console source files are not attached",
-        "evidence_state": "unknown_or_missing",
+        "evidence_state": "owner_confirmation_needed",
         "evidence_records": [
           {
             "source_type": "project_artifact",
@@ -4988,7 +4664,7 @@
             "source_vehicle_type": "landrover",
             "evidence_excerpt_locator": "variant:default;relationship:variant_eligibility",
             "reviewed_by": "",
-            "review_status": "unknown_or_missing"
+            "review_status": "owner_confirmation_needed"
           }
         ],
         "choices": [
@@ -5129,32 +4805,6 @@
         ]
       },
       {
-        "vehicle_family": "landrover",
-        "vehicle": "Land Rover",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "land_rover_range_rover_classic",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "unknown_or_missing",
-        "evidence_records": [
-          {
-            "source_type": "missing",
-            "source_path": "",
-            "source_vehicle_type": "landrover",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "unknown_or_missing"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "m1025",
         "vehicle": "Humvee",
         "variant": "default",
@@ -5162,7 +4812,7 @@
         "relationship": "variant_eligibility",
         "observed_classname": "m1025",
         "root_cause": "variant exists in project manifest but console source files are not attached",
-        "evidence_state": "unknown_or_missing",
+        "evidence_state": "owner_confirmation_needed",
         "evidence_records": [
           {
             "source_type": "project_artifact",
@@ -5170,7 +4820,7 @@
             "source_vehicle_type": "m1025",
             "evidence_excerpt_locator": "variant:default;relationship:variant_eligibility",
             "reviewed_by": "",
-            "review_status": "unknown_or_missing"
+            "review_status": "owner_confirmation_needed"
           }
         ],
         "choices": [
@@ -5353,32 +5003,6 @@
             "evidence_excerpt_locator": "variant:default;relationship:wheel",
             "reviewed_by": "",
             "review_status": "internally_consistent_no_console_provenance"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "m1025",
-        "vehicle": "Humvee",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "m1025",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "unknown_or_missing",
-        "evidence_records": [
-          {
-            "source_type": "missing",
-            "source_path": "",
-            "source_vehicle_type": "m1025",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "unknown_or_missing"
           }
         ],
         "choices": [
@@ -5701,32 +5325,6 @@
         ]
       },
       {
-        "vehicle_family": "offroad_02",
-        "vehicle": "Gunter",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "gunter_2, offroad_02",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "owner_confirmation_needed",
-        "evidence_records": [
-          {
-            "source_type": "project_artifact",
-            "source_path": "dxemb/shared/catalog/data/dayzidb_map.json",
-            "source_vehicle_type": "offroad_02",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "owner_confirmation_needed"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
         "vehicle_family": "offroadhatchback",
         "vehicle": "OffroadHatchback (resolver placeholder)",
         "variant": "default",
@@ -5977,32 +5575,6 @@
             "evidence_excerpt_locator": "variant:default;relationship:wheel",
             "reviewed_by": "",
             "review_status": "internally_consistent_no_console_provenance"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "sedan_02",
-        "vehicle": "Sarka",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "sarka_120, sedan_02",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "owner_confirmation_needed",
-        "evidence_records": [
-          {
-            "source_type": "project_artifact",
-            "source_path": "dxemb/shared/catalog/data/dayzidb_map.json",
-            "source_vehicle_type": "sedan_02",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "owner_confirmation_needed"
           }
         ],
         "choices": [
@@ -6613,32 +6185,6 @@
       {
         "vehicle_family": "truck_01",
         "vehicle": "M3S",
-        "variant": "red",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "m3s_covered, truck_01_covered",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "owner_confirmation_needed",
-        "evidence_records": [
-          {
-            "source_type": "project_artifact",
-            "source_path": "dxemb/shared/catalog/data/dayzidb_map.json",
-            "source_vehicle_type": "truck_01",
-            "evidence_excerpt_locator": "variant:red;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "owner_confirmation_needed"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
-      },
-      {
-        "vehicle_family": "truck_01",
-        "vehicle": "M3S",
         "variant": "red+blue",
         "review_stage": "whole_vehicle",
         "relationship": "variant_eligibility",
@@ -6748,7 +6294,7 @@
         "relationship": "variant_eligibility",
         "observed_classname": "uaz_452",
         "root_cause": "variant exists in project manifest but console source files are not attached",
-        "evidence_state": "unknown_or_missing",
+        "evidence_state": "owner_confirmation_needed",
         "evidence_records": [
           {
             "source_type": "project_artifact",
@@ -6756,7 +6302,7 @@
             "source_vehicle_type": "uaz_452",
             "evidence_excerpt_locator": "variant:default;relationship:variant_eligibility",
             "reviewed_by": "",
-            "review_status": "unknown_or_missing"
+            "review_status": "owner_confirmation_needed"
           }
         ],
         "choices": [
@@ -7025,36 +6571,9 @@
           "exclude",
           "attach_console_evidence"
         ]
-      },
-      {
-        "vehicle_family": "uaz_452",
-        "vehicle": "UAZ-452",
-        "variant": "default",
-        "review_stage": "image_only_gaps",
-        "relationship": "body_image",
-        "observed_classname": "uaz-452, uaz_452",
-        "root_cause": "body image is fallback-only until owner supplies console provenance and approved local image",
-        "evidence_state": "unknown_or_missing",
-        "evidence_records": [
-          {
-            "source_type": "missing",
-            "source_path": "",
-            "source_vehicle_type": "uaz_452",
-            "evidence_excerpt_locator": "variant:default;relationship:body_image",
-            "reviewed_by": "",
-            "review_status": "unknown_or_missing"
-          }
-        ],
-        "choices": [
-          "approve",
-          "correct",
-          "exclude",
-          "attach_console_evidence"
-        ]
       }
     ],
     "unresolved_classnames": [
-      "ada_4_4, hatchback_02",
       "ada_4_4_hood",
       "ada_4_4_left_door",
       "ada_4_4_right_door",
@@ -7067,7 +6586,6 @@
       "boat_01_camo",
       "boat_01_orange",
       "civiliansedan",
-      "civiliansedan, olga_24",
       "civiliansedan_black",
       "civiliansedan_wine",
       "civsedandoors_backleft",
@@ -7078,7 +6596,6 @@
       "civsedantrunk",
       "civsedanwheel",
       "civsedanwheel_ruined",
-      "gunter_2, offroad_02",
       "gunter_2_front_left_door",
       "gunter_2_front_right_door",
       "gunter_2_hood",
@@ -7091,7 +6608,6 @@
       "hatchback_02_wheel",
       "land_rover_front_left_door",
       "land_rover_front_right_door",
-      "land_rover_range_rover_classic",
       "land_rover_rear_left_door",
       "land_rover_rear_right_door",
       "land_rover_wheel",
@@ -7104,7 +6620,6 @@
       "m1025_rear_right_door",
       "m1025_trunk_door",
       "m1025_wheel",
-      "m3s_covered, truck_01_covered",
       "m3s_hood",
       "m3s_left_door",
       "m3s_right_door",
@@ -7117,7 +6632,6 @@
       "olga_24_front_left_door",
       "olga_24_hood",
       "olga_24_trunk_lid",
-      "sarka_120, sedan_02",
       "sarka_120_front_left_door",
       "sarka_120_hood",
       "sarka_120_rear_left_door",
@@ -7144,7 +6658,6 @@
       "truck_01_wheel_ruined",
       "truck_01_wheeldouble",
       "truck_01_wheeldouble_ruined",
-      "uaz-452, uaz_452",
       "uaz-452_co-driver_door",
       "uaz-452_driver_door",
       "uaz-452_left_rear_door",
