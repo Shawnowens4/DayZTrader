@@ -32,6 +32,13 @@ class OldbaseModalCompatEnforcementContractTests(unittest.TestCase):
         self.assertIn("if (!allowedChildren.includes(name))", self.source)
         self.assertIn("it is not compatible with ${parent.name} in cfgspawnabletypes.xml", self.source)
 
+    def test_attachment_cards_use_the_shared_parent_compatibility_resolver(self):
+        self.assertIn("const activeCompat = active ? resolveParentCompat(active.name, active.children || [])", self.source)
+        self.assertIn("const suggestions = activeCompat.attachments || []", self.source)
+        self.assertIn("XML attachment", self.source)
+        self.assertIn("No compatible attachments are loaded for", self.source)
+        self.assertNotIn("|| ['Battery9V', 'DuctTape', 'Rag']", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

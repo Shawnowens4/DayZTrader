@@ -555,9 +555,12 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       }).join('');
 
       const active = state.quick[0];
-      const suggestions = active ? (gunChildren[active.name.toLowerCase().replace(/[^a-z0-9]+/g, '')] || ['Battery9V', 'DuctTape', 'Rag']) : ['Battery9V', 'DuctTape', 'Rag'];
-      attach.className = 'attach-list';
-      attach.innerHTML = suggestions.map(name => `<div class="attach-card" data-attach-name="${escapeHtml(name)}"><b>${escapeHtml(name)}</b><span>Compatible option</span></div>`).join('');
+      const activeCompat = active ? resolveParentCompat(active.name, active.children || []) : { source: 'none', attachments: [] };
+      const suggestions = activeCompat.attachments || [];
+      attach.className = suggestions.length ? 'attach-list' : 'attach-list empty-state';
+      attach.innerHTML = suggestions.length
+        ? suggestions.map((entry) => `<div class="attach-card" data-attach-name="${escapeHtml(entry.name)}"><b>${escapeHtml(entry.name)}</b><span>${activeCompat.source === 'cfgspawnabletypes.xml' ? `XML attachment ? ${escapeHtml(entry.chance || '1.00')}` : 'Fallback attachment'}</span></div>`).join('')
+        : `No compatible attachments are loaded for <b>${escapeHtml(active.name)}</b>.`;
     }
 
     if (state.builds.length === 0) {
