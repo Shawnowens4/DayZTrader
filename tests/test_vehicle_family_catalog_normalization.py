@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 import unittest
@@ -40,4 +40,3 @@ class VehicleFamilyCatalogNormalizationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
