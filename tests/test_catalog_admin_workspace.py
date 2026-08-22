@@ -153,6 +153,15 @@ class CatalogAdminWorkspaceTests(unittest.TestCase):
         self.assertEqual(save.status_code, 403)
         self.assertIn("admin role is required", page.get_data(as_text=True))
 
+    def test_legacy_catalog_enabled_mutation_requires_admin_role(self) -> None:
+        blocked = self.client.post("/catalog/AKM/enabled", data={"enabled": "0"})
+        allowed = self._post_admin("/catalog/AKM/enabled", data={"enabled": "0"})
+
+        self.assertEqual(blocked.status_code, 403)
+        self.assertIn("admin role is required", blocked.get_data(as_text=True))
+        self.assertEqual(allowed.status_code, 302)
+        self.assertFalse(self.catalog_service.get_catalog_admin_item_sync("AKM")["is_enabled"])
+
     def test_admin_route_renders(self) -> None:
         response = self._get_admin("/catalog/admin")
         body = response.get_data(as_text=True)

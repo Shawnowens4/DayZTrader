@@ -2,33 +2,66 @@
 {% block title %}{{ item.display_name or item.classname }} - DXEMB Catalog{% endblock %}
 {% block content %}
 <section class="panel">
-  <p><a href="/catalog">&larr; Back to catalog</a></p>
-  <div class="grid-2">
-    <div>
+  <p><a href="/catalog{{ '?as_role=admin' if is_admin_actor else '' }}">&larr; Back to item picker</a></p>
+  <div class="item-review-layout">
+    <div class="item-review-image">
       <img
         class="thumb js-fallback-img"
         src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
         data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
         alt="{{ item.classname }}"
       >
-      <p><span class="status-pill {{ 'status-ok' if item.thumbnail_status == 'mapped' else 'status-warn' if item.thumbnail_status == 'override' else 'status-blocked' }}">{{ item.thumbnail_status }}</span></p>
-      <p class="muted">{{ item.thumbnail_source }}</p>
+      <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-neutral' }}">{{ 'available' if item.is_enabled else 'unavailable' }}</span>
     </div>
-    <div>
+    <div class="item-review-main">
+      <span class="journey-number">02 / Inspect</span>
       <h1 class="page-title">{{ item.display_name or item.classname }}</h1>
-      <p class="muted"><code>{{ item.classname }}</code></p>
-      <div class="row">Category: {{ item.category or '-' }}</div>
-      <div class="row">Subcategory: {{ item.subcategory or '-' }}</div>
-      <div class="row">Buy price: {{ item.buy_price if item.buy_price is not none else 'unset' }}</div>
-      <div class="row">Sell price: {{ item.sell_price if item.sell_price is not none else 'unset' }}</div>
-      <div class="row">Enabled: {{ 'yes' if item.is_enabled else 'no' }}</div>
-      <div class="row">Raw thumbnail URL: {{ item.thumbnail_url or 'none' }}</div>
-      <div class="row">Metadata notes: <code>{{ item.notes or '{}' }}</code></div>
-
-      <form method="post" action="/catalog/{{ item.classname }}/enabled">
-        <input type="hidden" name="enabled" value="{{ '0' if item.is_enabled else '1' }}">
-        <button type="submit">{{ 'Disable item' if item.is_enabled else 'Enable item' }}</button>
-      </form>
+      <p class="page-subtitle">Trade preview &middot; {{ item.category or 'Uncategorized' }}{% if item.subcategory %} / {{ item.subcategory }}{% endif %}</p>
+      <div class="price-pair">
+        <div><span>Trader buy price</span><strong>{{ item.buy_price if item.buy_price is not none else 'Not priced' }}</strong></div>
+        <div><span>Trader sell price</span><strong>{{ item.sell_price if item.sell_price is not none else 'Not priced' }}</strong></div>
+      </div>
+      <div class="row"><span class="label">Category</span><span class="val">{{ item.category or 'Not categorized' }}</span></div>
+      <div class="row"><span class="label">Type</span><span class="val">{{ item.subcategory or 'Not specified' }}</span></div>
+      <div class="row"><span class="label">Availability</span><span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-neutral' }}">{{ 'available' if item.is_enabled else 'unavailable' }}</span></div>
+      <div class="notice-banner {{ 'notice-neutral' if item.is_enabled and item.buy_price is not none else 'notice-warn' }}">
+        {% if item.is_enabled and item.buy_price is not none %}
+        Preview ready: this item has a local price. Checkout and delivery are not connected yet.
+        {% else %}
+        Preview only: this item cannot be ordered until availability and pricing are complete.
+        {% endif %}
+      </div>
+      <div class="detail-actions">
+        <a class="cta-link" href="/wallet/me?discord_user_id=demo-player">Continue to wallet review <span aria-hidden="true">&rarr;</span></a>
+        <a href="/catalog{{ '?as_role=admin' if is_admin_actor else '' }}">Choose another item</a>
+      </div>
+      <details class="technical-details">
+        <summary>Technical item details</summary>
+        <div class="row"><span class="label">Class name</span><span class="val"><code>{{ item.classname }}</code></span></div>
+        <div class="row"><span class="label">Image source</span><span class="val break-all">{{ item.thumbnail_url or 'Local fallback' }}</span></div>
+        <div class="row"><span class="label">Metadata</span><span class="val"><code>{{ item.notes or '{}' }}</code></span></div>
+      </details>
+      {% if is_admin_actor %}
+      <section class="admin-control-panel" aria-label="Local admin item controls">
+        <div>
+          <span class="journey-number">Local admin</span>
+          <strong>Trader availability control</strong>
+          <p>This changes the existing local catalog state; it does not create or fulfill an order.</p>
+        </div>
+        <form method="post" action="/catalog/{{ item.classname }}/enabled">
+          <input type="hidden" name="enabled" value="{{ '0' if item.is_enabled else '1' }}">
+          <input type="hidden" name="return_to" value="/catalog/{{ item.classname }}?as_role=admin">
+          <button type="submit">{{ 'Mark unavailable' if item.is_enabled else 'Mark available' }}</button>
+        </form>
+        <a href="/catalog/admin/{{ item.classname }}?as_role=admin">Open full item curation</a>
+      </section>
+      {% else %}
+      <details class="technical-details admin-entry">
+        <summary>Local admin tools</summary>
+        <p class="muted">Catalog maintenance is kept separate from the player flow.</p>
+        <a href="/catalog/{{ item.classname }}?as_role=admin">Open admin-safe item controls</a>
+      </details>
+      {% endif %}
     </div>
   </div>
 </section>

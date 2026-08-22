@@ -10,8 +10,12 @@ from urllib.parse import urlencode
 
 try:
     from web.local_auth import admin_or_higher
+    from web.local_auth import get_resolved_identity
+    from web.local_auth import has_role
 except ModuleNotFoundError:
     from local_auth import admin_or_higher
+    from local_auth import get_resolved_identity
+    from local_auth import has_role
 
 from shared.catalog.service import ADMIN_FUTURE_FLAG_KEYS
 from shared.catalog.service import CATALOG_ADMIN_DEFAULT_LIMIT
@@ -82,6 +86,7 @@ def catalog_list():
         state=state,
         page=page,
         has_next=has_next,
+        is_admin_actor=has_role(get_resolved_identity(), "admin"),
     )
 
 
@@ -91,10 +96,15 @@ def catalog_detail(classname: str):
     if item is None:
         abort(404, description="Catalog item not found")
 
-    return render_template("catalog_detail.html", item=item)
+    return render_template(
+        "catalog_detail.html",
+        item=item,
+        is_admin_actor=has_role(get_resolved_identity(), "admin"),
+    )
 
 
 @catalog_bp.post("/catalog/<classname>/enabled")
+@admin_or_higher(message="admin role is required to change catalog enabled state")
 def set_enabled(classname: str):
     raw = (request.form.get("enabled", "") or "").strip().lower()
     enabled = raw in {"1", "true", "yes", "on"}

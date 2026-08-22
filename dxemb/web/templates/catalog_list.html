@@ -1,9 +1,18 @@
 {% extends "base.html" %}
-{% block title %}DXEMB Catalog Admin{% endblock %}
+{% block title %}DXEMB Trader Catalog{% endblock %}
 {% block content %}
 <section class="panel">
-  <h1 class="page-title">DXEMB Catalog Management</h1>
-  <p class="page-subtitle">Browse, search, filter, inspect thumbnail mapping, and toggle enabled state.</p>
+  <div class="page-heading">
+    <div>
+      <span class="journey-number">01 / Browse</span>
+      <h1 class="page-title">Trader Item Picker</h1>
+      <p class="page-subtitle">Choose an item card to inspect its current trader setup.</p>
+    </div>
+    {% if is_admin_actor %}
+    <a class="admin-safe-link" href="/catalog/admin?as_role=admin">Open full catalog admin</a>
+    {% endif %}
+  </div>
+  <div class="notice-banner notice-neutral">Preview mode: prices and availability are real local data. Ordering and delivery are not connected yet.</div>
 </section>
 
 <section class="panel">
@@ -16,59 +25,46 @@
       {% endfor %}
     </select>
     <select name="state" aria-label="Filter by enabled state">
-      <option value="all" {{ 'selected' if state == 'all' else '' }}>All states</option>
-      <option value="enabled" {{ 'selected' if state == 'enabled' else '' }}>Enabled only</option>
-      <option value="disabled" {{ 'selected' if state == 'disabled' else '' }}>Disabled only</option>
+      <option value="all" {{ 'selected' if state == 'all' else '' }}>All availability</option>
+      <option value="enabled" {{ 'selected' if state == 'enabled' else '' }}>Available only</option>
+      <option value="disabled" {{ 'selected' if state == 'disabled' else '' }}>Unavailable only</option>
     </select>
     <button type="submit">Apply</button>
   </form>
 </section>
 
-<section class="panel">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Category</th>
-        <th>Status</th>
-        <th>Thumbnail</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td>
-          <img
-            class="item-thumb js-fallback-img"
-            src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
-            data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
-            alt="{{ item.display_name or item.classname }} thumbnail"
-            loading="lazy"
-          >
-          <a href="/catalog/{{ item.classname }}">{{ item.display_name or item.classname }}</a><br>
-          <span class="muted">{{ item.classname }}</span>
-        </td>
-        <td>{{ item.category or '-' }} / {{ item.subcategory or '-' }}</td>
-        <td>
-          <span class="status-pill {{ 'status-ok' if item.is_enabled else 'status-error' }}">{{ 'enabled' if item.is_enabled else 'disabled' }}</span>
-        </td>
-        <td>
-          <span class="status-pill {{ 'status-ok' if item.thumbnail_status == 'mapped' else 'status-warn' if item.thumbnail_status == 'override' else 'status-blocked' }}">{{ item.thumbnail_status }}</span>
-          <div class="muted">{{ item.thumbnail_source }}</div>
-        </td>
-        <td>
-          <form method="post" action="/catalog/{{ item.classname }}/enabled">
-            <input type="hidden" name="enabled" value="{{ '0' if item.is_enabled else '1' }}">
-            <input type="hidden" name="return_to" value="{{ request.full_path }}">
-            <button type="submit">{{ 'Disable' if item.is_enabled else 'Enable' }}</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<section class="catalog-card-grid" aria-label="Trader item cards">
+  {% for item in items %}
+  <article class="catalog-item-card">
+    <a class="catalog-card-image" href="/catalog/{{ item.classname }}{{ '?as_role=admin' if is_admin_actor else '' }}">
+      <img
+        class="js-fallback-img"
+        src="{{ catalog_thumbnail_src(item.classname, item.resolved_thumbnail_url) }}"
+        data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+        alt="{{ item.display_name or item.classname }}"
+        loading="lazy"
+      >
+      <span class="status-pill catalog-availability {{ 'status-ok' if item.is_enabled else 'status-neutral' }}">{{ 'available' if item.is_enabled else 'unavailable' }}</span>
+    </a>
+    <div class="catalog-card-body">
+      <span class="catalog-kicker">{{ item.category or 'Uncategorized' }}{% if item.subcategory %} / {{ item.subcategory }}{% endif %}</span>
+      <h2>{{ item.display_name or item.classname }}</h2>
+      <p class="catalog-price">
+        <span><small>Buy</small>{{ item.buy_price if item.buy_price is not none else '—' }}</span>
+        <span><small>Sell</small>{{ item.sell_price if item.sell_price is not none else '—' }}</span>
+      </p>
+      <a class="cta-link" href="/catalog/{{ item.classname }}{{ '?as_role=admin' if is_admin_actor else '' }}">Inspect item <span aria-hidden="true">&rarr;</span></a>
+    </div>
+  </article>
+  {% else %}
+  <div class="panel empty-state catalog-empty">
+    <strong>No items matched this search.</strong>
+    <span>Try a broader name, category, or availability filter.</span>
+  </div>
+  {% endfor %}
+</section>
 
+<section class="panel catalog-pagination">
   <div class="inline-nav" aria-label="Pagination">
     {% if page > 1 %}
       <a href="?q={{ query }}&category={{ selected_category }}&state={{ state }}&page={{ page - 1 }}">Prev</a>

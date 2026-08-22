@@ -130,21 +130,67 @@ class WebVisualFoundationSliceATests(unittest.TestCase):
             detail = self._get_admin(f"/vehicles/{classname}")
             self.assertLess(detail.status_code, 500)
 
-    def test_dashboard_exposes_demo_safe_main_flows(self) -> None:
+    def test_dashboard_exposes_only_phase_one_player_flows(self) -> None:
         response = self.client.get("/")
         body = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Demo mode is local-safe", body)
+        self.assertIn("Build your DayZ trader setup", body)
+        self.assertIn("Local demo ready", body)
         for href in [
             "/catalog",
             "/vehicles?as_role=admin",
             "/wallet/me?discord_user_id=demo-player",
+        ]:
+            self.assertIn(f'href="{href}"', body)
+        for hidden_href in [
             "/wallet/admin?as_role=admin",
             "/admin/operations?as_role=admin",
             "/admin/map?as_role=admin",
+            "/catalog/admin",
         ]:
-            self.assertIn(f'href="{href}"', body)
+            self.assertNotIn(f'href="{hidden_href}"', body)
+
+        nav = body.split('<nav class="shell-nav" aria-label="Primary">', 1)[1].split("</nav>", 1)[0]
+        for label in ["Home", "Trader", "Vehicles", "Wallet"]:
+            self.assertIn(f">{label}</a>", nav)
+        for hidden_label in ["Ops Admin", "Map Admin", "Catalog Admin", "Wallet Admin"]:
+            self.assertNotIn(hidden_label, nav)
+
+    def test_player_catalog_has_no_enable_disable_controls(self) -> None:
+        catalog = self.client.get("/catalog")
+        detail = self.client.get("/catalog/SLICE_A_ITEM")
+
+        self.assertEqual(catalog.status_code, 200)
+        self.assertEqual(detail.status_code, 200)
+        self.assertNotIn('method="post"', catalog.get_data(as_text=True))
+        self.assertNotIn('action="/catalog/SLICE_A_ITEM/enabled"', detail.get_data(as_text=True))
+        self.assertIn('class="catalog-card-grid"', catalog.get_data(as_text=True))
+        self.assertIn('class="catalog-item-card"', catalog.get_data(as_text=True))
+        self.assertIn("Trade preview", detail.get_data(as_text=True))
+        self.assertIn("Continue to wallet review", detail.get_data(as_text=True))
+
+        admin_detail = self.client.get("/catalog/SLICE_A_ITEM?as_role=admin")
+        self.assertEqual(admin_detail.status_code, 200)
+        self.assertIn('action="/catalog/SLICE_A_ITEM/enabled"', admin_detail.get_data(as_text=True))
+        self.assertIn("Trader availability control", admin_detail.get_data(as_text=True))
+
+    def test_vehicle_click_through_preserves_local_admin_hint(self) -> None:
+        vehicles = self.client.get("/vehicles?as_role=admin")
+        body = vehicles.get_data(as_text=True)
+
+        self.assertEqual(vehicles.status_code, 200)
+        self.assertIn("?as_role=admin", body)
+        catalog = self._get_admin("/api/vehicles/catalog").get_json()
+        classname = catalog["families"][0]["classname"]
+        detail = self.client.get(f"/vehicles/{classname}?as_role=admin")
+        detail_body = detail.get_data(as_text=True)
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn('href="/vehicles?as_role=admin"', detail_body)
+        self.assertIn(f"/api/vehicles/builder/{classname}?as_role=admin", detail_body)
+        self.assertIn('id="vehicle-review-workbench"', detail_body)
+        self.assertIn("Running-parts workbench", detail_body)
+        self.assertIn("data-vehicle-color=", detail_body)
 
     def test_get_pages_do_not_mutate_state(self) -> None:
         before = self._table_counts()

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ vehicle.display_name }} - DXEMB Vehicle Builder{% endblock %}
 {% block content %}
-<section class="panel">
+<section class="panel builder-vehicle-head">
   <div class="inline-nav">
-    <a href="/vehicles">&larr; Vehicle list</a>
+    <a href="/vehicles?as_role=admin">&larr; Choose another vehicle</a>
   </div>
   <div class="hero">
     <img
@@ -13,6 +13,7 @@
       class="js-fallback-img"
     >
     <div>
+      <span class="journey-number">02 / Configure</span>
       <h1 class="page-title">{{ vehicle.display_name }}</h1>
       <p class="page-subtitle">
         {{ vehicle.category }} &middot;
@@ -20,16 +21,28 @@
         {{ vehicle.slots|length }} part slot{{ 's' if vehicle.slots|length != 1 else '' }}
       </p>
       <code>{{ vehicle.classname }}</code>
+      <div class="notice-banner notice-neutral">Review mode: choose a preferred color and check the known required parts below.</div>
     </div>
+  </div>
+  <div class="builder-progress" aria-label="Vehicle builder progress">
+    <span>1. Vehicle</span><span class="active">2. Configure</span><span>3. Review</span>
   </div>
 </section>
 
-{% if vehicle.colors %}
-<section class="panel">
-  <h2>Color Variants</h2>
-  <div class="card-grid">
+<div class="vehicle-workbench-layout">
+  <div class="vehicle-workbench-main">
+  {% if vehicle.colors %}
+  <section class="panel">
+    <div class="subhead-row"><h2>Choose a color</h2><span>{{ vehicle.colors|length }} option{{ 's' if vehicle.colors|length != 1 else '' }}</span></div>
+    <div class="color-option-grid">
     {% for c in vehicle.colors %}
-    <div class="card" data-color="{{ c.color }}">
+    <button
+      type="button"
+      class="card builder-option{{ ' selected' if loop.first else '' }}"
+      data-vehicle-color="{{ c.display_name }}"
+      data-vehicle-color-image="{{ ui_image(c.thumbnail_url) }}"
+      aria-pressed="{{ 'true' if loop.first else 'false' }}"
+    >
       <img
         src="{{ ui_image(c.thumbnail_url) }}"
         data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
@@ -39,21 +52,21 @@
       >
       <div class="card-body">
         <div><strong>{{ c.display_name }}</strong></div>
-        <div class="muted">{{ c.classname or '-' }}</div>
-        <span class="status-pill {{ 'status-ok' if c.thumbnail_status in ['exact', 'mapped'] else 'status-warn' if c.thumbnail_status == 'override' else 'status-neutral' if c.thumbnail_status == 'family_fallback' else 'status-blocked' }}">{{ c.thumbnail_status }}</span>
+        <span class="status-pill {{ 'status-ok' if c.thumbnail_status in ['exact', 'mapped'] else 'status-warn' if c.thumbnail_status == 'override' else 'status-neutral' }}">{{ c.thumbnail_status|replace('_', ' ') }}</span>
       </div>
-    </div>
+    </button>
     {% endfor %}
-  </div>
-</section>
-{% endif %}
+    </div>
+  </section>
+  {% endif %}
 
-{% if vehicle.slots %}
-<section class="panel">
-  <h2>Part Slots</h2>
-  <div class="card-grid">
+  {% if vehicle.slots %}
+  <section class="panel">
+    <div class="subhead-row"><h2>Running-parts workbench</h2><span>{{ vehicle.slots|selectattr('required')|list|length }} required</span></div>
+    <p class="muted">Required parts are kept visible so the review reads like a build checklist, not a raw data dump.</p>
+    <div class="parts-workbench-grid">
     {% for s in vehicle.slots %}
-    <div class="card" data-slot="{{ s.slot_name }}">
+    <article class="part-workbench-card{{ ' required' if s.required else '' }}" data-slot="{{ s.slot_name }}">
       <img
         src="{{ ui_image(s.thumbnail_url) }}"
         data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
@@ -63,17 +76,36 @@
       >
       <div class="card-body">
         <div><strong>{{ s.display_name }}</strong></div>
-        <div class="muted">{{ s.classname or '-' }}</div>
-        {% if s.required %}<div class="muted">required</div>{% endif %}
-        <span class="status-pill {{ 'status-ok' if s.thumbnail_status in ['exact', 'mapped', 'override'] else 'status-warn' if s.thumbnail_status == 'owner_review_required' else 'status-neutral' if s.thumbnail_status in ['family_fallback', 'fallback'] else 'status-blocked' }}">{{ s.thumbnail_status }}</span>
+        {% if s.required %}<div class="part-requirement">Required to run</div>{% else %}<div class="muted">Optional</div>{% endif %}
+        <span class="status-pill {{ 'status-ok' if s.thumbnail_status in ['exact', 'mapped', 'override'] else 'status-warn' if s.thumbnail_status == 'owner_review_required' else 'status-neutral' }}">{{ s.thumbnail_status|replace('_', ' ') }}</span>
       </div>
-    </div>
+    </article>
     {% endfor %}
+    </div>
+  </section>
+  {% endif %}
   </div>
-</section>
-{% endif %}
 
-<section class="panel">
-  <p class="muted">JSON API: <a href="/api/vehicles/builder/{{ vehicle.classname }}">/api/vehicles/builder/{{ vehicle.classname }}</a></p>
-</section>
+  <aside class="panel vehicle-build-summary" id="vehicle-review-workbench">
+    <span class="journey-number">03 / Review</span>
+    <img
+      id="selected-vehicle-preview"
+      src="{{ ui_image(vehicle.colors[0].thumbnail_url if vehicle.colors else vehicle.body_thumbnail_url) }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt="Selected {{ vehicle.display_name }} preview"
+      class="js-fallback-img"
+    >
+    <h2>{{ vehicle.display_name }}</h2>
+    <div class="summary-choice"><span>Selected color</span><strong id="selected-color-name">{{ vehicle.colors[0].display_name if vehicle.colors else 'Standard' }}</strong></div>
+    <div class="summary-choice"><span>Required parts</span><strong>{{ vehicle.slots|selectattr('required')|list|length }}</strong></div>
+    <div class="summary-choice"><span>Optional parts</span><strong>{{ vehicle.slots|rejectattr('required')|list|length }}</strong></div>
+    <div class="notice-banner notice-neutral" id="vehicle-review-status">Preview ready for review. Nothing has been saved or delivered.</div>
+    <a class="cta-link" href="/wallet/me?discord_user_id=demo-player">Continue to wallet <span aria-hidden="true">&rarr;</span></a>
+    <a class="summary-secondary" href="/vehicles?as_role=admin">Choose another vehicle</a>
+    <details class="technical-details">
+      <summary>Technical vehicle data</summary>
+      <p class="muted"><a href="/api/vehicles/builder/{{ vehicle.classname }}?as_role=admin">Open local JSON payload</a></p>
+    </details>
+  </aside>
+</div>
 {% endblock %}

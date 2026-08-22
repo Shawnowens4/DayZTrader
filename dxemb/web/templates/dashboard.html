@@ -1,27 +1,75 @@
 {% extends "base.html" %}
-{% block title %}DXEMB Admin - Status{% endblock %}
+{% block title %}DXEMB Trader - Home{% endblock %}
 {% block content %}
-<section class="panel">
-  <h1 class="page-title">DXEMB Admin Panel</h1>
-  <p class="page-subtitle">DayZ Xbox Trader — status dashboard</p>
-  <p>
-    Demo mode is local-safe: admin roles and the demo player are explicit URL
-    hints, wallet credits are virtual, and map/operations actions are previews
-    or evidence views rather than live provider changes.
+
+<section class="panel guided-hero">
+  <span class="status-pill status-ok">Local demo ready</span>
+  <h1 class="page-title">Build your DayZ trader setup</h1>
+  <p class="page-subtitle">
+    Browse trader items, explore a vehicle setup, and review the demo wallet.
+    Every screen clearly marks what is available today.
   </p>
+  <p class="muted">
+    DayZ Xbox Trader admin workspace. Demo mode is local-safe: admin roles and
+    the demo player are explicit URL hints, wallet credits are virtual, and map
+    or operations actions are previews/evidence views rather than live provider changes.
+  </p>
+  <ol class="guided-stepper" aria-label="Guided test flow">
+    <li><strong>1. Choose</strong><span>Trader or vehicle</span></li>
+    <li><strong>2. Explore</strong><span>Inspect real local data</span></li>
+    <li><strong>3. Review</strong><span>See what is ready today</span></li>
+  </ol>
+</section>
+
+<section class="journey-grid" aria-label="Primary test journeys">
+  <article class="panel journey-card">
+    <img
+      class="journey-image js-fallback-img"
+      src="{{ ui_image('/static/catalog_items/chernarussportshirt.webp') }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt=""
+    >
+    <span class="journey-number">01</span>
+    <h2>Trader</h2>
+    <p>Browse image cards, choose an item, and review its current price and availability.</p>
+    <p class="journey-path"><span>Browse</span><span>Inspect</span><span>Preview</span></p>
+    <a class="cta-link" href="/catalog">Browse trader items <span aria-hidden="true">&rarr;</span></a>
+  </article>
+
+  <article class="panel journey-card">
+    <img
+      class="journey-image js-fallback-img"
+      src="{{ ui_asset('images.vehicle_category_banner') }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt=""
+    >
+    <span class="journey-number">02</span>
+    <h2>Vehicle Builder</h2>
+    <p>Choose a vehicle, select a color, and review required parts in the workbench.</p>
+    <p class="journey-path"><span>Choose</span><span>Configure</span><span>Review</span></p>
+    <a class="cta-link" href="/vehicles?as_role=admin">Open vehicle builder <span aria-hidden="true">&rarr;</span></a>
+  </article>
+
+  <article class="panel journey-card">
+    <img
+      class="journey-image js-fallback-img"
+      src="{{ ui_asset('images.thumbnail_fallback') }}"
+      data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
+      alt=""
+    >
+    <span class="journey-number">03</span>
+    <h2>Wallet</h2>
+    <p>Review the local demo player balance, ledger activity, and trader-ready wallet flow.</p>
+    <p class="journey-path"><span>View</span><span>Review</span><span>Manage</span></p>
+    <a class="cta-link" href="/wallet/me?discord_user_id=demo-player">Open demo wallet <span aria-hidden="true">&rarr;</span></a>
+  </article>
 </section>
 
 <section class="panel">
-  <h2>System</h2>
-  <div class="data-row row">
-    <span class="label">Web service</span>
-    <span class="status-pill status-ok">online</span>
-  </div>
+  <h2>System Status</h2>
   <div class="data-row row">
     <span class="label">Database</span>
-    <span class="status-pill {{ 'status-ok' if db.ok else 'status-error' }}">
-      {{ 'connected' if db.ok else 'error' }}
-    </span>
+    <span class="status-pill {{ 'status-ok' if db.ok else 'status-error' }}">{{ 'connected' if db.ok else 'error' }}</span>
   </div>
   {% if db.ok %}
   <div class="data-row row">
@@ -30,10 +78,7 @@
   </div>
   {% endif %}
   {% if db.error %}
-  <div class="data-row row">
-    <span class="label">Error</span>
-    <span class="val" style="color:#ff8f8f">{{ db.error }}</span>
-  </div>
+  <div class="notice-banner notice-error">Database error: {{ db.error }}</div>
   {% endif %}
 </section>
 
@@ -52,43 +97,26 @@
 <section class="panel">
   <h2>Quick Links</h2>
   <div class="nav-card-grid">
-
     <a class="nav-card" href="/catalog">
-      <span class="nav-card-icon">📦</span>
+      <span class="nav-card-icon">Catalog</span>
       <span class="nav-card-label">Catalog</span>
       <span class="nav-card-desc">Browse trader items</span>
     </a>
 
     <a class="nav-card" href="/vehicles?as_role=admin">
-      <span class="nav-card-icon">🚗</span>
+      <span class="nav-card-icon">Vehicles</span>
       <span class="nav-card-label">Vehicle Builder</span>
       <span class="nav-card-desc">Build and configure vehicle presets</span>
     </a>
 
     <a class="nav-card" href="/wallet/me?discord_user_id=demo-player">
-      <span class="nav-card-icon">💰</span>
+      <span class="nav-card-icon">Wallet</span>
       <span class="nav-card-label">Player Wallet</span>
       <span class="nav-card-desc">Open demo player wallet</span>
     </a>
 
-    <a class="nav-card" href="/wallet/admin?as_role=admin">
-      <span class="nav-card-icon">🗂</span>
-      <span class="nav-card-label">Wallet Admin</span>
-      <span class="nav-card-desc">Manage all player balances</span>
-    </a>
-
-    <a class="nav-card" href="/admin/operations?as_role=admin">
-      <span class="nav-card-icon">🔧</span>
-      <span class="nav-card-label">Operations</span>
-      <span class="nav-card-desc">Evidence and moderation tools</span>
-    </a>
-
-    <a class="nav-card" href="/admin/map?as_role=admin">
-      <span class="nav-card-icon">🗺</span>
-      <span class="nav-card-label">Map Preview</span>
-      <span class="nav-card-desc">Coordinate and region tools</span>
-    </a>
 
   </div>
 </section>
+
 {% endblock %}

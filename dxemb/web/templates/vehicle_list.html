@@ -3,23 +3,27 @@
 {% block content %}
 <section class="panel">
   <div class="inline-nav">
-    <a href="/">&larr; Admin Home</a>
-    <a href="/catalog">Catalog</a>
+    <a href="/">&larr; Home</a>
+    <a href="/catalog">Trader</a>
   </div>
   <img
     class="vehicle-category-banner"
     src="{{ ui_asset('images.vehicle_category_banner') }}"
-    alt="Vehicle category banner"
+    alt=""
     loading="lazy"
   >
+  <span class="journey-number">01 / Choose a vehicle</span>
   <h1 class="page-title">Vehicle Builder</h1>
-  <p class="page-subtitle">Select a vehicle family to inspect color variants and part slots.</p>
+  <p class="page-subtitle">Start with a vehicle card, then configure its color and review the running-parts workbench.</p>
+  <div class="builder-progress" aria-label="Vehicle builder progress">
+    <span class="active">1. Vehicle</span><span>2. Configure</span><span>3. Review</span>
+  </div>
 </section>
 
 {% if families %}
-<section class="card-grid" aria-label="Vehicle family cards">
+<section class="vehicle-picker-grid" aria-label="Vehicle family cards">
   {% for v in families %}
-  <a href="/vehicles/{{ v.classname }}" class="card" aria-label="Open vehicle {{ v.display_name }}">
+  <a href="/vehicles/{{ v.classname }}?as_role=admin" class="card vehicle-picker-card" aria-label="Select vehicle {{ v.display_name }}">
     <img
       src="{{ ui_image(v.body_thumbnail_url) }}"
       data-fallback-src="{{ ui_asset('images.thumbnail_fallback') }}"
@@ -35,7 +39,8 @@
         {{ v.slot_count }} part{{ 's' if v.slot_count != 1 else '' }}
       </div>
       <div style="margin-top:0.35rem">
-        <span class="status-pill {{ 'status-ok' if v.thumbnail_status in ['mapped', 'exact'] else 'status-warn' if v.thumbnail_status == 'override' else 'status-neutral' if v.thumbnail_status == 'family_fallback' else 'status-blocked' }}">{{ v.thumbnail_status }}</span>
+        <span class="status-pill {{ 'status-ok' if v.thumbnail_status in ['mapped', 'exact'] else 'status-warn' if v.thumbnail_status == 'override' else 'status-neutral' }}">{{ v.thumbnail_status|replace('_', ' ') }}</span>
+        <div class="card-next">Select vehicle <span aria-hidden="true">&rarr;</span></div>
       </div>
     </div>
   </a>
@@ -43,7 +48,10 @@
 </section>
 {% else %}
 <section class="panel">
-  <p class="muted">No vehicle families found in resolver. Add entries to vehicle_thumbnail_resolver.final.json.</p>
+  <div class="empty-state">
+    <strong>No vehicles are ready to preview yet.</strong>
+    <span>The local vehicle data is preserved, but no families are currently available.</span>
+  </div>
 </section>
 {% endif %}
 {% endblock %}
