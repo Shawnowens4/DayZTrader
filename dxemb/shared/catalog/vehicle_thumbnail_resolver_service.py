@@ -7,6 +7,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from .vehicle_family_catalog import (
+    candidate_resolver_family_keys,
+    normalize_vehicle_family_key,
+    resolve_vehicle_family_identity,
+)
+
 ROOT = Path(__file__).resolve().parents[3]
 RESOLVER_PATH = ROOT / "dxemb" / "shared" / "catalog" / "data" / "vehicle_thumbnail_resolver.final.json"
 
@@ -20,25 +26,6 @@ DEFAULT_SLOT_ORDER = [
     "trunk",
     "wheel",
 ]
-
-FAMILY_ALIASES = {
-    "ada4x4": "hatchback_02",
-    "ada44": "hatchback_02",
-    "hatchback02": "hatchback_02",
-    "offroadhatchback": "hatchback_02",
-    "olga24": "civiliansedan",
-    "civsedan": "civiliansedan",
-    "sarka120": "sedan_02",
-    "sarka": "sedan_02",
-    "sedan02": "sedan_02",
-    "gunter2": "offroad_02",
-    "gunter": "offroad_02",
-    "offroad02": "offroad_02",
-    "m3s": "truck_01",
-    "truck01": "truck_01",
-    "uaz452": "uaz_452",
-    "landroverrangeroverclassic": "landrover",
-}
 
 COLOR_ALIASES = {
     "gray": "grey",
@@ -120,8 +107,7 @@ def _normalize_token(value: str | None) -> str:
 
 
 def normalize_family(value: str | None) -> str:
-    token = _normalize_token(value)
-    return FAMILY_ALIASES.get(token, token)
+    return normalize_vehicle_family_key(value)
 
 
 def normalize_color(value: str | None) -> str:
@@ -152,7 +138,12 @@ def clear_vehicle_thumbnail_resolver_cache() -> None:
 
 def _get_family_entry(family: str) -> dict[str, Any] | None:
     resolver = load_vehicle_thumbnail_resolver()
-    return resolver.get("families", {}).get(family)
+    families = resolver.get("families", {})
+    for key in candidate_resolver_family_keys(family):
+        entry = families.get(key)
+        if isinstance(entry, dict):
+            return entry
+    return families.get(family)
 
 
 def _get_variant_entry(family: str, color: str) -> dict[str, Any] | None:
@@ -283,6 +274,7 @@ def uses_fallback_thumb(family: str, color: str | None, slot: str) -> bool:
 def get_vehicle_thumbnail_payload(family: str, color: str | None = None) -> dict[str, Any]:
     family_key = normalize_family(family)
     color_key = normalize_color(color)
+    identity = resolve_vehicle_family_identity(family)
 
     body = get_vehicle_body(family_key, color_key)
     slots = {}
@@ -293,6 +285,12 @@ def get_vehicle_thumbnail_payload(family: str, color: str | None = None) -> dict
 
     return {
         "family": family_key,
+        "family_identity": {
+            "canonical_key": identity.get("canonical_key") if identity else family_key,
+            "display_name": identity.get("display_name") if identity else family_key,
+            "source_classname_prefixes": identity.get("source_classname_prefixes", []) if identity else [],
+            "aliases": identity.get("aliases", []) if identity else [],
+        },
         "color": color_key,
         "body": body.to_dict(),
         "slots": slots,

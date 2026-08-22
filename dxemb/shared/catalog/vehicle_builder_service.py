@@ -16,6 +16,7 @@ from .vehicle_resolver import (
     resolve_vehicle_thumbnail,
     reload_resolver,
 )
+from .vehicle_family_catalog import resolve_vehicle_family_identity
 
 
 def get_builder_catalog() -> list[dict[str, Any]]:
@@ -25,7 +26,16 @@ def get_builder_catalog() -> list[dict[str, Any]]:
         classname, display_name, category, body_thumbnail_url,
         thumbnail_status, color_count, slot_count
     """
-    return list_vehicle_families()
+    families = list_vehicle_families()
+    for family in families:
+        identity = resolve_vehicle_family_identity(family.get("classname"))
+        family["family_identity"] = {
+            "canonical_key": identity.get("canonical_key") if identity else family.get("classname"),
+            "display_name": identity.get("display_name") if identity else family.get("display_name"),
+            "source_classname_prefixes": identity.get("source_classname_prefixes", []) if identity else [],
+            "aliases": identity.get("aliases", []) if identity else [],
+        }
+    return families
 
 
 def get_builder_payload(classname: str) -> dict[str, Any] | None:
@@ -49,7 +59,17 @@ def get_builder_payload(classname: str) -> dict[str, Any] | None:
         ],
     }
     """
-    return get_vehicle_family(classname)
+    payload = get_vehicle_family(classname)
+    if not payload:
+        return None
+    identity = resolve_vehicle_family_identity(classname)
+    payload["family_identity"] = {
+        "canonical_key": identity.get("canonical_key") if identity else classname,
+        "display_name": identity.get("display_name") if identity else payload.get("display_name"),
+        "source_classname_prefixes": identity.get("source_classname_prefixes", []) if identity else [],
+        "aliases": identity.get("aliases", []) if identity else [],
+    }
+    return payload
 
 
 def resolve_thumbnail_for_card(

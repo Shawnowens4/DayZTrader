@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "families": [
+    {
+      "canonical_key": "sedan_02",
+      "display_name": "Sarka 120",
+      "family_identity": "Sedan 02",
+      "source_classname_prefixes": ["Sedan_02_", "Sedan_02"],
+      "resolver_family_keys": ["sedan_02"],
+      "aliases": ["sarka120", "sarka", "sedan02", "sedan_02"]
+    },
+    {
+      "canonical_key": "hatchback_02",
+      "display_name": "Gunter 2",
+      "family_identity": "Hatchback 02",
+      "source_classname_prefixes": ["Hatchback_02_", "Hatchback_02"],
+      "resolver_family_keys": ["offroad_02", "hatchback_02"],
+      "aliases": ["gunter2", "gunter", "hatchback02", "hatchback_02", "offroad02", "offroad_02"]
+    },
+    {
+      "canonical_key": "offroad_hatchback",
+      "display_name": "Ada 4x4",
+      "family_identity": "Offroad Hatchback",
+      "source_classname_prefixes": ["OffroadHatchback_", "OffroadHatchback"],
+      "resolver_family_keys": ["hatchback_02", "offroad_hatchback", "offroadhatchback"],
+      "aliases": ["ada4x4", "ada44", "offroadhatchback", "offroad_hatchback", "offroadhatchback"]
+    },
+    {
+      "canonical_key": "civilian_sedan",
+      "display_name": "Olga 24",
+      "family_identity": "Civilian Sedan",
+      "source_classname_prefixes": ["CivSedan", "CivilianSedan"],
+      "resolver_family_keys": ["civiliansedan", "civilian_sedan"],
+      "aliases": ["olga24", "civsedan", "civiliansedan", "civilian_sedan"]
+    },
+    {
+      "canonical_key": "truck_01",
+      "display_name": "M3S",
+      "family_identity": "Truck 01",
+      "source_classname_prefixes": ["Truck_01_", "Truck_01"],
+      "resolver_family_keys": ["truck_01"],
+      "aliases": ["m3s", "truck01", "truck_01"]
+    }
+  ]
+}

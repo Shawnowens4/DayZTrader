@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 from urllib.parse import unquote
 from urllib.parse import urlsplit
+
+from .vehicle_family_catalog import resolve_vehicle_family_identity
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _WEB_STATIC_ROOT = Path(__file__).resolve().parents[2] / "web" / "static"
@@ -125,6 +128,37 @@ def _safe_svg_text(value: str, limit: int = 40) -> str:
     return txt[:limit] if len(txt) > limit else txt
 
 
+def _lookup_token(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (value or "").strip().lower())
+
+
+def _resolve_family_entry(resolver: dict[str, Any], classname: str) -> tuple[str | None, dict[str, Any] | None]:
+    key = classname.strip().lower()
+    entry = resolver.get(key) or resolver.get(classname.strip())
+    if isinstance(entry, dict):
+        return classname.strip(), entry
+
+    identity = resolve_vehicle_family_identity(classname)
+    wanted_tokens = {
+        _lookup_token(classname),
+        _lookup_token(classname.replace("_", "")),
+    }
+    if identity:
+        wanted_tokens.add(_lookup_token(str(identity.get("canonical_key", ""))))
+        for alias in identity.get("aliases", []) or []:
+            wanted_tokens.add(_lookup_token(str(alias)))
+        for prefix in identity.get("source_classname_prefixes", []) or []:
+            wanted_tokens.add(_lookup_token(str(prefix).rstrip("_")))
+
+    for resolver_key, resolver_entry in resolver.items():
+        if not isinstance(resolver_entry, dict):
+            continue
+        if _lookup_token(str(resolver_key)) in wanted_tokens:
+            return str(resolver_key), resolver_entry
+
+    return None, None
+
+
 def _svg_data_uri(svg: str) -> str:
     return f"data:image/svg+xml;utf8,{quote(svg, safe='')}"
 
@@ -210,7 +244,7 @@ def resolve_vehicle_thumbnail(
             "resolved_color": color or "",
         }
 
-    entry = resolver.get(key) or resolver.get(classname.strip())
+    _, entry = _resolve_family_entry(resolver, classname)
     if not entry:
         return {
             "thumbnail_url": _vehicle_identity_fallback(fallback_display, classname, "Vehicle"),
@@ -302,12 +336,12 @@ def get_vehicle_family(classname: str) -> dict[str, Any] | None:
     resolver = _load_resolver()
     overrides = _load_overrides()
 
-    key = classname.strip().lower()
-    entry = resolver.get(key) or resolver.get(classname.strip())
+    resolved_key, entry = _resolve_family_entry(resolver, classname)
     if not entry:
         return None
 
-    family_override_url = overrides.get("families", {}).get(key)
+    lookup_key = (resolved_key or classname).strip().lower()
+    family_override_url = overrides.get("families", {}).get(lookup_key)
     colors_raw: dict[str, Any] = entry.get("colors", {})
     colors_out: list[dict[str, Any]] = []
 
@@ -320,7 +354,7 @@ def get_vehicle_family(classname: str) -> dict[str, Any] | None:
     )
 
     for color_key, color_data in colors_raw.items():
-        color_override = overrides.get("colors", {}).get(f"{key}#{color_key}")
+        color_override = overrides.get("colors", {}).get(f"{lookup_key}#{color_key}")
         raw_url = color_override or color_data.get("thumbnail") or entry.get("body_thumbnail") or ""
         local_color_path = _local_asset_url(raw_url)
         local_color_url = local_color_path or local_body_url
@@ -354,8 +388,16 @@ def get_vehicle_family(classname: str) -> dict[str, Any] | None:
             "thumbnail_url": local_slot_url,
             "thumbnail_status": "override" if slot_override_url and _local_asset_url(slot_override_url) else ("mapped" if local_slot_path else ("owner_review_required" if review_required else "family_fallback")),
         })
+    identity = resolve_vehicle_family_identity(classname)
     return {
         "classname": classname,
+        "resolved_classname": resolved_key or classname,
+        "family_identity": {
+            "canonical_key": identity.get("canonical_key") if identity else classname,
+            "display_name": identity.get("display_name") if identity else (entry.get("display_name") or classname),
+            "source_classname_prefixes": identity.get("source_classname_prefixes", []) if identity else [],
+            "aliases": identity.get("aliases", []) if identity else [],
+        },
         "display_name": entry.get("display_name") or classname,
         "category": entry.get("category") or "Vehicle",
         "body_thumbnail_url": local_body_url,
