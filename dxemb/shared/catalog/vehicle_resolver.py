@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -21,6 +20,7 @@ from urllib.parse import unquote
 from urllib.parse import urlsplit
 
 from .vehicle_family_catalog import resolve_vehicle_family_identity
+from .vehicle_family_catalog import normalize_vehicle_family_token
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _WEB_STATIC_ROOT = Path(__file__).resolve().parents[2] / "web" / "static"
@@ -129,7 +129,7 @@ def _safe_svg_text(value: str, limit: int = 40) -> str:
 
 
 def _lookup_token(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", (value or "").strip().lower())
+    return normalize_vehicle_family_token(value)
 
 
 def _resolve_family_entry(resolver: dict[str, Any], classname: str) -> tuple[str | None, dict[str, Any] | None]:

@@ -143,7 +143,7 @@ def _get_family_entry(family: str) -> dict[str, Any] | None:
         entry = families.get(key)
         if isinstance(entry, dict):
             return entry
-    return families.get(family)
+    return None
 
 
 def _get_variant_entry(family: str, color: str) -> dict[str, Any] | None:

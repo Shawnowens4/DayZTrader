@@ -22,8 +22,8 @@
       "display_name": "Ada 4x4",
       "family_identity": "Offroad Hatchback",
       "source_classname_prefixes": ["OffroadHatchback_", "OffroadHatchback"],
-      "resolver_family_keys": ["hatchback_02", "offroad_hatchback", "offroadhatchback"],
-      "aliases": ["ada4x4", "ada44", "offroadhatchback", "offroad_hatchback", "offroadhatchback"]
+      "resolver_family_keys": ["offroad_hatchback", "offroadhatchback"],
+      "aliases": ["ada4x4", "ada44", "offroadhatchback", "offroad_hatchback"]
     },
     {
       "canonical_key": "civilian_sedan",

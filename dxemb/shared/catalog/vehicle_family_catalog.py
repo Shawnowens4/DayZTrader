@@ -13,7 +13,11 @@ CATALOG_PATH = ROOT / "dxemb" / "shared" / "catalog" / "data" / "vehicle_family_
 def _normalize_token(value: str | None) -> str:
     if not value:
         return ""
-    return re.sub(r"[^a-z0-9_]+", "", value.strip().lower())
+    return re.sub(r"[^a-z0-9]+", "", value.strip().lower())
+
+
+def normalize_vehicle_family_token(value: str | None) -> str:
+    return _normalize_token(value)
 
 
 @lru_cache(maxsize=1)
@@ -32,9 +36,10 @@ def load_vehicle_family_catalog() -> dict[str, Any]:
 
 def clear_vehicle_family_catalog_cache() -> None:
     load_vehicle_family_catalog.cache_clear()
+    _family_indexes.cache_clear()
 
 
-def _iter_families() -> list[dict[str, Any]]:
+def _list_families() -> list[dict[str, Any]]:
     payload = load_vehicle_family_catalog()
     out: list[dict[str, Any]] = []
     for row in payload.get("families", []):
@@ -43,25 +48,14 @@ def _iter_families() -> list[dict[str, Any]]:
     return out
 
 
-def resolve_vehicle_family_identity(value: str | None) -> dict[str, Any] | None:
-    raw = (value or "").strip()
-    token = _normalize_token(raw)
-    if not raw and not token:
-        return None
-
-    lowered = raw.lower()
-    for family in _iter_families():
-        prefixes = family.get("source_classname_prefixes", [])
-        if not isinstance(prefixes, list):
-            prefixes = []
-        for prefix in prefixes:
-            if isinstance(prefix, str) and lowered.startswith(prefix.lower()):
-                out = dict(family)
-                out["matched_by"] = "source_classname_prefix"
-                out["matched_value"] = prefix
-                return out
-
-    for family in _iter_families():
+@lru_cache(maxsize=1)
+def _family_indexes() -> tuple[list[tuple[str, dict[str, Any]]], dict[str, dict[str, Any]]]:
+    prefix_index: list[tuple[str, dict[str, Any]]] = []
+    token_index: dict[str, dict[str, Any]] = {}
+    for family in _list_families():
+        for prefix in family.get("source_classname_prefixes", []) or []:
+            if isinstance(prefix, str) and prefix.strip():
+                prefix_index.append((prefix.lower(), family))
         resolver_keys = family.get("resolver_family_keys", [])
         aliases = family.get("aliases", [])
         candidates = []
@@ -71,11 +65,33 @@ def resolve_vehicle_family_identity(value: str | None) -> dict[str, Any] | None:
             candidates.extend(resolver_keys)
         candidates.append(family.get("canonical_key", ""))
         for candidate in candidates:
-            if _normalize_token(candidate) == token:
-                out = dict(family)
-                out["matched_by"] = "alias"
-                out["matched_value"] = candidate
-                return out
+            normalized = _normalize_token(str(candidate))
+            if normalized and normalized not in token_index:
+                token_index[normalized] = family
+    return prefix_index, token_index
+
+
+def resolve_vehicle_family_identity(value: str | None) -> dict[str, Any] | None:
+    raw = (value or "").strip()
+    token = _normalize_token(raw)
+    if not token:
+        return None
+
+    lowered = raw.lower()
+    prefix_index, token_index = _family_indexes()
+    for prefix, family in prefix_index:
+        if lowered.startswith(prefix):
+            out = dict(family)
+            out["matched_by"] = "source_classname_prefix"
+            out["matched_value"] = prefix
+            return out
+
+    family = token_index.get(token)
+    if family:
+        out = dict(family)
+        out["matched_by"] = "alias"
+        out["matched_value"] = token
+        return out
     return None
 
 
