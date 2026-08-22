@@ -367,8 +367,8 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
   const qsa = (sel, root = document) => [...root.querySelectorAll(sel)];
   const state = window.__DZBuilderWorkflow || (window.__DZBuilderWorkflow = { quick: [], builds: [], vehicle: null, children: {} });
 
-  // Fallback attachment map. Retained until a follow-up slice consumes the real
-  // cfgspawnabletypes.xml compatibility rules (window.__DZUploadState.catalog.compat) in the cargo modal.
+  // Fallback attachment map for unloaded or unmapped cfgspawnabletypes.xml parents only.
+  // Uploaded compatibility data is authoritative whenever a parent entry exists.
   const gunChildren = {
     akm: ['AK_WoodHndgrd', 'AK_WoodBttstck', 'AK_Suppressor', 'PSO1Optic', 'Mag_AKM_30Rnd'],
     sks: ['SKS_Bayonet', 'PUScopeOptic', 'Ammo_762x39', 'Battery9V'],
@@ -628,25 +628,65 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
     );
   }
 
+  function resolveParentCompat(name, fallbackChildren = []) {
+    const compat = window.__DZUploadState?.catalog?.compat || {};
+    const xmlCompat = compat[name];
+    if (xmlCompat) {
+      return {
+        source: 'cfgspawnabletypes.xml',
+        attachments: xmlCompat.attachments || [],
+        cargo: xmlCompat.cargo || [],
+        all: xmlCompat.all || [],
+      };
+    }
+    const fallback = fallbackChildren.length
+      ? fallbackChildren
+      : (gunChildren[String(name).toLowerCase().replace(/[^a-z0-9]+/g, '')] || []);
+    return {
+      source: fallback.length ? 'fallback' : 'none',
+      attachments: fallback.map((child) => ({ name: child, chance: '1.00' })),
+      cargo: [],
+      all: fallback,
+    };
+  }
+
   function openCargoModalFromData(name, type, children = []) {
-    const ctx = { name, type, isGun: children.length > 0 || /weapon|rifle|smg|pistol|gun/i.test(type), children };
+    const compat = resolveParentCompat(name, children);
+    const childNames = compat.all;
+    const ctx = {
+      name,
+      type,
+      isGun: childNames.length > 0 || /weapon|rifle|smg|pistol|gun/i.test(type),
+      children: childNames,
+      compat,
+    };
+    const compatibilityDetail = compat.source === 'cfgspawnabletypes.xml'
+      ? `Loaded ${compat.attachments.length} attachment(s) and ${compat.cargo.length} cargo child item(s) from cfgspawnabletypes.xml.`
+      : compat.source === 'fallback'
+        ? 'No cfgspawnabletypes.xml rule exists for this parent; displayed children use the documented fallback map.'
+        : 'No child compatibility rule is loaded; this item will be added as standalone cargo.';
     const modalItems = [
       { ok: true, label: ctx.name, detail: `${ctx.type} selected for the builder.`, thumb: thumbFor(ctx.name) },
-      { ok: true, label: ctx.isGun ? 'Gun nesting enabled' : 'Single cargo item', detail: ctx.isGun ? 'Parent item can accept child attachments and cargo.' : 'This item adds cleanly as a standalone cargo entry.', thumb: thumbFor(ctx.isGun ? 'Battery9V' : ctx.name) },
+      { ok: true, label: compat.source === 'cfgspawnabletypes.xml' ? 'XML compatibility loaded' : 'Standalone or fallback flow', detail: compatibilityDetail, thumb: thumbFor(ctx.isGun ? 'Battery9V' : ctx.name) },
       { ok: true, label: 'Console-safe flow', detail: 'Item is added only after this modal confirms the action.', thumb: thumbFor('types.xml') },
     ];
     openModal(
       `Cargo Builder: ${ctx.name}`,
-      ctx.isGun ? 'Choose whether to add the parent item only or include child nesting for the weapon build.' : 'Choose whether to add the cargo item to the quick builder.' ,
+      childNames.length ? 'Choose whether to add the parent item only or include its validated child nesting.' : 'Choose whether to add the cargo item to the quick builder.',
       modalItems,
-      ctx.isGun ? ctx.children.slice(0, 4) : ['Cargo item', 'Standalone', 'Export ready'],
+      childNames.length ? childNames.slice(0, 4) : ['Cargo item', 'Standalone', 'Export ready'],
       [
         { id: 'add-parent', label: 'Add Item', variant: 'primary' },
-        ...(ctx.isGun ? [{ id: 'add-with-children', label: 'Add With Child Nesting', variant: '' }] : []),
+        ...(childNames.length ? [{ id: 'add-with-children', label: 'Add With Child Nesting', variant: '' }] : []),
       ]
     );
     const modal = $('builderModal');
-    if (modal) modal.dataset.cargoName = ctx.name;
+    if (modal) {
+      modal.dataset.cargoName = ctx.name;
+      modal.dataset.cargoType = ctx.type;
+      modal.dataset.cargoChildren = JSON.stringify(childNames);
+      modal.dataset.compatSource = compat.source;
+    }
     modal?.setAttribute('data-cargo-is-gun', ctx.isGun ? '1' : '0');
   }
 
@@ -669,17 +709,22 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       toast('Running parts verified. Use the cargo builder for child nesting.');
       return;
     }
+    const modalChildren = JSON.parse(modal?.dataset.cargoChildren || '[]');
+    const cargoType = modal?.dataset.cargoType || (isGun ? 'Weapon' : 'Cargo');
     if (actionId === 'add-parent') {
-      addQuickItem({ name: cargoName, type: isGun ? 'Weapon' : 'Cargo', children: isGun ? (gunChildren[cargoName.toLowerCase().replace(/[^a-z0-9]+/g, '')] || []) : [] }, false);
+      addQuickItem({ name: cargoName, type: cargoType, children: modalChildren }, false);
       closeModal();
       toast(`${cargoName} added to Quick Build.`);
       return;
     }
     if (actionId === 'add-with-children') {
-      const childList = gunChildren[cargoName.toLowerCase().replace(/[^a-z0-9]+/g, '')] || ['Battery9V', 'DuctTape'];
-      addQuickItem({ name: cargoName, type: 'Weapon', children: childList }, true);
+      if (!modalChildren.length) {
+        toast(`${cargoName} has no validated child compatibility loaded.`);
+        return;
+      }
+      addQuickItem({ name: cargoName, type: cargoType, children: modalChildren }, true);
       closeModal();
-      toast(`${cargoName} added with child nesting.`);
+      toast(`${cargoName} added with validated child nesting.`);
       return;
     }
   }
@@ -737,6 +782,11 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
           return;
         }
         const parent = state.quick[0];
+        const allowedChildren = resolveParentCompat(parent.name, parent.children || []).all;
+        if (!allowedChildren.includes(name)) {
+          toast(`${name} is blocked: it is not compatible with ${parent.name} in cfgspawnabletypes.xml.`);
+          return;
+        }
         parent.children = parent.children || [];
         if (!parent.children.includes(name)) parent.children.push(name);
         renderQuickBuilder();

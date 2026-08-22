@@ -31,7 +31,7 @@ class OldbaseSpawnableCompatContractTests(unittest.TestCase):
 
     def test_gunChildren_retained_as_fallback(self):
         self.assertIn("const gunChildren = {", self.source)
-        self.assertIn("Retained until a follow-up slice consumes the real", self.source)
+        self.assertIn("Fallback attachment map for unloaded or unmapped", self.source)
 
     def test_old_dead_selectors_removed(self):
         self.assertNotIn("extractXmlNames(text, 'attachment[name]'", self.source)
