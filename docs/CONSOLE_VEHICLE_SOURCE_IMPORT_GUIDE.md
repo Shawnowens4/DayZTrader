@@ -67,6 +67,22 @@ review_status values:
 
 Only direct_console_proof_available should be used for approving a specific vehicle-to-part rule.
 
+## Authoritative Vehicle Family Naming Model
+
+The canonical vehicle-family model is stored in:
+
+- `dxemb/shared/catalog/data/vehicle_family_catalog.json`
+
+This catalog separates canonical identity from legacy resolver keys and aliases. Current canonical mappings for console work are:
+
+- `sedan_02` -> **Sarka 120** -> `Sedan_02_*`
+- `hatchback_02` -> **Gunter 2** -> `Hatchback_02_*`
+- `offroad_hatchback` -> **Ada 4x4** -> `OffroadHatchback*`
+- `civilian_sedan` -> **Olga 24** -> `CivSedan*`
+- `truck_01` -> **M3S** -> `Truck_01_*`
+
+Rule: canonical labels do not auto-approve availability. Any unresolved or unverified vehicle/slot/variant mapping remains `owner_review_required` and blocked from player-facing selection until owner evidence is attached.
+
 ## Locator Format
 
 Use compact locators so a later reviewer can re-open proof quickly:
