@@ -15,7 +15,7 @@ Scope: Xbox/PlayStation vanilla console only. No PC/mod/Arma/workshop/future con
 - vehicle families (resolver final): 3
 - vehicle variants (variant manifest): 16
 - repository local images: 4
-- reference corpus images (C:/DXEMB/items): 0
+- reference corpus images (C:/DXEMB/items): 2035
 - exact_local_image: 0
 - family_fallback_only: 0
 - generic_fallback_only: 13
@@ -25,9 +25,9 @@ Scope: Xbox/PlayStation vanilla console only. No PC/mod/Arma/workshop/future con
 - evidence direct_console_proof_available: 0
 - evidence unknown_or_missing: 3
 - part_only images (repo): 0
-- part_only images (reference corpus): 0
+- part_only images (reference corpus): 147
 - excluded images (repo): 0
-- excluded images (reference corpus): 0
+- excluded images (reference corpus): 4
 
 ## Source Paths
 

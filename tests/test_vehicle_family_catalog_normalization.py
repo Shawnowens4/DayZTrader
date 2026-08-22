@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import sys
 import unittest
@@ -35,7 +35,9 @@ class VehicleFamilyCatalogNormalizationTests(unittest.TestCase):
         self.assertEqual(normalize_family("Sarka 120"), "sedan_02")
         self.assertEqual(normalize_family("Gunter 2"), "hatchback_02")
         self.assertNotEqual(normalize_family("Sarka 120"), "hatchback_02")
+        self.assertNotEqual(normalize_family("offroad_02"), "hatchback_02")
 
 
 if __name__ == "__main__":
     unittest.main()
+
