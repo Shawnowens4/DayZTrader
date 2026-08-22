@@ -367,6 +367,8 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
   const qsa = (sel, root = document) => [...root.querySelectorAll(sel)];
   const state = window.__DZBuilderWorkflow || (window.__DZBuilderWorkflow = { quick: [], builds: [], vehicle: null, children: {} });
 
+  // Fallback attachment map. Retained until a follow-up slice consumes the real
+  // cfgspawnabletypes.xml compatibility rules (window.__DZUploadState.catalog.compat) in the cargo modal.
   const gunChildren = {
     akm: ['AK_WoodHndgrd', 'AK_WoodBttstck', 'AK_Suppressor', 'PSO1Optic', 'Mag_AKM_30Rnd'],
     sks: ['SKS_Bayonet', 'PUScopeOptic', 'Ammo_762x39', 'Battery9V'],
@@ -861,6 +863,36 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       .filter(Boolean);
   }
 
+  function parseSpawnableCompat(text) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'application/xml');
+    const compat = {};
+    doc.querySelectorAll('type[name]').forEach((typeNode) => {
+      const parent = typeNode.getAttribute('name');
+      if (!parent) return;
+      const attachments = [];
+      const cargo = [];
+      typeNode.querySelectorAll('attachments').forEach((attNode) => {
+        attNode.querySelectorAll('item[name]').forEach((itemNode) => {
+          attachments.push({ name: itemNode.getAttribute('name'), chance: itemNode.getAttribute('chance') || '1.00' });
+        });
+      });
+      typeNode.querySelectorAll('cargo').forEach((cargoNode) => {
+        cargoNode.querySelectorAll('item[name]').forEach((itemNode) => {
+          cargo.push({ name: itemNode.getAttribute('name'), chance: itemNode.getAttribute('chance') || '1.00' });
+        });
+      });
+      if (attachments.length || cargo.length) {
+        compat[parent] = {
+          attachments: attachments,
+          cargo: cargo,
+          all: unique(attachments.concat(cargo).map((entry) => entry.name)),
+        };
+      }
+    });
+    return compat;
+  }
+
   function makeThumbSrc(name) {
     const url = window.DayZImageDB?.urlFor?.(name);
     if (url) return url;
@@ -881,14 +913,15 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
 
   function parseXmlStats(name, text) {
     const lower = name.toLowerCase();
+    const isSpawnable = lower.includes('cfgspawnabletypes');
     const itemCount = countMatches(text, /<type\b/gi);
     const spawnableCount = countMatches(text, /<attachment\b|<cargo\b/gi);
     const eventCount = countMatches(text, /<event\b|<eventpos\b|<position\b/gi);
     const vehicleCount = vehicleClassnames.reduce((sum, classname) => sum + (text.includes(classname) ? 1 : 0), 0);
     const typeNames = unique(extractXmlNames(text, 'type[name]', 'name'));
     const spawnableNames = unique([
-      ...extractXmlNames(text, 'attachment[name]', 'name'),
-      ...extractXmlNames(text, 'cargo[name]', 'name'),
+      ...extractXmlNames(text, 'attachments item[name]', 'name'),
+      ...extractXmlNames(text, 'cargo item[name]', 'name'),
     ]);
     const eventNames = unique([
       ...extractXmlNames(text, 'event[name]', 'name'),
@@ -904,6 +937,7 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       typeNames,
       spawnableNames,
       eventNames,
+      compat: isSpawnable ? parseSpawnableCompat(text) : null,
     };
   }
 
@@ -988,7 +1022,7 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
     })) : defaultCatalog.map((item) => ({ ...item, thumb: makeThumbSrc(item.name) }));
 
     catalog.types = typesFile?.typeNames || [];
-    catalog.spawnable = spawnFile?.spawnableNames || [];
+    catalog.spawnable = spawnFile?.compat ? Object.values(spawnFile.compat).flatMap((c) => c.all) : (spawnFile?.spawnableNames || []);
     catalog.events = state.files.get('cfgeventspawns.xml')?.eventNames || [];
 
     table.classList.add('catalog-grid');
@@ -1017,7 +1051,11 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       const name = file.name.toLowerCase();
       state.files.set(name, parseXmlStats(name, text));
       if (name === 'types.xml') state.catalog.types = state.files.get(name).typeNames;
-      if (name === 'cfgspawnabletypes.xml') state.catalog.spawnable = state.files.get(name).spawnableNames;
+      if (name === 'cfgspawnabletypes.xml') {
+        const spawnFile = state.files.get(name);
+        state.catalog.spawnable = spawnFile?.spawnableNames || [];
+        state.catalog.compat = spawnFile?.compat || null;
+      }
       if (name === 'cfgeventspawns.xml') state.catalog.events = state.files.get(name).eventNames;
     }
 

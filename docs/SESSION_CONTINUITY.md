@@ -89,3 +89,18 @@ Stabilize one oldbase builder controller without changing its visual identity:
 - Restricted catalog cards are explicitly disabled and guarded in the action path.
 - Spawnable membership is no longer presented as authoritative child compatibility.
 - Still unresolved by design: trunk capacity, quantities, bags, bundles, and authoritative nested attachment compatibility.
+
+## Spawnable Compat Data Layer - In Progress
+
+- Added parseSpawnableCompat(text) to parse cfgspawnabletypes.xml into a typed
+  {parent: {attachments, cargo, all}} compatibility map using correct selectors
+  (type[name] / attachments / cargo / item[name]).
+- Fixed spawnableNames selectors in parseXmlStats (attachments item[name] +
+  cargo item[name]) replacing dead attachment[name]/cargo[name] selectors.
+- Exposed state.catalog.compat in handleFiles; renderCargoPicker derives
+  catalog.spawnable from compat.all so item cards show real cfgspawnabletypes
+  source descriptions.
+- gunChildren retained as documented fallback; modal/nesting behavior unchanged
+  until the next slice consumes state.catalog.compat.
+- Still unresolved by design: per-parent nesting enforcement in the cargo modal,
+  trunk/cargo/kit separation, loadExample, search/filter, 18-item cap.
