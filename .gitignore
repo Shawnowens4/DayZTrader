@@ -4,3 +4,6 @@ __pycache__/
 *.pyc
 .venv/
 local_console_reference/
+
+# Local recovery backups (do not commit)
+docs/recovery_backups/

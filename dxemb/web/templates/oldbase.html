@@ -95,162 +95,12 @@ const vehicles=[
 document.addEventListener('click',e=>{const bubble=e.target.closest('.color-bubble');if(bubble){e.preventDefault();e.stopPropagation();const id=bubble.dataset.vehicle||selected.id;selectedColors[id]=bubble.dataset.color;const v=vehicles.find(x=>x.id===id);if(v)selected=v;renderVehicles();return;}const next=e.target.closest('.vehicle-bottom');if(next&&$('vehicleMain')&&!$('vehicleMain').classList.contains('hidden')){showTab('configure');return;}});
 $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe, strict compatibility.');$('docLink').onclick=$('footDoc').onclick=()=>toast('Documentation link wired.');
 </script>
-<script id="tab3-clickable-blank-state-script">
-(() => {
-  const q = (sel, root=document) => root.querySelector(sel);
-  const qa = (sel, root=document) => [...root.querySelectorAll(sel)];
-  const msg = (text) => {
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = text;
-    t.classList.add('show');
-    clearTimeout(window.__tab3Toast);
-    window.__tab3Toast = setTimeout(() => t.classList.remove('show'), 2200);
-  };
-  const state = { quick: [], builds: [] };
-  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  function quickShell() {
-    const panel = q('#configureMain .quick-build');
-    if (!panel) return;
-    panel.innerHTML = `
-      <div class="subhead"><span>Quick Build</span><span class="orange">Empty</span></div>
-      <div id="quickBuildList" class="quick-build-list empty-state">No active build yet. Use the <b>+</b> buttons in the cargo picker to start one.</div>
-      <div class="attachments"><div class="attach-title">Compatible Attachments Only</div><div id="attachList" class="attach-list empty-state">Pick a weapon or compatible cargo item to show allowed attachments here.</div></div>
-      <button id="addWorkbenchBtn" class="add-workbench" disabled>Add To Workbench</button>`;
-  }
-
-  function workbenchShell() {
-    const grid = q('#configureMain .workbench-grid');
-    if (!grid) return;
-    grid.classList.add('empty-state');
-    grid.innerHTML = 'No assembled items yet. Add cargo to Quick Build, then click <b>Add To Workbench</b>.';
-    const title = q('#configureMain .workbench .subhead span:last-child');
-    if (title) title.textContent = '0 Builds';
-  }
-
-  function attachmentSuggestions(seed) {
-    const name = (seed || '').toLowerCase();
-    if (name.includes('akm')) return ['AK_WoodHndgrd', 'AK_WoodBttstck', 'AK_Suppressor', 'PSO1Optic', 'Mag_AKM_30Rnd', 'Battery9V'];
-    if (name.includes('sks')) return ['PUScopeOptic', 'SKS_Bayonet', 'Ammo_762x39', 'Battery9V'];
-    if (name.includes('usg')) return ['Mag_UMP_25Rnd', 'PistolSuppressor', 'UniversalLight', 'Battery9V'];
-    if (name.includes('firstaid')) return ['BandageDressing', 'TetracyclineAntibiotics', 'Morphine'];
-    if (name.includes('ammobox')) return ['Ammo_762x39', 'Ammo_556x45', 'Ammo_45ACP'];
-    return ['Battery9V', 'DuctTape', 'Rag'];
-  }
-
-  function renderQuick() {
-    const list = q('#quickBuildList');
-    const btn = q('#addWorkbenchBtn');
-    const attach = q('#attachList');
-    if (!list || !btn || !attach) return;
-    if (!state.quick.length) {
-      list.className = 'quick-build-list empty-state';
-      list.innerHTML = 'No active build yet. Use the <b>+</b> buttons in the cargo picker to start one.';
-      attach.className = 'attach-list empty-state';
-      attach.innerHTML = 'Pick a weapon or compatible cargo item to show allowed attachments here.';
-      btn.disabled = true;
-      const head = q('#configureMain .quick-build .subhead span:last-child');
-      if (head) head.textContent = 'Empty';
-      return;
-    }
-    list.className = 'quick-build-list';
-    list.innerHTML = state.quick.map((item, idx) => `
-      <div class="qb-row" data-qb-index="${idx}"><div><b>${esc(item.name)}</b><span>${esc(item.type)}</span></div><input class="chance" value="${esc(item.chance || '100%')}"><button class="remove" data-remove-qb="${idx}">×</button></div>`).join('');
-    const base = state.quick[0]?.name || '';
-    attach.className = 'attach-list';
-    attach.innerHTML = attachmentSuggestions(base).map(x => `<div class="attach-card" data-attach-name="${esc(x)}"><b>${esc(x)}</b><span>Compatible option</span></div>`).join('');
-    btn.disabled = false;
-    const head = q('#configureMain .quick-build .subhead span:last-child');
-    if (head) head.textContent = `${state.quick.length} Item${state.quick.length === 1 ? '' : 's'}`;
-  }
-
-  function renderWorkbench() {
-    const grid = q('#configureMain .workbench-grid');
-    if (!grid) return;
-    const title = q('#configureMain .workbench .subhead span:last-child');
-    if (title) title.textContent = `${state.builds.length} Build${state.builds.length === 1 ? '' : 's'}`;
-    if (!state.builds.length) {
-      grid.classList.add('empty-state');
-      grid.innerHTML = 'No assembled items yet. Add cargo to Quick Build, then click <b>Add To Workbench</b>.';
-      return;
-    }
-    grid.classList.remove('empty-state');
-    grid.innerHTML = state.builds.map((build, idx) => `
-      <div class="build-card" data-build-index="${idx}"><div class="build-art"></div><b>${esc(build.name)}</b><span>${esc(build.count)} item${build.count === 1 ? '' : 's'} assembled</span><div class="build-meta"><span>Items: ${esc(build.count)}</span><span>${esc(build.chance)}</span></div></div>`).join('');
-  }
-
-  function addQuickFromRow(row) {
-    const name = q('.item-name b', row)?.textContent?.trim() || 'Cargo Item';
-    const type = row.children?.[1]?.textContent?.trim() || 'Cargo';
-    state.quick.push({ name, type, chance: '100%' });
-    renderQuick();
-    msg(`${name} added to Quick Build.`);
-  }
-
-  function initBlankAreas() {
-    quickShell();
-    workbenchShell();
-    state.quick = [];
-    state.builds = [];
-    renderQuick();
-    renderWorkbench();
-  }
-
-  function init() {
-    const configure = q('#configureMain');
-    if (!configure) return;
-    initBlankAreas();
-    document.addEventListener('click', (e) => {
-      const plus = e.target.closest('.item-actions button');
-      if (plus && configure.contains(plus)) {
-        const row = plus.closest('.item-row');
-        if (row) addQuickFromRow(row);
-        return;
-      }
-      const attach = e.target.closest('.attach-card');
-      if (attach && configure.contains(attach)) {
-        const name = attach.dataset.attachName || q('b', attach)?.textContent || 'Attachment';
-        state.quick.push({ name, type: 'Attachment', chance: '100%' });
-        renderQuick();
-        msg(`${name} added to Quick Build.`);
-        return;
-      }
-      const remove = e.target.closest('[data-remove-qb]');
-      if (remove && configure.contains(remove)) {
-        const idx = Number(remove.dataset.removeQb);
-        state.quick.splice(idx, 1);
-        renderQuick();
-        return;
-      }
-      const add = e.target.closest('#addWorkbenchBtn');
-      if (add && configure.contains(add)) {
-        if (!state.quick.length) { msg('Quick Build is empty. Add an item first.'); return; }
-        const base = state.quick[0].name || 'Custom Build';
-        state.builds.push({ name: `${base} Build`, count: state.quick.length, chance: '1.00' });
-        state.quick = [];
-        renderQuick();
-        renderWorkbench();
-        msg(`${base} Build added to Workbench.`);
-        return;
-      }
-      const build = e.target.closest('.build-card');
-      if (build && configure.contains(build)) {
-        qa('.build-card', configure).forEach(c => c.classList.remove('selected-build'));
-        build.classList.add('selected-build');
-        msg(`${q('b', build)?.textContent || 'Build'} selected.`);
-        return;
-      }
-      const reset = e.target.closest('.config-left .view');
-      if (reset && configure.contains(reset)) {
-        qa('#cargoSearchTop,#cargoSearchSide', configure).forEach(input => input.value = '');
-        msg('Filters reset. Build areas remain blank until you add items.');
-      }
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-})();
-</script>
+<!--
+  Retired duplicate Tab 3 controller.
+  Historical behavior is intentionally disabled because it owned private quick/builds
+  state and duplicate document handlers. The active builder is window.__DZBuilderWorkflow
+  in dayz-workflow-pass-script.
+-->
 
 <script id="dayz-image-db-v14-script">
 (()=>{
@@ -719,84 +569,8 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
     if (configBottom) configBottom.firstElementChild.textContent = state.quick.some(item => (item.children || []).length) ? 'Nested child cargo enabled for gun builds.' : 'Nested container rule: only selected containers may contain child cargo.';
   }
 
-  function wireWorkflowControls() {
-    const confirm = $('#confirmVehicle');
-    if (confirm && confirm.dataset.workflowBound !== '1') {
-      confirm.dataset.workflowBound = '1';
-      confirm.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openVehiclePartsModal();
-      };
-    }
+  // Direct per-element workflow bindings retired. The delegated document handler below is the sole action path.
 
-    qsa('#configureMain .item-actions button').forEach((button) => {
-      if (button.dataset.workflowBound === '1') return;
-      button.dataset.workflowBound = '1';
-      button.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const row = button.closest('.item-row');
-        if (row) openCargoModal(row);
-      };
-    });
-
-    qsa('#configureMain .attach-card').forEach((card) => {
-      if (card.dataset.workflowBound === '1') return;
-      card.dataset.workflowBound = '1';
-      card.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const name = card.dataset.attachName || qs('b', card)?.textContent?.trim() || 'Attachment';
-        if (!state.quick.length) {
-          addQuickItem({ name, type: 'Attachment', children: [] }, false);
-          toast(`${name} added to Quick Build.`);
-          return;
-        }
-        const parent = state.quick[0];
-        parent.children = parent.children || [];
-        if (!parent.children.includes(name)) parent.children.push(name);
-        renderQuickBuilder();
-        toast(`${name} nested under ${parent.name}.`);
-      };
-    });
-
-    const addWorkbench = $('#addWorkbenchBtn');
-    if (addWorkbench && addWorkbench.dataset.workflowBound !== '1') {
-      addWorkbench.dataset.workflowBound = '1';
-      addWorkbench.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        moveQuickToWorkbench();
-      };
-    }
-
-    qsa('#configureMain [data-remove-qb]').forEach((button) => {
-      if (button.dataset.workflowBound === '1') return;
-      button.dataset.workflowBound = '1';
-      button.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const index = Number(button.dataset.removeQb);
-        state.quick.splice(index, 1);
-        renderQuickBuilder();
-      };
-    });
-
-    qsa('#configureMain [data-remove-child]').forEach((button) => {
-      if (button.dataset.workflowBound === '1') return;
-      button.dataset.workflowBound = '1';
-      button.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const [indexText, childName] = String(button.dataset.removeChild).split(':');
-        const index = Number(indexText);
-        const item = state.quick[index];
-        if (item?.children) item.children = item.children.filter((child) => child !== childName);
-        renderQuickBuilder();
-      };
-    });
-  }
 
   function detectCargoContext(row) {
     const name = qs('.item-name b', row)?.textContent?.trim() || 'Cargo Item';
@@ -912,7 +686,6 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
     ensureStyles();
     refreshFallbackThumbs();
     renderQuickBuilder();
-    wireWorkflowControls();
 
     const observer = new MutationObserver(() => refreshFallbackThumbs());
     observer.observe(document.body, { childList: true, subtree: true });
@@ -939,10 +712,15 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       if (catalogAdd) {
         event.preventDefault();
         event.stopPropagation();
+        const card = catalogAdd.closest('.catalog-card');
         const name = catalogAdd.dataset.catalogAdd || 'Cargo Item';
-        const kind = catalogAdd.closest('.catalog-card')?.dataset.catalogKind || 'Cargo';
-        const spawnableNames = window.__DZUploadState?.catalog?.spawnable || [];
-        openCargoModalFromData(name, kind, spawnableNames.includes(name) ? ['Attachment', 'Cargo'] : []);
+        const kind = card?.dataset.catalogKind || 'Cargo';
+        if (card?.dataset.catalogRestricted === '1' || kind === 'Restricted') {
+          toast(`${name} is blocked: nested cargo support is not implemented for this item.`);
+          return;
+        }
+        // Spawnable membership is not authoritative child compatibility.
+        openCargoModalFromData(name, kind, []);
         return;
       }
 
@@ -1002,15 +780,21 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
       }
     }, true);
 
+    document.addEventListener('input', (event) => {
+      const chanceInput = event.target.closest('#configureMain .qb-row .chance');
+      if (!chanceInput) return;
+      const row = chanceInput.closest('[data-quick-index]');
+      const index = Number(row?.dataset.quickIndex);
+      if (Number.isInteger(index) && state.quick[index]) {
+        state.quick[index].chance = chanceInput.value || '100%';
+      }
+    });
+
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeModal();
     });
 
-    setInterval(() => {
-      if (qs('#configureMain:not(.hidden)')) renderQuickBuilder();
-      refreshFallbackThumbs();
-      wireWorkflowControls();
-    }, 1500);
+    // No polling rerender: state-changing delegated actions render explicitly.
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
@@ -1209,12 +993,14 @@ $('viewRules').onclick=()=>toast('Rules panel active: vanilla-only, console-safe
 
     table.classList.add('catalog-grid');
     table.innerHTML = items.slice(0, 18).map((item) => `
-      <div class="catalog-card" data-catalog-name="${esc(item.name)}" data-catalog-kind="${esc(item.kind)}">
+      <div class="catalog-card" data-catalog-name="${esc(item.name)}" data-catalog-kind="${esc(item.kind)}" data-catalog-restricted="${item.kind === 'Restricted' ? '1' : '0'}">
         <div class="catalog-thumb"><img src="${esc(item.thumb)}" alt="${esc(item.name)}"></div>
         <b>${esc(item.name)}</b>
         <span>${esc(item.desc)}</span>
         <div class="catalog-meta"><span>${esc(item.kind)}</span><span>${esc(item.slots)}</span><span>${esc(item.weight)}</span></div>
-        <button class="catalog-add" data-catalog-add="${esc(item.name)}">+</button>
+        ${item.kind === 'Restricted'
+          ? '<span class="catalog-restriction">Not supported in nested cargo</span><button class="catalog-add" data-catalog-add="${esc(item.name)}" disabled aria-disabled="true">Blocked</button>'
+          : '<button class="catalog-add" data-catalog-add="${esc(item.name)}">+</button>'}
       </div>
     `).join('');
   }

@@ -78,3 +78,14 @@ Stabilize one oldbase builder controller without changing its visual identity:
 4. Consult relevant verified history in `docs/PROJECT_CONTINUITY.md`.
 5. Check branch/status.
 6. Read only source sections needed for the current task.
+
+## Oldbase Controller Repair - In Progress
+
+- Baseline checkpoint: `78882ff` (`ui: checkpoint guided trader visual foundation`).
+- Retired the duplicate private Tab 3 controller so it cannot own builder state or bind competing actions.
+- `window.__DZBuilderWorkflow` remains the one active state controller.
+- Removed direct per-element workflow bindings and the 1.5-second polling rerender.
+- Added delegated main-item chance persistence.
+- Restricted catalog cards are explicitly disabled and guarded in the action path.
+- Spawnable membership is no longer presented as authoritative child compatibility.
+- Still unresolved by design: trunk capacity, quantities, bags, bundles, and authoritative nested attachment compatibility.
